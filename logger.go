@@ -128,7 +128,7 @@ func FromContext(context context.Context) (*Logger, error) {
 
 // ToContext stores the Logger in the given context
 func (l *Logger) ToContext(parent context.Context) context.Context {
-	return context.WithValue(parent, ContextKey, &l)
+	return context.WithValue(parent, ContextKey, l)
 }
 
 // Handler function will wrap an http handler with extra logging information
