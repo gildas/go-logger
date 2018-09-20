@@ -139,7 +139,7 @@ func Handler(logger *Logger, h http.HandlerFunc) http.HandlerFunc {
 		// Get a request identifier
 		reqid := r.Header.Get("X-Line-Request-Id")
 		if len(reqid) == 0 { reqid = r.Header.Get("X-Request-Id") }
-		if len(reqid) == 0 { reqid = uuid.NewV4().String() }
+		if len(reqid) == 0 { reqid = uuid.Must(uuid.NewV1()).String() }
 
 		reqLogger := logger.Record("topic", "route").Record("scope", r.URL.Path).Record("reqid", reqid).Child()
 		reqLogger.Infof("request start: %s %s", r.Method, html.EscapeString(r.URL.Path))
