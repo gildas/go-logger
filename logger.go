@@ -165,8 +165,8 @@ func (l *Logger) ToContext(parent context.Context) context.Context {
 	return context.WithValue(parent, ContextKey, l)
 }
 
-// Handler function will wrap an http handler with extra logging information
-func Handler(logger *Logger, h http.HandlerFunc) http.HandlerFunc {
+// HandlerFunc function will wrap an http handler with extra logging information
+func HandlerFunc(logger *Logger, h http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
@@ -177,10 +177,31 @@ func Handler(logger *Logger, h http.HandlerFunc) http.HandlerFunc {
 
 		reqLogger := logger.Record("topic", "route").Record("scope", r.URL.Path).Record("reqid", reqid).Child()
 		reqLogger.Infof("request start: %s %s", r.Method, html.EscapeString(r.URL.Path))
-		h.ServeHTTP(w, r.WithContext(reqLogger.(*Logger).ToContext(r.Context())))
+		h.ServeHTTP(w, r.WithContext(reqLogger.(*Logger).ToContext(context.WithValue(r.Context(), "reqid", reqid)))
 		duration := time.Now().Sub(start)
 		reqLogger.Record("duration", duration.Seconds()).Infof("request finish: %s %s", r.Method, html.EscapeString(r.URL.Path))
 	})
+}
+
+// Handler function will wrap an http handler with extra logging information
+func (l *Logger) Handler() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+
+			// Get a request identifier
+			reqid := r.Header.Get("X-Line-Request-Id")
+			if len(reqid) == 0 { reqid = r.Header.Get("X-Request-Id") }
+			if len(reqid) == 0 { reqid = uuid.Must(uuid.NewV1()).String() }
+			w.Header().Set("X-Request-Id", reqid)
+
+			reqLogger := logger.Record("topic", "route").Record("scope", r.URL.Path).Record("reqid", reqid).Child()
+			reqLogger.Record("remote", r.RemoteAddr).Record("UserAgent", r.UserAgent()).Infof("request start: %s %s", r.Method, html.EscapeString(r.URL.Path))
+			next.ServeHTTP(w, r.WithContext(reqLogger.(*Logger).ToContext(context.WithValue(r.Context(), "reqid", reqid)))
+			duration := time.Now().Sub(start)
+			reqLogger.Record("duration", duration.Seconds()).Infof("request finish: %s %s", r.Method, html.EscapeString(r.URL.Path))
+		})
+	}
 }
 
 // send writes a message to the Sink
