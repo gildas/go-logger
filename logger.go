@@ -177,7 +177,7 @@ func HandlerFunc(logger *Logger, h http.HandlerFunc) http.HandlerFunc {
 
 		reqLogger := logger.Record("topic", "route").Record("scope", r.URL.Path).Record("reqid", reqid).Child()
 		reqLogger.Infof("request start: %s %s", r.Method, html.EscapeString(r.URL.Path))
-		h.ServeHTTP(w, r.WithContext(reqLogger.(*Logger).ToContext(context.WithValue(r.Context(), "reqid", reqid)))
+		h.ServeHTTP(w, r.WithContext(reqLogger.(*Logger).ToContext(context.WithValue(r.Context(), "reqid", reqid))))
 		duration := time.Now().Sub(start)
 		reqLogger.Record("duration", duration.Seconds()).Infof("request finish: %s %s", r.Method, html.EscapeString(r.URL.Path))
 	})
@@ -195,9 +195,9 @@ func (l *Logger) Handler() func(http.Handler) http.Handler {
 			if len(reqid) == 0 { reqid = uuid.Must(uuid.NewV1()).String() }
 			w.Header().Set("X-Request-Id", reqid)
 
-			reqLogger := logger.Record("topic", "route").Record("scope", r.URL.Path).Record("reqid", reqid).Child()
+			reqLogger := l.Record("topic", "route").Record("scope", r.URL.Path).Record("reqid", reqid).Child()
 			reqLogger.Record("remote", r.RemoteAddr).Record("UserAgent", r.UserAgent()).Infof("request start: %s %s", r.Method, html.EscapeString(r.URL.Path))
-			next.ServeHTTP(w, r.WithContext(reqLogger.(*Logger).ToContext(context.WithValue(r.Context(), "reqid", reqid)))
+			next.ServeHTTP(w, r.WithContext(reqLogger.(*Logger).ToContext(context.WithValue(r.Context(), "reqid", reqid))))
 			duration := time.Now().Sub(start)
 			reqLogger.Record("duration", duration.Seconds()).Infof("request finish: %s %s", r.Method, html.EscapeString(r.URL.Path))
 		})
