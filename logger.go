@@ -7,6 +7,7 @@ import (
 	"html"
 	"net/http"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
@@ -30,17 +31,22 @@ const ContextKey key = iota
 
 // Create creates a new Logger
 func Create(name string) *Logger {
+	destination, _ := os.LookupEnv("LOG_DESTINATION")
+        return CreateWithDestination(name, destination)
+}
+
+// CreateWithDestination creates a new Logger sinking to the given destination
+func CreateWithDestination(name, destination string) *Logger {
 	var sink bunyan.Sink
 
-	if value, ok := os.LookupEnv("LOG_DESTINATION"); ok {
-		value = strings.ToLower(value)
-		if "stackdriver" == value {
-			sink = NewMultiSink(bunyan.StdoutSink(), NewStackDriverSink())
-		} else if "gcp" == value {
-			sink = NewGCPSink()
-		}
-	}
-	if sink == nil {
+	destination = strings.ToLower(destination)
+	if "stackdriver" == destination {
+		sink = NewMultiSink(bunyan.StdoutSink(), NewStackDriverSink())
+	} else if "gcp" == destination {
+		sink = NewGCPSink()
+        } else if strings.HasPrefix(destination, "file:") {
+                sink = bunyan.FileSink(strings.TrimPrefix(destination, "file:"))
+        } else {
 		sink = bunyan.StdoutSink()
 	}
 
@@ -57,8 +63,8 @@ func Create(name string) *Logger {
 			Include(ScopeInfo("main")).(*Logger)
 }
 
-// createWithSink creates a new Logger attacked to a given sink
-func createWithSink(sink bunyan.Sink) *Logger {
+// CreateWithSink creates a new Logger attacked to a given sink
+func CreateWithSink(sink bunyan.Sink) *Logger {
 	return &Logger{sink, bunyan.NewRecord()}
 }
 
@@ -70,12 +76,12 @@ func (l *Logger) Write(record bunyan.Record) error {
 
 // Include returns a new Logger that records the Info
 func (l *Logger) Include(info bunyan.Info) Log {
-	return createWithSink(bunyan.InfoSink(l, info))
+	return CreateWithSink(bunyan.InfoSink(l, info))
 }
 
 // Record adds the given Info to the Log
 func (l *Logger) Record(key string, value interface{}) Log {
-	builder := createWithSink(l)
+	builder := CreateWithSink(l)
 	builder.record[key] = value
 	return builder
 }
@@ -96,7 +102,7 @@ func (l *Logger) Recordf(key, value string, args ...interface{}) Log {
 
 // Child creates a new child Logger
 func (l *Logger) Child() Log {
-	return createWithSink(l)
+	return CreateWithSink(l)
 }
 
 // Tracef traces a message at the TRACE Level
@@ -112,10 +118,37 @@ func (l *Logger) Infof(msg string, args ...interface{})  { l.send(bunyan.INFO,  
 func (l *Logger) Warnf(msg string, args ...interface{})  { l.send(bunyan.WARN,  msg, args...) }
 
 // Errorf traces a message at the ERROR Level
-func (l *Logger) Errorf(msg string, args ...interface{}) { l.send(bunyan.ERROR, msg, args...) }
+// If the last argument is an error, a Record is added and the error string is added to the message
+func (l *Logger) Errorf(msg string, args ...interface{}) {
+    log := l
+
+    if len(args) > 0 {
+        errorInterface := reflect.TypeOf((*error)(nil)).Elem()
+        last := args[len(args) - 1]
+
+        if reflect.TypeOf(last).Implements(errorInterface) {
+            log = l.Record("err", last).(*Logger)
+            msg = msg + ", Error: %s"
+        }
+    }
+    log.send(bunyan.ERROR, msg, args...)
+}
 
 // Fatalf traces a message at the FATAL Level
-func (l *Logger) Fatalf(msg string, args ...interface{}) { l.send(bunyan.FATAL, msg, args...) }
+func (l *Logger) Fatalf(msg string, args ...interface{}) {
+    log := l
+
+    if len(args) > 0 {
+        errorInterface := reflect.TypeOf((*error)(nil)).Elem()
+        last := args[len(args) - 1]
+
+        if reflect.TypeOf(last).Implements(errorInterface) {
+            log = l.Record("err", last).(*Logger)
+            msg = msg + ", Error: %s"
+        }
+    }
+    log.send(bunyan.FATAL, msg, args...)
+}
 
 // FromContext retrieves the Logger stored in the context
 func FromContext(context context.Context) (*Logger, error) {
