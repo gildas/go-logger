@@ -56,3 +56,11 @@ func TestErrorWithDetails(t *testing.T) {
 	assert.NotNil(t, logger, "cannot create a logger")
         logger.Errorf("Got an error with number: %d", 2, err) 
 }
+
+func TestFatalWithDetails(t *testing.T) {
+        logger := CreateWithDestination("test", "file:./log/test.log")
+        err    := &ErrorForTest{ Errno: "ENOFOUND", Code: 12 }
+
+	assert.NotNil(t, logger, "cannot create a logger")
+        logger.Fatalf("Got an error with number: %d", 2, err)
+}

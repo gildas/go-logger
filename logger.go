@@ -135,6 +135,7 @@ func (l *Logger) Errorf(msg string, args ...interface{}) {
 }
 
 // Fatalf traces a message at the FATAL Level
+// If the last argument is an error, a Record is added and the error string is added to the message
 func (l *Logger) Fatalf(msg string, args ...interface{}) {
     log := l
 
