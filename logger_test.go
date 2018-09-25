@@ -1,7 +1,9 @@
 package logger_test
 
 import (
+	"path/filepath"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -18,6 +20,15 @@ func (e *ErrorForTest) Error() string {
         return fmt.Sprintf("Error %d - %s", e.Code, e.Errno)
 }
 
+func testCreateTempDir(t *testing.T) (string, func()) {
+        dir, err := ioutil.TempDir("", "go_logger")
+        if err != nil {
+                t.Fatalf("Unable to create a temp folder for log files. Error: %s\n", err)
+        }
+        t.Logf("Log Temp Folder: %s", dir)
+        return dir, func() { os.RemoveAll(dir) }
+}
+
 func TestCreate(t *testing.T) {
 	logger := Create("test")
 
@@ -26,14 +37,9 @@ func TestCreate(t *testing.T) {
 }
 
 func TestCreateWithDestination(t *testing.T) {
-        logger := CreateWithDestination("test", "file:./log/test.log")
+        dir, teardown := testCreateTempDir(t); defer teardown()
+        logger := CreateWithDestination("test", "file:" + filepath.Join(dir, "test.log"))
 
-        if _, err := os.Stat("./log/test.log"); !os.IsNotExist(err) {
-                err := os.Remove("./log/test.log")
-                assert.Nil(t, err, "Could not remove the test log")
-                _, err = os.Stat("./log/test.log");
-                assert.True(t, os.IsNotExist(err), "The test log should not exist at this point")
-        }
 	assert.NotNil(t, logger, "cannot create a logger")
 	logger.Infof("test of file destination")
         // TODO: We need some kind of Flush capability!
@@ -50,7 +56,8 @@ func TestAddRecord(t *testing.T) {
 }
 
 func TestErrorWithDetails(t *testing.T) {
-        logger := CreateWithDestination("test", "file:./log/test.log")
+        dir, teardown := testCreateTempDir(t); defer teardown()
+        logger := CreateWithDestination("test", "file:" + filepath.Join(dir, "test.log"))
         err    := &ErrorForTest{ Errno: "ENOFOUND", Code: 12 }
 
 	assert.NotNil(t, logger, "cannot create a logger")
@@ -58,7 +65,8 @@ func TestErrorWithDetails(t *testing.T) {
 }
 
 func TestFatalWithDetails(t *testing.T) {
-        logger := CreateWithDestination("test", "file:./log/test.log")
+        dir, teardown := testCreateTempDir(t); defer teardown()
+        logger := CreateWithDestination("test", "file:" + filepath.Join(dir, "test.log"))
         err    := &ErrorForTest{ Errno: "ENOFOUND", Code: 12 }
 
 	assert.NotNil(t, logger, "cannot create a logger")
