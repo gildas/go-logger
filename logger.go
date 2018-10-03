@@ -1,9 +1,9 @@
 package logger
 
 import (
-	"fmt"
 	"context"
 	"errors"
+	"fmt"
 	"html"
 	"net/http"
 	"os"
@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/satori/go.uuid"
 	"github.com/chakrit/go-bunyan"
+	"github.com/satori/go.uuid"
 )
 
 // Log is the object that allows to log stuff
@@ -32,7 +32,7 @@ const ContextKey key = iota
 // Create creates a new Logger
 func Create(name string) *Logger {
 	destination, _ := os.LookupEnv("LOG_DESTINATION")
-        return CreateWithDestination(name, destination)
+	return CreateWithDestination(name, destination)
 }
 
 // CreateWithDestination creates a new Logger sinking to the given destination
@@ -44,23 +44,23 @@ func CreateWithDestination(name, destination string) *Logger {
 		sink = NewMultiSink(bunyan.StdoutSink(), NewStackDriverSink())
 	} else if "gcp" == destination {
 		sink = NewGCPSink()
-        } else if strings.HasPrefix(destination, "file:") {
-                sink = bunyan.FileSink(strings.TrimPrefix(destination, "file:"))
-        } else {
+	} else if strings.HasPrefix(destination, "file:") {
+		sink = bunyan.FileSink(strings.TrimPrefix(destination, "file:"))
+	} else {
 		sink = bunyan.StdoutSink()
 	}
 
-	logger:= &Logger{sink, bunyan.NewRecord()}
-	
-	return  logger.
-			Record("name", name).
-			Include(bunyan.LogVersionInfo(0)).
-			Include(bunyan.PidInfo()).
-			Include(ThreadIdInfo()).
-			Include(bunyan.HostnameInfo()).
-			Include(bunyan.TimeInfo()).
-			Include(TopicInfo("main")).
-			Include(ScopeInfo("main")).(*Logger)
+	logger := &Logger{sink, bunyan.NewRecord()}
+
+	return logger.
+		Record("name", name).
+		Include(bunyan.LogVersionInfo(0)).
+		Include(bunyan.PidInfo()).
+		Include(ThreadIdInfo()).
+		Include(bunyan.HostnameInfo()).
+		Include(bunyan.TimeInfo()).
+		Include(TopicInfo("main")).
+		Include(ScopeInfo("main")).(*Logger)
 }
 
 // CreateWithSink creates a new Logger attacked to a given sink
@@ -90,7 +90,9 @@ func (l *Logger) Record(key string, value interface{}) Log {
 func (l *Logger) GetRecord(key string) interface{} {
 	value := l.record[key]
 
-	if value != nil { return value }
+	if value != nil {
+		return value
+	}
 	// TODO: find a way to traverse the sinks
 	return nil
 }
@@ -112,43 +114,43 @@ func (l *Logger) Tracef(msg string, args ...interface{}) { l.send(bunyan.TRACE, 
 func (l *Logger) Debugf(msg string, args ...interface{}) { l.send(bunyan.DEBUG, msg, args...) }
 
 // Infof traces a message at the INFO Level
-func (l *Logger) Infof(msg string, args ...interface{})  { l.send(bunyan.INFO,  msg, args...) }
+func (l *Logger) Infof(msg string, args ...interface{}) { l.send(bunyan.INFO, msg, args...) }
 
 // Warnf traces a message at the WARN Level
-func (l *Logger) Warnf(msg string, args ...interface{})  { l.send(bunyan.WARN,  msg, args...) }
+func (l *Logger) Warnf(msg string, args ...interface{}) { l.send(bunyan.WARN, msg, args...) }
 
 // Errorf traces a message at the ERROR Level
 // If the last argument is an error, a Record is added and the error string is added to the message
 func (l *Logger) Errorf(msg string, args ...interface{}) {
-    log := l
+	log := l
 
-    if len(args) > 0 {
-        errorInterface := reflect.TypeOf((*error)(nil)).Elem()
-        last := args[len(args) - 1]
+	if len(args) > 0 {
+		errorInterface := reflect.TypeOf((*error)(nil)).Elem()
+		last := args[len(args)-1]
 
-        if reflect.TypeOf(last).Implements(errorInterface) {
-            log = l.Record("err", last).(*Logger)
-            msg = msg + ", Error: %s"
-        }
-    }
-    log.send(bunyan.ERROR, msg, args...)
+		if reflect.TypeOf(last).Implements(errorInterface) {
+			log = l.Record("err", last).(*Logger)
+			msg = msg + ", Error: %s"
+		}
+	}
+	log.send(bunyan.ERROR, msg, args...)
 }
 
 // Fatalf traces a message at the FATAL Level
 // If the last argument is an error, a Record is added and the error string is added to the message
 func (l *Logger) Fatalf(msg string, args ...interface{}) {
-    log := l
+	log := l
 
-    if len(args) > 0 {
-        errorInterface := reflect.TypeOf((*error)(nil)).Elem()
-        last := args[len(args) - 1]
+	if len(args) > 0 {
+		errorInterface := reflect.TypeOf((*error)(nil)).Elem()
+		last := args[len(args)-1]
 
-        if reflect.TypeOf(last).Implements(errorInterface) {
-            log = l.Record("err", last).(*Logger)
-            msg = msg + ", Error: %s"
-        }
-    }
-    log.send(bunyan.FATAL, msg, args...)
+		if reflect.TypeOf(last).Implements(errorInterface) {
+			log = l.Record("err", last).(*Logger)
+			msg = msg + ", Error: %s"
+		}
+	}
+	log.send(bunyan.FATAL, msg, args...)
 }
 
 // FromContext retrieves the Logger stored in the context
@@ -173,25 +175,29 @@ func (l *Logger) HttpHandler() func(http.Handler) http.Handler {
 
 			// Get a request identifier and pass it to the response writer
 			reqid := r.Header.Get("X-Line-Request-Id")
-			if len(reqid) == 0 { reqid = r.Header.Get("X-Request-Id") }
-			if len(reqid) == 0 { reqid = uuid.Must(uuid.NewV1()).String() }
+			if len(reqid) == 0 {
+				reqid = r.Header.Get("X-Request-Id")
+			}
+			if len(reqid) == 0 {
+				reqid = uuid.Must(uuid.NewV1()).String()
+			}
 			w.Header().Set("X-Request-Id", reqid)
 
-                        // Get a new Child logger tailored to the request
+			// Get a new Child logger tailored to the request
 			reqLogger := l.Record("topic", "route").Record("scope", r.URL.Path).Record("reqid", reqid).Child().(*Logger)
 			reqLogger.
-			  Record("remote", r.RemoteAddr).
-                          Record("UserAgent", r.UserAgent()).
-                          Infof("request start: %s %s", r.Method, html.EscapeString(r.URL.Path))
+				Record("remote", r.RemoteAddr).
+				Record("UserAgent", r.UserAgent()).
+				Infof("request start: %s %s", r.Method, html.EscapeString(r.URL.Path))
 
 			// Adding reqid and reqLogger to r.Context and serving the request
 			next.ServeHTTP(w, r.WithContext(reqLogger.ToContext(context.WithValue(r.Context(), "reqid", reqid))))
 
-                        // Logging the duration of the request handling
+			// Logging the duration of the request handling
 			duration := time.Now().Sub(start)
 			reqLogger.
-                          Record("duration", duration.Seconds()).
-                          Infof("request finish: %s %s", r.Method, html.EscapeString(r.URL.Path))
+				Record("duration", duration.Seconds()).
+				Infof("request finish: %s %s", r.Method, html.EscapeString(r.URL.Path))
 		})
 	}
 }

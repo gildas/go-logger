@@ -11,11 +11,11 @@ type GCPSink struct {
 
 // NewGCPSink creates a new GCPSink
 func NewGCPSink() *GCPSink {
-	return &GCPSink{ bunyan.StdoutSink() }
+	return &GCPSink{bunyan.StdoutSink()}
 }
 
 func (sink GCPSink) Write(record bunyan.Record) error {
-	record["severity"]  = severity(record["level"])
+	record["severity"] = severity(record["level"])
 
 	delete(record, "level")
 	delete(record, "time")

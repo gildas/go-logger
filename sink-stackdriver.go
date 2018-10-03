@@ -26,7 +26,7 @@ func NewStackDriverSink() *StackDriverSink {
 		if client, err := logging.NewClient(ctx, projectID); err != nil {
 			fmt.Fprintf(os.Stderr, "Failure while creating StackDriver Sink to Project %s: %s\n", projectID, err)
 		} else {
-	//defer client.Close()
+			//defer client.Close()
 			target := client.Logger("whoareyou")
 			return &StackDriverSink{ctx, client, target}
 		}
