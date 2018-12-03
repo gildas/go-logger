@@ -39,7 +39,7 @@ func TestCreate(t *testing.T) {
 func TestCreateWithDestination(t *testing.T) {
 	dir, teardown := testCreateTempDir(t)
 	defer teardown()
-	logger := CreateWithDestination("test", "file:"+filepath.Join(dir, "test.log"))
+	logger := CreateWithDestination("test", "file://"+filepath.Join(dir, "test.log"))
 
 	assert.NotNil(t, logger, "cannot create a logger")
 	logger.Infof("test of file destination")
@@ -59,7 +59,7 @@ func TestAddRecord(t *testing.T) {
 func TestErrorWithDetails(t *testing.T) {
 	dir, teardown := testCreateTempDir(t)
 	defer teardown()
-	logger := CreateWithDestination("test", "file:"+filepath.Join(dir, "test.log"))
+	logger := CreateWithDestination("test", "file://"+filepath.Join(dir, "test.log"))
 	err := &ErrorForTest{Errno: "ENOFOUND", Code: 12}
 
 	assert.NotNil(t, logger, "cannot create a logger")
@@ -69,7 +69,7 @@ func TestErrorWithDetails(t *testing.T) {
 func TestFatalWithDetails(t *testing.T) {
 	dir, teardown := testCreateTempDir(t)
 	defer teardown()
-	logger := CreateWithDestination("test", "file:"+filepath.Join(dir, "test.log"))
+	logger := CreateWithDestination("test", "file://"+filepath.Join(dir, "test.log"))
 	err := &ErrorForTest{Errno: "ENOFOUND", Code: 12}
 
 	assert.NotNil(t, logger, "cannot create a logger")

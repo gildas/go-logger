@@ -44,8 +44,8 @@ func CreateWithDestination(name, destination string) *Logger {
 		sink = NewMultiSink(bunyan.StdoutSink(), NewStackDriverSink())
 	} else if "gcp" == destination {
 		sink = NewGCPSink()
-	} else if strings.HasPrefix(destination, "file:") {
-		sink = bunyan.FileSink(strings.TrimPrefix(destination, "file:"))
+	} else if strings.HasPrefix(destination, "file://") {
+		sink = bunyan.FileSink(strings.TrimPrefix(destination, "file://"))
 	} else {
 		sink = bunyan.StdoutSink()
 	}
