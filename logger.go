@@ -60,7 +60,7 @@ func CreateWithDestination(name, destination string) *Logger {
 		Include(bunyan.HostnameInfo()).
 		Include(bunyan.TimeInfo()).
 		Include(TopicInfo("main")).
-		Include(ScopeInfo("main")).(*Logger)
+		Include(ScopeInfo("main"))
 }
 
 // CreateWithSink creates a new Logger attacked to a given sink
@@ -75,15 +75,23 @@ func (l *Logger) Write(record bunyan.Record) error {
 }
 
 // Include returns a new Logger that records the Info
-func (l *Logger) Include(info bunyan.Info) Log {
+func (l *Logger) Include(info bunyan.Info) *Logger {
 	return CreateWithSink(bunyan.InfoSink(l, info))
 }
 
 // Record adds the given Info to the Log
-func (l *Logger) Record(key string, value interface{}) Log {
+func (l *Logger) Record(key string, value interface{}) *Logger {
 	builder := CreateWithSink(l)
 	builder.record[key] = value
 	return builder
+}
+
+func (l *Logger) Topic(value interface{}) *Logger {
+	return l.Record("topic", value)
+}
+
+func (l *Logger) Scope(value interface{}) *Logger {
+	return l.Record("scope", value)
 }
 
 // GetRecord returns the Record field value for a given key
@@ -98,12 +106,12 @@ func (l *Logger) GetRecord(key string) interface{} {
 }
 
 // Recordf adds the given Info with formatted arguments
-func (l *Logger) Recordf(key, value string, args ...interface{}) Log {
+func (l *Logger) Recordf(key, value string, args ...interface{}) *Logger {
 	return l.Record(key, fmt.Sprintf(value, args...))
 }
 
 // Child creates a new child Logger
-func (l *Logger) Child() Log {
+func (l *Logger) Child() *Logger {
 	return CreateWithSink(l)
 }
 
@@ -129,7 +137,7 @@ func (l *Logger) Errorf(msg string, args ...interface{}) {
 		last := args[len(args)-1]
 
 		if reflect.TypeOf(last).Implements(errorInterface) {
-			log = l.Record("err", last).(*Logger)
+			log = l.Record("err", last)
 			msg = msg + ", Error: %s"
 		}
 	}
@@ -146,7 +154,7 @@ func (l *Logger) Fatalf(msg string, args ...interface{}) {
 		last := args[len(args)-1]
 
 		if reflect.TypeOf(last).Implements(errorInterface) {
-			log = l.Record("err", last).(*Logger)
+			log = l.Record("err", last)
 			msg = msg + ", Error: %s"
 		}
 	}
@@ -184,7 +192,7 @@ func (l *Logger) HttpHandler() func(http.Handler) http.Handler {
 			w.Header().Set("X-Request-Id", reqid)
 
 			// Get a new Child logger tailored to the request
-			reqLogger := l.Record("topic", "route").Record("scope", r.URL.Path).Record("reqid", reqid).Child().(*Logger)
+			reqLogger := l.Record("topic", "route").Record("scope", r.URL.Path).Record("reqid", reqid).Child()
 			reqLogger.
 				Record("remote", r.RemoteAddr).
 				Record("UserAgent", r.UserAgent()).
