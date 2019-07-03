@@ -15,9 +15,6 @@ import (
 	"github.com/satori/go.uuid"
 )
 
-// Log is the object that allows to log stuff
-type Log = bunyan.Log
-
 // Logger is our Log implementation (based on bunyan.Logger)
 type Logger struct {
 	sink   bunyan.Sink
