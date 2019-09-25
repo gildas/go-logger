@@ -15,9 +15,6 @@ import (
 	"github.com/satori/go.uuid"
 )
 
-// Log is the object that allows to log stuff
-type Log = bunyan.Log
-
 // Logger is our Log implementation (based on bunyan.Logger)
 type Logger struct {
 	sink   bunyan.Sink
@@ -74,7 +71,11 @@ func CreateIfNil(logger *Logger, name string) *Logger {
 }
 
 // CreateWithSink creates a new Logger attacked to a given sink
+//   if nil is given the logger will use bunyan.NilSink()
 func CreateWithSink(sink bunyan.Sink) *Logger {
+	if sink == nil {
+		return &Logger{bunyan.NilSink(), bunyan.NewRecord()}
+	}
 	return &Logger{sink, bunyan.NewRecord()}
 }
 
