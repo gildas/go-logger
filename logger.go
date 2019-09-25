@@ -65,6 +65,14 @@ func CreateWithDestination(name, destination string) *Logger {
 		Include(ScopeInfo("main"))
 }
 
+// CreateIfNil creates a new Logger if the given Logger is nil, otherwise return the said Logger
+func CreateIfNil(logger *Logger, name string) *Logger {
+	if logger != nil {
+		return logger
+	}
+	return CreateWithDestination(name, "nil")
+}
+
 // CreateWithSink creates a new Logger attacked to a given sink
 func CreateWithSink(sink bunyan.Sink) *Logger {
 	return &Logger{sink, bunyan.NewRecord()}
