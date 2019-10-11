@@ -97,10 +97,12 @@ func (l *Logger) Record(key string, value interface{}) *Logger {
 	return builder
 }
 
+// Topic sets the Topic of this Logger
 func (l *Logger) Topic(value interface{}) *Logger {
 	return l.Record("topic", value)
 }
 
+// Scope sets the Scope if this Logger
 func (l *Logger) Scope(value interface{}) *Logger {
 	return l.Record("scope", value)
 }
@@ -149,7 +151,7 @@ func (l *Logger) Errorf(msg string, args ...interface{}) {
 
 		if reflect.TypeOf(last).Implements(errorInterface) {
 			log = l.Record("err", last)
-			msg = msg + ", Error: %s"
+			msg = msg + ", Error: %+v"
 		}
 	}
 	log.send(bunyan.ERROR, msg, args...)
@@ -166,7 +168,7 @@ func (l *Logger) Fatalf(msg string, args ...interface{}) {
 
 		if reflect.TypeOf(last).Implements(errorInterface) {
 			log = l.Record("err", last)
-			msg = msg + ", Error: %s"
+			msg = msg + ", Error: %+v"
 		}
 	}
 	log.send(bunyan.FATAL, msg, args...)
