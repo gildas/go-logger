@@ -15,9 +15,6 @@ import (
 	"github.com/satori/go.uuid"
 )
 
-// Log is the object that allows to log stuff
-type Log = bunyan.Log
-
 // Logger is our Log implementation (based on bunyan.Logger)
 type Logger struct {
 	sink   bunyan.Sink
@@ -44,6 +41,8 @@ func CreateWithDestination(name, destination string) *Logger {
 		sink = NewMultiSink(bunyan.StdoutSink(), NewStackDriverSink())
 	} else if "gcp" == destination {
 		sink = NewGCPSink()
+	} else if "nil" == destination {
+		sink = bunyan.NilSink()
 	} else if strings.HasPrefix(destination, "file://") {
 		sink = bunyan.FileSink(strings.TrimPrefix(destination, "file://"))
 	} else {
@@ -63,8 +62,20 @@ func CreateWithDestination(name, destination string) *Logger {
 		Include(ScopeInfo("main"))
 }
 
+// CreateIfNil creates a new Logger if the given Logger is nil, otherwise return the said Logger
+func CreateIfNil(logger *Logger, name string) *Logger {
+	if logger != nil {
+		return logger
+	}
+	return CreateWithDestination(name, "nil")
+}
+
 // CreateWithSink creates a new Logger attacked to a given sink
+//   if nil is given the logger will use bunyan.NilSink()
 func CreateWithSink(sink bunyan.Sink) *Logger {
+	if sink == nil {
+		return &Logger{bunyan.NilSink(), bunyan.NewRecord()}
+	}
 	return &Logger{sink, bunyan.NewRecord()}
 }
 
@@ -86,10 +97,12 @@ func (l *Logger) Record(key string, value interface{}) *Logger {
 	return builder
 }
 
+// Topic sets the Topic of this Logger
 func (l *Logger) Topic(value interface{}) *Logger {
 	return l.Record("topic", value)
 }
 
+// Scope sets the Scope if this Logger
 func (l *Logger) Scope(value interface{}) *Logger {
 	return l.Record("scope", value)
 }
@@ -138,7 +151,7 @@ func (l *Logger) Errorf(msg string, args ...interface{}) {
 
 		if reflect.TypeOf(last).Implements(errorInterface) {
 			log = l.Record("err", last)
-			msg = msg + ", Error: %s"
+			msg = msg + ", Error: %+v"
 		}
 	}
 	log.send(bunyan.ERROR, msg, args...)
@@ -155,7 +168,7 @@ func (l *Logger) Fatalf(msg string, args ...interface{}) {
 
 		if reflect.TypeOf(last).Implements(errorInterface) {
 			log = l.Record("err", last)
-			msg = msg + ", Error: %s"
+			msg = msg + ", Error: %+v"
 		}
 	}
 	log.send(bunyan.FATAL, msg, args...)
