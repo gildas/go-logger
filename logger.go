@@ -174,6 +174,16 @@ func (l *Logger) Fatalf(msg string, args ...interface{}) {
 	log.send(bunyan.FATAL, msg, args...)
 }
 
+// Must gives the logger and panics if there is an error or if the Logger is nil
+func Must(l *Logger, err error) *Logger {
+	if err != nil {
+		panic(err.Error())
+	} else if l == nil {
+		panic("Logger is nil")
+	}
+	return l
+}
+
 // FromContext retrieves the Logger stored in the context
 func FromContext(context context.Context) (*Logger, error) {
 	logger := context.Value(ContextKey).(*Logger)
