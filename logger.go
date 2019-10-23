@@ -24,7 +24,7 @@ type Logger struct {
 type key int
 
 // ContextKey is the key for logger child stored in Context
-const ContextKey key = iota
+const ContextKey key = iota + 12583
 
 // Create creates a new Logger
 func Create(name string) *Logger {
