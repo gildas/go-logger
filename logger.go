@@ -85,7 +85,7 @@ func (l *Logger) Write(record bunyan.Record) error {
 	return l.sink.Write(record)
 }
 
-// Include returns a new Logger that records the Info
+// Include returns a new Logger that records the given Info (dynamically computed for every Write)
 func (l *Logger) Include(info bunyan.Info) *Logger {
 	return CreateWithSink(bunyan.InfoSink(l, info))
 }
