@@ -225,9 +225,8 @@ func (l *Logger) HttpHandler() func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(reqLogger.ToContext(context.WithValue(r.Context(), "reqid", reqid))))
 
 			// Logging the duration of the request handling
-			duration := time.Now().Sub(start)
 			reqLogger.
-				Record("duration", duration.Seconds()).
+				Record("duration", time.Since(start).Seconds()).
 				Infof("request finish: %s %s", r.Method, html.EscapeString(r.URL.Path))
 		})
 	}

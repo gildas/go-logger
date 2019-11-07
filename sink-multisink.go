@@ -13,9 +13,7 @@ type MultiSink struct {
 // NewMultiSink creates a MultiSink object
 func NewMultiSink(sinks ...bunyan.Sink) *MultiSink {
 	all := make([]bunyan.Sink, 0, len(sinks))
-	for _, sink := range sinks {
-		all = append(all, sink)
-	}
+	all = append(all, sinks...)
 	return &MultiSink{all}
 }
 

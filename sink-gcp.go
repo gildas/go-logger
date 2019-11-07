@@ -21,8 +21,7 @@ func (sink GCPSink) Write(record bunyan.Record) error {
 	delete(record, "time")
 	delete(record, "name")
 
-	sink._sink.Write(record)
-	return nil
+	return sink._sink.Write(record)
 }
 
 func (sink GCPSink) String() string {
