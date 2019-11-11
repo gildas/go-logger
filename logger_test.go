@@ -1,14 +1,17 @@
 package logger_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
-	. "github.com/gildas/go-logger"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/gildas/go-logger"
 )
 
 type ErrorForTest struct {
@@ -20,58 +23,82 @@ func (e *ErrorForTest) Error() string {
 	return fmt.Sprintf("Error %d - %s", e.Code, e.Errno)
 }
 
-func testCreateTempDir(t *testing.T) (string, func()) {
-	dir, err := ioutil.TempDir("", "go_logger")
-	if err != nil {
-		t.Fatalf("Unable to create a temp folder for log files. Error: %s\n", err)
+func TestCanCreateSimple(t *testing.T) {
+	log := logger.Create("test")
+
+	require.NotNil(t, log, "cannot create a logger.Logger")
+	assert.Equal(t, "main", log.GetRecord("topic").(string))
+	//assert.IsType(t, logger.StdoutStream, log.stream, "The logger stream is not stdout")
+}
+
+func TestCanCreateWithDestination(t *testing.T) {
+	log, teardown := CreateLogger(t, "test.log", false)
+	defer teardown()
+
+	require.NotNil(t, log, "cannot create a logger.Logger")
+}
+
+func TestCanAddRecord(t *testing.T) {
+	log := logger.Create("test")
+
+	require.NotNil(t, log, "cannot create a logger.Logger")
+	log = log.Record("test", "test")
+	require.NotNil(t, log, "Failed to add a logger.Logger")
+	assert.Equal(t, "test", log.GetRecord("test").(string))
+}
+
+func TestCanLogAtInfo(t *testing.T) {
+	log, teardown := CreateLogger(t, "test.log", true)
+	defer teardown()
+
+	require.NotNil(t, log, "cannot create a logger.Logger")
+	log.Infof("test of file destination")
+}
+
+func TestCanLogErrorWithDetails(t *testing.T) {
+	log, teardown := CreateLogger(t, "test.log", true)
+	defer teardown()
+
+	require.NotNil(t, log, "cannot create a logger.Logger")
+
+	err := &ErrorForTest{Errno: "ENOFOUND", Code: 12}
+	log.Errorf("Got an error with number: %d", 2, err)
+}
+
+func TestCanLogNested(t *testing.T) {
+	log, teardown := CreateLogger(t, "test.log", true)
+	defer teardown()
+
+	require.NotNil(t, log, "cannot create a logger.Logger")
+	log.Infof("test with main topic")
+	{
+		innerlog := log.Child("inner", "local", "temperature", "high")
+
+		time.Sleep(1 * time.Second)
+		innerlog.Infof("testing with inner topic")
+		{
+			innerMostLog := innerlog.Records("temperature", "low", "wind", "strong")
+
+			innerMostLog.Debugf("testing with inner most log")
+		}
 	}
-	t.Logf("Log Temp Folder: %s", dir)
-	return dir, func() { os.RemoveAll(dir) }
+	log.Infof("test with main topic is over")
 }
 
-func TestCreate(t *testing.T) {
-	logger := Create("test")
-
-	assert.NotNil(t, logger, "cannot create a logger")
-	//assert.Equal(t, "main", logger.GetRecord("topic").(string))
-}
-
-func TestCreateWithDestination(t *testing.T) {
-	dir, teardown := testCreateTempDir(t)
+func TestCanLogWithFilter(t *testing.T) {
+	folder, teardown := CreateTempDir(t)
 	defer teardown()
-	logger := CreateWithDestination("test", "file://"+filepath.Join(dir, "test.log"))
+	path := filepath.Join(folder, "test.log")
+	stream := &logger.FileStream{Path: path, FilterLevel: logger.INFO}
+	log := logger.CreateWithStream("test", stream)
 
-	assert.NotNil(t, logger, "cannot create a logger")
-	logger.Infof("test of file destination")
-	// TODO: We need some kind of Flush capability!
-	//assert.Nil(t, logger.FlushSink(), "Could not flush the logger sink")
-	//_, err := os.Stat("./log/test.log")
-	//assert.False(t, os.IsNotExist(err), "The log was not created")
-}
+	log.Record("bello", "banana").Record("だれ", "Me").Infof("Log at INFO")
+	log.Record("stuff", "other").Record("thing", "shiny").Debugf("Log at DEBUG")
 
-func TestAddRecord(t *testing.T) {
-	logger := Create("test").Record("test", "test")
+	content, err := ioutil.ReadFile(stream.Path)
+	require.Nil(t, err, "Failed to read %s", stream.Path)
 
-	assert.NotNil(t, logger, "cannot create a child logger")
-	assert.Equal(t, "test", logger.GetRecord("test").(string))
-}
-
-func TestErrorWithDetails(t *testing.T) {
-	dir, teardown := testCreateTempDir(t)
-	defer teardown()
-	logger := CreateWithDestination("test", "file://"+filepath.Join(dir, "test.log"))
-	err := &ErrorForTest{Errno: "ENOFOUND", Code: 12}
-
-	assert.NotNil(t, logger, "cannot create a logger")
-	logger.Errorf("Got an error with number: %d", 2, err)
-}
-
-func TestFatalWithDetails(t *testing.T) {
-	dir, teardown := testCreateTempDir(t)
-	defer teardown()
-	logger := CreateWithDestination("test", "file://"+filepath.Join(dir, "test.log"))
-	err := &ErrorForTest{Errno: "ENOFOUND", Code: 12}
-
-	assert.NotNil(t, logger, "cannot create a logger")
-	logger.Fatalf("Got an error with number: %d", 2, err)
+	record := &logger.Record{}
+	err = json.Unmarshal(content, &record)
+	require.Nil(t, err, "Failed to unmarshal %s", stream.Path)
 }

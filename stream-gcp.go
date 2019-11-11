@@ -1,0 +1,50 @@
+package logger
+
+import (
+	"encoding/json"
+	"os"
+
+	"github.com/pkg/errors"
+)
+
+
+// GCPStream is the Stream that writes to the standard output
+type GCPStream struct {
+	*json.Encoder
+	FilterLevel Level
+}
+
+// Write writes the given Record
+//   implements logger.Stream
+func (stream *GCPStream) Write(record Record) error {
+	if stream.Encoder == nil {
+		stream.Encoder = json.NewEncoder(os.Stdout)
+		stream.FilterLevel = GetLevelFromEnvironment()
+	}
+	record["severity"] = severity(record["level"]) // see stackdriver
+
+	delete(record, "level")
+	delete(record, "time")
+	delete(record, "name")
+	if err := stream.Encoder.Encode(record); err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
+}
+
+// ShouldWrite tells if the given level should be written to this stream
+//   implements logger.Stream
+func (stream *GCPStream) ShouldWrite(level Level) bool {
+	return level.ShouldWrite(stream.FilterLevel)
+}
+
+// Flush flushes the stream (makes sure records are actually written)
+//   implements logger.Stream
+func (stream *GCPStream) Flush() {
+}
+
+// String gets a string version
+//   implements the fmt.Stringer interface
+func (stream GCPStream) String() string {
+	return "Stream to Google Cloud"
+}

@@ -1,30 +1,28 @@
 package logger
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"html"
-	"net/http"
 	"os"
 	"reflect"
 	"strings"
 	"time"
-
-	"github.com/chakrit/go-bunyan"
-	"github.com/satori/go.uuid"
 )
 
-// Logger is our Log implementation (based on bunyan.Logger)
+// Logger is a Logger that creates Bunyan's compatible logs (see: https://github.com/trentm/node-bunyan)
 type Logger struct {
-	sink   bunyan.Sink
-	record bunyan.Record
+	stream Stream
+	record Record
 }
 
-type key int
-
-// ContextKey is the key for logger child stored in Context
-const ContextKey key = iota + 12583
+// Must gives the logger and panics if there is an error or if the Logger is nil
+func Must(log *Logger, err error) *Logger {
+	if err != nil {
+		panic(err.Error())
+	} else if log == nil {
+		panic("Logger is nil")
+	}
+	return log
+}
 
 // Create creates a new Logger
 func Create(name string) *Logger {
@@ -34,32 +32,39 @@ func Create(name string) *Logger {
 
 // CreateWithDestination creates a new Logger sinking to the given destination
 func CreateWithDestination(name, destination string) *Logger {
-	var sink bunyan.Sink
+	var stream Stream
 
 	destination = strings.ToLower(destination)
 	if "stackdriver" == destination {
-		sink = NewMultiSink(bunyan.StdoutSink(), NewStackDriverSink())
+		stream = &MultiStream{ streams: []Stream{&StdoutStream{}, &StackDriverStream{} }}
 	} else if "gcp" == destination {
-		sink = NewGCPSink()
+		stream = &GCPStream{}
 	} else if "nil" == destination {
-		sink = bunyan.NilSink()
+		stream = &NilStream{}
 	} else if strings.HasPrefix(destination, "file://") {
-		sink = bunyan.FileSink(strings.TrimPrefix(destination, "file://"))
+		stream = &FileStream{Path: strings.TrimPrefix(destination, "file://")}
 	} else {
-		sink = bunyan.StdoutSink()
+		stream = &StdoutStream{}
 	}
+	return CreateWithStream(name, stream)
+}
 
-	logger := &Logger{sink, bunyan.NewRecord()}
+func CreateWithStream(name string, stream Stream) *Logger {
+	hostname, _ := os.Hostname()
+	record := NewRecord().
+		Set("name", name).
+		Set("hostname", hostname).
+		Set("pid", os.Getpid()).
+		Set("tid", func() interface{} { return Gettid() }).
+		Set("time", func() interface{} { return time.Now().Format(time.RFC3339) }).
+		Set("topic", "main").
+		Set("scope", "main").
+		Set("v", 0)
 
-	return logger.
-		Record("name", name).
-		Include(bunyan.LogVersionInfo(0)).
-		Include(bunyan.PidInfo()).
-		Include(ThreadIdInfo()).
-		Include(bunyan.HostnameInfo()).
-		Include(bunyan.TimeInfo()).
-		Include(TopicInfo("main")).
-		Include(ScopeInfo("main"))
+	if stream == nil {
+		return &Logger{&NilStream{}, record}
+	}
+	return &Logger{stream, record}
 }
 
 // CreateIfNil creates a new Logger if the given Logger is nil, otherwise return the said Logger
@@ -67,176 +72,133 @@ func CreateIfNil(logger *Logger, name string) *Logger {
 	if logger != nil {
 		return logger
 	}
-	return CreateWithDestination(name, "nil")
+	return CreateWithStream(name, nil)
 }
 
-// CreateWithSink creates a new Logger attacked to a given sink
-//   if nil is given the logger will use bunyan.NilSink()
-func CreateWithSink(sink bunyan.Sink) *Logger {
-	if sink == nil {
-		return &Logger{bunyan.NilSink(), bunyan.NewRecord()}
+// Record adds the given Record to the Log
+func (log *Logger) Record(key string, value interface{}) *Logger {
+	// This func requires Logger to be a Stream
+	//   that allows us to nest Loggers
+	return &Logger{log, NewRecord().Set(key, value)}
+}
+
+// Recordf adds the given Record with formatted arguments
+func (log *Logger) Recordf(key, value string, args ...interface{}) *Logger {
+	return log.Record(key, fmt.Sprintf(value, args...))
+}
+
+// Records adds key, value pairs as Record objects
+// E.g.: log.Records("key1", value1, "key2", value2)
+//   The key should be castable to a string
+//   If the last value is missing, its key is ignored
+func (log *Logger) Records(params ...interface{}) *Logger {
+	var key string
+	record := NewRecord()
+	for i, param := range params {
+		if i % 2 == 0 {
+			key = param.(string)
+		} else if len(key) > 0 {
+			record.Set(key, param)
+		}
 	}
-	return &Logger{sink, bunyan.NewRecord()}
-}
-
-// Write writes the given records to the sink (intergafe bunyan.Log)
-func (l *Logger) Write(record bunyan.Record) error {
-	record.TemplateMerge(l.record)
-	return l.sink.Write(record)
-}
-
-// Include returns a new Logger that records the given Info (dynamically computed for every Write)
-func (l *Logger) Include(info bunyan.Info) *Logger {
-	return CreateWithSink(bunyan.InfoSink(l, info))
-}
-
-// Record adds the given Info to the Log
-func (l *Logger) Record(key string, value interface{}) *Logger {
-	builder := CreateWithSink(l)
-	builder.record[key] = value
-	return builder
+	return &Logger{log, record}
 }
 
 // Topic sets the Topic of this Logger
-func (l *Logger) Topic(value interface{}) *Logger {
-	return l.Record("topic", value)
+func (log *Logger) Topic(value interface{}) *Logger {
+	return log.Record("topic", value)
 }
 
 // Scope sets the Scope if this Logger
-func (l *Logger) Scope(value interface{}) *Logger {
-	return l.Record("scope", value)
+func (log *Logger) Scope(value interface{}) *Logger {
+	return log.Record("scope", value)
+}
+
+// Child creates a child Logger with a topic, a scope, and records
+func (log *Logger) Child(topic, scope interface{}, params ...interface{}) *Logger {
+	var key string
+	record := NewRecord().Set("topic", topic).Set("scope", scope)
+	for i, param := range params {
+		if i % 2 == 0 {
+			key = param.(string)
+		} else if len(key) > 0 {
+			record.Set(key, param)
+		}
+	}
+	return &Logger{log, record}
 }
 
 // GetRecord returns the Record field value for a given key
-func (l *Logger) GetRecord(key string) interface{} {
-	value := l.record[key]
+func (log *Logger) GetRecord(key string) interface{} {
+	value := log.record[key]
 
 	if value != nil {
 		return value
 	}
-	// TODO: find a way to traverse the sinks
+	// TODO: find a way to traverse the parent Stream/Logger objects
 	return nil
 }
 
-// Recordf adds the given Info with formatted arguments
-func (l *Logger) Recordf(key, value string, args ...interface{}) *Logger {
-	return l.Record(key, fmt.Sprintf(value, args...))
-}
-
-// Child creates a new child Logger
-func (l *Logger) Child() *Logger {
-	return CreateWithSink(l)
+// String gets a string version
+//   implements the fmt.Stringer interface
+func (log Logger) String() string {
+	return fmt.Sprintf("Logger(%s)", log.stream)
 }
 
 // Tracef traces a message at the TRACE Level
-func (l *Logger) Tracef(msg string, args ...interface{}) { l.send(bunyan.TRACE, msg, args...) }
+func (log *Logger) Tracef(msg string, args ...interface{}) { log.send(TRACE, msg, args...) }
 
 // Debugf traces a message at the DEBUG Level
-func (l *Logger) Debugf(msg string, args ...interface{}) { l.send(bunyan.DEBUG, msg, args...) }
+func (log *Logger) Debugf(msg string, args ...interface{}) { log.send(DEBUG, msg, args...) }
 
 // Infof traces a message at the INFO Level
-func (l *Logger) Infof(msg string, args ...interface{}) { l.send(bunyan.INFO, msg, args...) }
+func (log *Logger) Infof(msg string, args ...interface{}) { log.send(INFO, msg, args...) }
 
 // Warnf traces a message at the WARN Level
-func (l *Logger) Warnf(msg string, args ...interface{}) { l.send(bunyan.WARN, msg, args...) }
+func (log *Logger) Warnf(msg string, args ...interface{}) { log.send(WARN, msg, args...) }
 
 // Errorf traces a message at the ERROR Level
 // If the last argument is an error, a Record is added and the error string is added to the message
-func (l *Logger) Errorf(msg string, args ...interface{}) {
-	log := l
+func (log *Logger) Errorf(msg string, args ...interface{}) {
+	logWithErr := log
 
 	if len(args) > 0 {
 		errorInterface := reflect.TypeOf((*error)(nil)).Elem()
 		last := args[len(args)-1]
 
 		if reflect.TypeOf(last).Implements(errorInterface) {
-			log = l.Record("err", last)
+			logWithErr = log.Record("err", last)
 			msg = msg + ", Error: %+v"
 		}
 	}
-	log.send(bunyan.ERROR, msg, args...)
+	logWithErr.send(ERROR, msg, args...)
 }
 
 // Fatalf traces a message at the FATAL Level
 // If the last argument is an error, a Record is added and the error string is added to the message
-func (l *Logger) Fatalf(msg string, args ...interface{}) {
-	log := l
+func (log *Logger) Fatalf(msg string, args ...interface{}) {
+	logWithErr := log
 
 	if len(args) > 0 {
 		errorInterface := reflect.TypeOf((*error)(nil)).Elem()
 		last := args[len(args)-1]
 
 		if reflect.TypeOf(last).Implements(errorInterface) {
-			log = l.Record("err", last)
+			logWithErr = log.Record("err", last)
 			msg = msg + ", Error: %+v"
 		}
 	}
-	log.send(bunyan.FATAL, msg, args...)
-}
-
-// Must gives the logger and panics if there is an error or if the Logger is nil
-func Must(l *Logger, err error) *Logger {
-	if err != nil {
-		panic(err.Error())
-	} else if l == nil {
-		panic("Logger is nil")
-	}
-	return l
-}
-
-// FromContext retrieves the Logger stored in the context
-func FromContext(context context.Context) (*Logger, error) {
-	logger := context.Value(ContextKey).(*Logger)
-	if logger != nil {
-		return logger, nil
-	}
-	return nil, errors.New("Context does not contain any Logger")
-}
-
-// ToContext stores the Logger in the given context
-func (l *Logger) ToContext(parent context.Context) context.Context {
-	return context.WithValue(parent, ContextKey, l)
-}
-
-// HttpHandler function will wrap an http handler with extra logging information
-func (l *Logger) HttpHandler() func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			start := time.Now()
-
-			// Get a request identifier and pass it to the response writer
-			reqid := r.Header.Get("X-Line-Request-Id")
-			if len(reqid) == 0 {
-				reqid = r.Header.Get("X-Request-Id")
-			}
-			if len(reqid) == 0 {
-				reqid = uuid.Must(uuid.NewV1()).String()
-			}
-			w.Header().Set("X-Request-Id", reqid)
-
-			// Get a new Child logger tailored to the request
-			reqLogger := l.Record("topic", "route").Record("scope", r.URL.Path).Record("reqid", reqid).Child()
-			reqLogger.
-				Record("remote", r.RemoteAddr).
-				Record("UserAgent", r.UserAgent()).
-				Infof("request start: %s %s", r.Method, html.EscapeString(r.URL.Path))
-
-			// Adding reqid and reqLogger to r.Context and serving the request
-			next.ServeHTTP(w, r.WithContext(reqLogger.ToContext(context.WithValue(r.Context(), "reqid", reqid))))
-
-			// Logging the duration of the request handling
-			reqLogger.
-				Record("duration", time.Since(start).Seconds()).
-				Infof("request finish: %s %s", r.Method, html.EscapeString(r.URL.Path))
-		})
-	}
+	logWithErr.send(FATAL, msg, args...)
 }
 
 // send writes a message to the Sink
-func (l *Logger) send(level bunyan.Level, msg string, args ...interface{}) {
-	record := bunyan.NewRecord()
-	record.SetMessagef(level, msg, args...)
-	if err := l.Write(record); err != nil {
-		fmt.Fprintf(os.Stderr, "Logger error: %s", err)
+func (log *Logger) send(level Level, msg string, args ...interface{}) {
+	if log.ShouldWrite(level) {
+		record := NewRecord()
+		record["level"] = level
+		record["msg"]   = fmt.Sprintf(msg, args...)
+		if err := log.Write(record); err != nil {
+			fmt.Fprintf(os.Stderr, "Logger error: %s", err)
+		}
 	}
 }
