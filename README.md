@@ -6,7 +6,7 @@ The output is compatible with the `bunyan` log reader application from that `nod
 
 ## Usage
 
-You first start by creating a `Logger` object that will operate on a `Sink`.
+You first start by creating a `Logger` object that will operate on a `Stream`.
 
 ```go
 package main
@@ -34,14 +34,22 @@ More generally, [Record fields](https://github.com/trentm/node-bunyan#log-record
 ```go
 Log.Record("myObject", myObject).Infof("Another message about my object")
 Log.Recordf("myObject", "format %s %+v". myObject.ID(), myObject).Infof("Now the record uses a formatted value")
+
+log := Log.Record("dynamic", func() interface{} { return myObject.Callme() })
+
+log.Infof("This is here")
+log.Infof("That is there")
 ```
 
-In addition to the [Bunyan core fields](https://github.com/trentm/node-bunyan#core-fields), this library adds a few Record Fields:
+In the last example, the code `myObject.Callme()` will be executed each time *log* is used to write a message.
+This is used, as an example, to add a timestamp to the log's `Record`.
+
+In addition to the [Bunyan core fields](https://github.com/trentm/node-bunyan#core-fields), this library adds a couple of Record Fields:
 
 - `topic` can be used for stuff like types or general topics (e.g.: "http")
 - `scope` can be used to scope logging within a topic, like a `func` or a portion of code.
 
-When the `Logger` is created its `topic` and `scope` are set to "main".
+When the `Logger` is created its *topic* and *scope* are set to "main".
 
 Here is a simple example how [Record fields](https://github.com/trentm/node-bunyan#log-record-fields) can be used with a type:
 
@@ -68,9 +76,26 @@ func (s Stuff) DoSomething(other *OtherStuff) error {
 }
 ```
 
-## Sinks
+The call to `Record(key, value)` creates a new `Logger` object. So, they are like Russian dolls when it comes down to actually writing the log message to the output stream. In other words, `Record` are collected from their parent's `Logger` back to the original `Logger`.  
+Therefore, to optimize the number of `Logger` objects that are created, there are some convenience `func` that can be used:
 
-Sinks are like destinations for the logged data. This is where the `Logger` writes.
+```go
+func (s stuff) DoSomethingElse(other *OtherStuff) {
+    log := s.Logger.Child("new_topic", "new_scope", "id", other.ID(), "key1", "value1")
+
+    log.Infof("I am logging this stuff")
+
+    log.Records("key2", "value2", "key3", 12345).Warnf("Aouch that hurts!")
+}
+```
+
+The `Child` method will create one `Logger` that has a `Record` containing a topic, a scope, 2 keys (*id* and *key1*) with their values.
+
+The `Records` method will create one `Logger` that has 2 keys (*key2* and *key3*) with their values.
+
+## Stream objects
+
+A `Stream` is where the `Logger` actually writes its `Record` data.
 
 When creating a `Logger`, you can specify the destination it will write to:
 
@@ -91,22 +116,45 @@ var Log = logger.Create("myapp")
 
 The `Logger` will write to the standard output or the destination specified in the environment variable `LOG_DESTINATION`.
 
-You can write your own `Sink` by implementing the `logger.Sinker` interface and create the Logger like this:
+You can also create a `Logger` by passing it a `Stream` object (these are equivalent to the previous code):
 
 ```go
-var Log = logger.CreateWithSink(mySinkObject)
-var Log = logger.CreateWithSink(logger.NewMultiSink(sink1, sink2, sink3))
+var Log = logger.CreateWithStream("myapp", &logger.FileStream{Path: "/path/to/myapp.log"})
+var Log = logger.CreateWithStream("myapp", &logger.StackDriverStream{})
+var Log = logger.CreateWithStream("myapp", &logger.GCPStream{})
+var Log = logger.CreateWithStream("myapp", &logger.NilStream{})
 ```
 
-If the given sink is `nil`, the `NilSink()` is used. As you may have guessed it, the second `Logger` will write simultaneously to three sinks.
+A few notes:
+- the `StackDriverStream` needs a `ProjectID` parameter or the value of the environment variable `PROJECT_ID`.  
+  It can use a `LogID` (see Google's StackDriver documentation).
+- `NilStream` is a `Stream` that does not write anything, all messages are lost.
+- `MultiStream` is a `Stream` than can write to several streams.
+- All `Stream` types, except `NilStream` and `MultiStream` can use a `FilterLevel`. When set, `Record` objects that have a `Level` below the `FilterLevel` are not written to the `Stream`. This allows to log only stuff above *Warn* for instance.
+- `StdoutStream` and `FileStream` are buffered by default. Data is written from time to time or when the `Record`'s `Level` is at least *ERROR*.
 
-The following convenience func can be used when creating a `Logger` from another one (received from arguments, for example):
+You can write your own `Stream` by implementing the `logger.Streamer` interface and create the Logger like this:
+
+```go
+var Log = logger.CreateWithStream("myapp", &MyStream{})
+```
+
+The following convenience methods can be used when creating a `Logger` from another one (received from arguments, for example):
 
 ```go
 var Log = logger.CreateIfNil(OtherLogger, "myapp")
 ```
 
-If `OtherLogger` is `nil`, the new `Logger` will write to the `NilSink()`.
+If `OtherLogger` is `nil`, the new `Logger` will write to the `NilStream()`.
+
+```go
+var Log = logger.Must(logger.FromContext(context))
+```
+
+`Must` can be used to create a `Logger` from a method that returns `*Logger, error`, if there is an error, `Must`will `panic`.
+
+`FromContext` can be used to retrieve a `Logger` from a GO context. (This is used in the next paragraph)  
+`log.ToContext` will store the `Logger` to the given GO context.
 
 ## HTTP Usage
 
@@ -142,15 +190,7 @@ func main() {
 }
 ```
 
-## To Document
+# Thanks
 
-Still to document:
-
-- `func (l *Logger) Include(info)`
-- `func (l *logger) GetRecord(key)`
-- `func (l *logger) Child()`
-- explain the `StackDriverSink` and `GCPSink`.
-
-## TODO
-
-- add more `Sink`, like Amazon, Azure, Elastic, etc.
+Special thanks to @chakrit for his github.com/chakrit/go-bunyan that inspired me. In fact earlier versions were wrappers around his library.  
+Well, we would not be anywhere withour the work of @trentm and the original github.com/trentm/node-bunyan. Many, many thanks!
