@@ -12,9 +12,11 @@ import (
 
 // GCPStream is the Stream that writes to the standard output
 type StackDriverStream struct {
-	client *logging.Client
-	target *logging.Logger
+	LogID       string
+	ProjectID   string
 	FilterLevel Level
+	client      *logging.Client
+	target      *logging.Logger
 }
 
 // Write writes the given Record
@@ -22,16 +24,19 @@ type StackDriverStream struct {
 func (stream *StackDriverStream) Write(record Record) (err error) {
 	if stream.client == nil {
 		ctx := context.Background()
-		projectID, ok := os.LookupEnv("PROJECT_ID")
-		if !ok {
-			return errors.New("Missing environment variable PROJECT_ID")
+		if len(stream.ProjectID) == 0 {
+			projectID, ok := os.LookupEnv("PROJECT_ID")
+			if !ok {
+				return errors.New("Missing environment variable PROJECT_ID")
+			}
+			stream.ProjectID = projectID
 		}
-		stream.client, err = logging.NewClient(ctx, projectID)
+		stream.client, err = logging.NewClient(ctx, stream.ProjectID)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 		//defer client.Close()
-		stream.target = stream.client.Logger("whoareyou")
+		stream.target = stream.client.Logger(stream.LogID)
 		stream.FilterLevel = GetLevelFromEnvironment()
 	}
 	var stamp time.Time
