@@ -2,7 +2,7 @@ package logger
 
 // MultiStream is the Stream that writes to several streams
 type MultiStream struct {
-	streams []Stream
+	streams []Streamer
 }
 
 // Write writes the given Record

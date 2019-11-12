@@ -10,7 +10,7 @@ import (
 
 // Logger is a Logger that creates Bunyan's compatible logs (see: https://github.com/trentm/node-bunyan)
 type Logger struct {
-	stream Stream
+	stream Streamer
 	record Record
 }
 
@@ -30,13 +30,13 @@ func Create(name string) *Logger {
 	return CreateWithDestination(name, destination)
 }
 
-// CreateWithDestination creates a new Logger sinking to the given destination
+// CreateWithDestination creates a new Logger streaming to the given destination
 func CreateWithDestination(name, destination string) *Logger {
-	var stream Stream
+	var stream Streamer
 
 	destination = strings.ToLower(destination)
 	if "stackdriver" == destination {
-		stream = &MultiStream{ streams: []Stream{&StdoutStream{}, &StackDriverStream{} }}
+		stream = &MultiStream{ streams: []Streamer{&StdoutStream{}, &StackDriverStream{} }}
 	} else if "gcp" == destination {
 		stream = &GCPStream{}
 	} else if "nil" == destination {
@@ -49,7 +49,7 @@ func CreateWithDestination(name, destination string) *Logger {
 	return CreateWithStream(name, stream)
 }
 
-func CreateWithStream(name string, stream Stream) *Logger {
+func CreateWithStream(name string, stream Streamer) *Logger {
 	hostname, _ := os.Hostname()
 	record := NewRecord().
 		Set("name", name).
