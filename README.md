@@ -33,7 +33,7 @@ More generally, [Record fields](https://github.com/trentm/node-bunyan#log-record
 
 ```go
 Log.Record("myObject", myObject).Infof("Another message about my object")
-Log.Recordf("myObject", "format %s %+v". myObject.ID(), myObject).Infof("Now the record uses a formatted value")
+Log.Recordf("myObject", "format %s %+v". myObject.ID(), myObject).Infof("This record uses a formatted value")
 
 log := Log.Record("dynamic", func() interface{} { return myObject.Callme() })
 
@@ -192,5 +192,5 @@ func main() {
 
 # Thanks
 
-Special thanks to @chakrit for his github.com/chakrit/go-bunyan that inspired me. In fact earlier versions were wrappers around his library.  
-Well, we would not be anywhere withour the work of @trentm and the original github.com/trentm/node-bunyan. Many, many thanks!
+Special thanks to [@chakrit](https://github.com/chakrit) for his https://github.com/chakrit/go-bunyan that inspired me. In fact earlier versions were wrappers around his library.  
+Well, we would not be anywhere without the work of [@trentm](https://github.com/trentm) and the original https://github.com/trentm/node-bunyan. Many, many thanks!
