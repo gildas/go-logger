@@ -192,5 +192,5 @@ func main() {
 
 # Thanks
 
-Special thanks to [@chakrit](https://github.com/chakrit) for his https://github.com/chakrit/go-bunyan that inspired me. In fact earlier versions were wrappers around his library.  
-Well, we would not be anywhere without the work of [@trentm](https://github.com/trentm) and the original https://github.com/trentm/node-bunyan. Many, many thanks!
+Special thanks to [@chakrit](https://github.com/chakrit) for his [chakrit/go-bunyan](https://github.com/chakrit/go-bunyan) that inspired me. In fact earlier versions were wrappers around his library.  
+Well, we would not be anywhere without the work of [@trentm](https://github.com/trentm) and the original [trentm/node-bunyan](https://github.com/trentm/node-bunyan). Many, many thanks!
