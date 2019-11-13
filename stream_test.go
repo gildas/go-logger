@@ -31,6 +31,7 @@ func (suite *StreamSuite) TestCanStreamToFile() {
 	record := logger.NewRecord().Set("bello", "banana").Set("だれ", "Me")
 	err := stream.Write(record)
 	suite.Require().Nil(err)
+	stream.Flush()
 
 	payload, err := json.Marshal(record)
 	suite.Require().Nil(err, "Failed to marshar Record")
@@ -48,6 +49,7 @@ func ExampleStdoutStream() {
 	if err != nil {
 		os.Stdout.WriteString(err.Error() + "\n")
 	}
+	stream.Flush()
 	// Output: {"bello":"banana","だれ":"Me"}
 }
 

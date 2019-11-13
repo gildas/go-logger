@@ -89,11 +89,12 @@ func TestCanLogWithFilter(t *testing.T) {
 	folder, teardown := CreateTempDir(t)
 	defer teardown()
 	path := filepath.Join(folder, "test.log")
-	stream := &logger.FileStream{Path: path, FilterLevel: logger.INFO}
+	stream := &logger.FileStream{Path: path, FilterLevel: logger.INFO, Unbuffered: true}
 	log := logger.CreateWithStream("test", stream)
 
 	log.Record("bello", "banana").Record("だれ", "Me").Infof("Log at INFO")
 	log.Record("stuff", "other").Record("thing", "shiny").Debugf("Log at DEBUG")
+	log.Flush()
 
 	content, err := ioutil.ReadFile(stream.Path)
 	require.Nil(t, err, "Failed to read %s", stream.Path)
@@ -101,4 +102,5 @@ func TestCanLogWithFilter(t *testing.T) {
 	record := &logger.Record{}
 	err = json.Unmarshal(content, &record)
 	require.Nil(t, err, "Failed to unmarshal %s", stream.Path)
+	//assert.Contains(t, record, "bello")
 }

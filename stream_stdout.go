@@ -12,16 +12,22 @@ import (
 // StdoutStream is the Stream that writes to the standard output
 type StdoutStream struct {
 	*json.Encoder
-	output      *bufio.Writer
 	FilterLevel Level
+	Unbuffered  bool
+	output      *bufio.Writer
 }
 
 // Write writes the given Record
 //   implements logger.Stream
 func (stream *StdoutStream) Write(record Record) error {
 	if stream.Encoder == nil {
-		stream.output = bufio.NewWriter(os.Stdout)
-		stream.Encoder = json.NewEncoder(stream.output)
+		if stream.Unbuffered {
+			stream.output =  nil
+			stream.Encoder = json.NewEncoder(os.Stdout)
+		} else {
+			stream.output = bufio.NewWriter(os.Stdout)
+			stream.Encoder = json.NewEncoder(stream.output)
+		}
 		if stream.FilterLevel == 0 {
 			stream.FilterLevel = GetLevelFromEnvironment()
 		}
@@ -29,7 +35,9 @@ func (stream *StdoutStream) Write(record Record) error {
 	if err := stream.Encoder.Encode(record); err != nil {
 		return errors.WithStack(err)
 	}
-	// TODO: Should flush the stream with level >= ERROR
+	if GetLevelFromRecord(record) >= ERROR {
+		stream.Flush()
+	}
 	return nil
 }
 

@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -12,22 +13,28 @@ import (
 //   Any record with a level < FilterLevel will be written
 type FileStream struct {
 	*json.Encoder
-	FilterLevel Level
 	Path        string
-	File        *os.File
+	FilterLevel Level
+	Unbuffered  bool
+	file        *os.File
+	output      *bufio.Writer
 }
 
 // Write writes the given Record
 //   implements logger.Stream
 func (stream *FileStream) Write(record Record) (err error) {
-	if stream.File == nil {
+	if stream.file == nil {
 		const flags = os.O_CREATE | os.O_APPEND | os.O_WRONLY
 		const perms = 0644
-		if stream.File, err = os.OpenFile(stream.Path, flags, perms); err != nil {
+		if stream.file, err = os.OpenFile(stream.Path, flags, perms); err != nil {
 			return errors.WithStack(err)
 		}
-		if stream.Encoder == nil {
-			stream.Encoder = json.NewEncoder(stream.File)
+		if stream.Unbuffered {
+			stream.output =  nil
+			stream.Encoder = json.NewEncoder(stream.file)
+		} else {
+			stream.output = bufio.NewWriter(stream.file)
+			stream.Encoder = json.NewEncoder(stream.output)
 		}
 		if stream.FilterLevel == 0 {
 			stream.FilterLevel = GetLevelFromEnvironment()
@@ -35,6 +42,9 @@ func (stream *FileStream) Write(record Record) (err error) {
 	}
 	if err := stream.Encoder.Encode(record); err != nil {
 		return errors.WithStack(err)
+	}
+	if GetLevelFromRecord(record) >= ERROR {
+		stream.Flush()
 	}
 	return nil
 }
@@ -48,10 +58,16 @@ func (stream *FileStream) ShouldWrite(level Level) bool {
 // Flush flushes the stream (makes sure records are actually written)
 //   implements logger.Stream
 func (stream *FileStream) Flush() {
+	if stream.output != nil {
+		stream.output.Flush()
+	}
 }
 
 // String gets a string version
 //   implements the fmt.Stringer interface
 func (stream FileStream) String() string {
-	return fmt.Sprintf("Stream to %s", stream.Path)
+	if stream.Unbuffered {
+		return fmt.Sprintf("Unbuffered Stream to %s, Filter: %s", stream.Path, stream.FilterLevel)
+	}
+	return fmt.Sprintf("Stream to %s, Filter: %s", stream.Path, stream.FilterLevel)
 }
