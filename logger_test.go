@@ -72,14 +72,22 @@ func TestCanLogNested(t *testing.T) {
 	require.NotNil(t, log, "cannot create a logger.Logger")
 	log.Infof("test with main topic")
 	{
-		innerlog := log.Child("inner", "local", "temperature", "high")
+		expensiveLog := log.Record("key1", "value1").Record("key2", "value2")
+
+		expensiveLog.Debugf("testing with expensive records")
+		t.Logf("Expensive Log (+2 Records): %s", expensiveLog)
+	}
+	{
+		innerLog := log.Child("inner", "local", "temperature", "high", "vehicle", "car")
 
 		time.Sleep(1 * time.Second)
-		innerlog.Infof("testing with inner topic")
+		innerLog.Infof("testing with inner topic")
+		t.Logf("Inner Log (+3 Records): %s", innerLog)
 		{
-			innerMostLog := innerlog.Records("temperature", "low", "wind", "strong")
+			innerMostLog := innerLog.Records("temperature", "low", "wind", "strong")
 
 			innerMostLog.Debugf("testing with inner most log")
+			t.Logf("Innermost Log (+3 Records): %s", innerMostLog)
 		}
 	}
 	log.Infof("test with main topic is over")
