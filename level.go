@@ -8,7 +8,7 @@ import (
 type Level byte
 
 const (
-	NEVER Level = iota + 50
+	NEVER Level = iota * 10
 	TRACE
 	DEBUG
 	INFO
@@ -60,11 +60,8 @@ func (level Level) ShouldWrite(filter Level) bool {
 // String gets a string version
 //   implements the fmt.Stringer interface
 func (level Level) String() string {
-	if level == 0 {
-		return "NEVER"
-	}
-	if level == ALWAYS {
+	if level > ALWAYS {
 		return "ALWAYS"
 	}
-	return []string{"NEVER", "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL", "ALWAYS"}[level - NEVER]
+	return []string{"NEVER", "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"}[level / 10]
 }
