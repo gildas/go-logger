@@ -77,7 +77,16 @@ func (s Stuff) DoSomething(other *OtherStuff) error {
 ```
 
 The call to `Record(key, value)` creates a new `Logger` object. So, they are like Russian dolls when it comes down to actually writing the log message to the output stream. In other words, `Record` are collected from their parent's `Logger` back to the original `Logger`.  
-Therefore, to optimize the number of `Logger` objects that are created, there are some convenience `func` that can be used:
+
+For example:  
+```go
+var Log   = logger.Create("test")
+var child = Log.Record("key1", "value1").Record("key2", "value2")
+```
+
+*child* will actually be something like `Logger(Logger(Logger(Stream to stdout)))`. Though we added only 2 records.  
+
+Therefore, to optimize the number of `Logger` objects that are created, there are some convenience methods that can be used:
 
 ```go
 func (s stuff) DoSomethingElse(other *OtherStuff) {
@@ -92,6 +101,16 @@ func (s stuff) DoSomethingElse(other *OtherStuff) {
 The `Child` method will create one `Logger` that has a `Record` containing a topic, a scope, 2 keys (*id* and *key1*) with their values.
 
 The `Records` method will create one `Logger` that has 2 keys (*key2* and *key3*) with their values.
+
+For example, with these methods:  
+```go
+var Log    = logger.Create("test")
+var child1 = Log.Child("key1", "value1", "key2", "value2", "key3", "value3")
+var child2 = child1.Records("key2", "value21", "key4", "value4")
+```
+
+*child1* will be something like `Logger(Logger(Stream to stdout))`. Though we added 3 records.  
+*child2* will be something like `Logger(Logger(Logger(Stream to stdout)))`. Though we added 1 record to the 3 records added previously.  
 
 ## Stream objects
 
