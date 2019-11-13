@@ -35,6 +35,16 @@ func ParseLevel(value string) Level {
 	return NEVER
 }
 
+func GetLevelFromRecord(record Record) Level {
+	if value, ok := record["level"]; ok {
+		if level, ok := value.(Level); ok {
+			return level
+		}
+	}
+	return NEVER
+}
+
+// GetLevelFromEnvironment
 func GetLevelFromEnvironment() Level {
 	if value, ok := os.LookupEnv("LOG_LEVEL"); ok {
 		return ParseLevel(value)

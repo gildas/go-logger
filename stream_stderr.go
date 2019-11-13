@@ -19,7 +19,9 @@ type StderrStream struct {
 func (stream *StderrStream) Write(record Record) error {
 	if stream.Encoder == nil {
 		stream.Encoder = json.NewEncoder(os.Stderr)
-		stream.FilterLevel = GetLevelFromEnvironment()
+		if stream.FilterLevel == 0 {
+			stream.FilterLevel = GetLevelFromEnvironment()
+		}
 	}
 	if err := stream.Encoder.Encode(record); err != nil {
 		return errors.WithStack(err)

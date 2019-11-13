@@ -19,7 +19,9 @@ type GCPStream struct {
 func (stream *GCPStream) Write(record Record) error {
 	if stream.Encoder == nil {
 		stream.Encoder = json.NewEncoder(os.Stdout)
-		stream.FilterLevel = GetLevelFromEnvironment()
+		if stream.FilterLevel == 0 {
+			stream.FilterLevel = GetLevelFromEnvironment()
+		}
 	}
 	record["severity"] = severity(record["level"]) // see stackdriver
 

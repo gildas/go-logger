@@ -22,7 +22,9 @@ func (stream *StdoutStream) Write(record Record) error {
 	if stream.Encoder == nil {
 		stream.output = bufio.NewWriter(os.Stdout)
 		stream.Encoder = json.NewEncoder(stream.output)
-		stream.FilterLevel = GetLevelFromEnvironment()
+		if stream.FilterLevel == 0 {
+			stream.FilterLevel = GetLevelFromEnvironment()
+		}
 	}
 	if err := stream.Encoder.Encode(record); err != nil {
 		return errors.WithStack(err)

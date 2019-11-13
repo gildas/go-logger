@@ -130,7 +130,7 @@ A few notes:
   It can use a `LogID` (see Google's StackDriver documentation).
 - `NilStream` is a `Stream` that does not write anything, all messages are lost.
 - `MultiStream` is a `Stream` than can write to several streams.
-- All `Stream` types, except `NilStream` and `MultiStream` can use a `FilterLevel`. When set, `Record` objects that have a `Level` below the `FilterLevel` are not written to the `Stream`. This allows to log only stuff above *Warn* for instance.
+- All `Stream` types, except `NilStream` and `MultiStream` can use a `FilterLevel`. When set, `Record` objects that have a `Level` below the `FilterLevel` are not written to the `Stream`. This allows to log only stuff above *Warn* for instance. The `FilterLevel` can be set via the environment variable `LOG_LEVEL`.
 - `StdoutStream` and `FileStream` are buffered by default. Data is written from time to time or when the `Record`'s `Level` is at least *ERROR*.
 
 You can write your own `Stream` by implementing the `logger.Streamer` interface and create the Logger like this:

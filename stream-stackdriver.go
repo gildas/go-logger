@@ -37,7 +37,9 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 		}
 		//defer client.Close()
 		stream.target = stream.client.Logger(stream.LogID)
-		stream.FilterLevel = GetLevelFromEnvironment()
+		if stream.FilterLevel == 0 {
+			stream.FilterLevel = GetLevelFromEnvironment()
+		}
 	}
 	var stamp time.Time
 

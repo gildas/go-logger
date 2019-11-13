@@ -29,7 +29,9 @@ func (stream *FileStream) Write(record Record) (err error) {
 		if stream.Encoder == nil {
 			stream.Encoder = json.NewEncoder(stream.File)
 		}
-		stream.FilterLevel = GetLevelFromEnvironment()
+		if stream.FilterLevel == 0 {
+			stream.FilterLevel = GetLevelFromEnvironment()
+		}
 	}
 	if err := stream.Encoder.Encode(record); err != nil {
 		return errors.WithStack(err)
