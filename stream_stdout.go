@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"os"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -12,9 +13,11 @@ import (
 // StdoutStream is the Stream that writes to the standard output
 type StdoutStream struct {
 	*json.Encoder
-	FilterLevel Level
-	Unbuffered  bool
-	output      *bufio.Writer
+	FilterLevel    Level
+	Unbuffered     bool
+	output         *bufio.Writer
+	lastFlush      time.Time
+	flushFrequency time.Duration
 }
 
 // Write writes the given Record
@@ -28,6 +31,8 @@ func (stream *StdoutStream) Write(record Record) error {
 			stream.output = bufio.NewWriter(os.Stdout)
 			stream.Encoder = json.NewEncoder(stream.output)
 		}
+		stream.lastFlush = time.Now()
+		stream.flushFrequency = GetFlushFrequencyFromEnvironment()
 		if stream.FilterLevel == 0 {
 			stream.FilterLevel = GetLevelFromEnvironment()
 		}
@@ -35,7 +40,7 @@ func (stream *StdoutStream) Write(record Record) error {
 	if err := stream.Encoder.Encode(record); err != nil {
 		return errors.WithStack(err)
 	}
-	if GetLevelFromRecord(record) >= ERROR {
+	if GetLevelFromRecord(record) >= ERROR || time.Since(stream.lastFlush) >= stream.flushFrequency {
 		stream.Flush()
 	}
 	return nil

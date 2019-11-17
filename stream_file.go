@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -13,11 +14,13 @@ import (
 //   Any record with a level < FilterLevel will be written
 type FileStream struct {
 	*json.Encoder
-	Path        string
-	FilterLevel Level
-	Unbuffered  bool
-	file        *os.File
-	output      *bufio.Writer
+	Path           string
+	FilterLevel    Level
+	Unbuffered     bool
+	file           *os.File
+	output         *bufio.Writer
+	lastFlush      time.Time
+	flushFrequency time.Duration
 }
 
 // Write writes the given Record
@@ -36,6 +39,8 @@ func (stream *FileStream) Write(record Record) (err error) {
 			stream.output = bufio.NewWriter(stream.file)
 			stream.Encoder = json.NewEncoder(stream.output)
 		}
+		stream.lastFlush = time.Now()
+		stream.flushFrequency = GetFlushFrequencyFromEnvironment()
 		if stream.FilterLevel == 0 {
 			stream.FilterLevel = GetLevelFromEnvironment()
 		}
@@ -43,7 +48,7 @@ func (stream *FileStream) Write(record Record) (err error) {
 	if err := stream.Encoder.Encode(record); err != nil {
 		return errors.WithStack(err)
 	}
-	if GetLevelFromRecord(record) >= ERROR {
+	if GetLevelFromRecord(record) >= ERROR || time.Since(stream.lastFlush) >= stream.flushFrequency {
 		stream.Flush()
 	}
 	return nil
