@@ -31,26 +31,6 @@ func TestLoggerSuite(t *testing.T) {
 	suite.Run(t, new(LoggerSuite))
 }
 
-func (suite *LoggerSuite) TestCanCreateSimple() {
-	log := logger.Create("test")
-
-	suite.Require().NotNil(log, "cannot create a logger.Logger")
-	suite.Assert().Equal("main", log.GetRecord("topic").(string))
-}
-
-func (suite *LoggerSuite) TestCanCreateWithDestination() {
-	var log *logger.Logger
-
-	log = logger.CreateWithDestination("test")
-	suite.Require().NotNil(log, "cannot create a Logger with no destination")
-
-	log = logger.CreateWithDestination("/var/log/test.log")
-	suite.Require().NotNil(log, "cannot create a Logger with a destination")
-
-	log = logger.CreateWithDestination("/var/log/test.log", "stackdriver")
-	suite.Require().NotNil(log, "cannot create a Logger with 2 destinations")
-}
-
 func (suite *LoggerSuite) TestCanAddRecord() {
 	log := logger.Create("test")
 

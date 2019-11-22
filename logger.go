@@ -23,19 +23,26 @@ func Must(log *Logger, err error) *Logger {
 	return log
 }
 
-// Create2 creates a new Logger
-func Create2(name string, parameters ...interface{}) *Logger {
+// Create creates a new Logger
+func Create(name string, parameters ...interface{}) *Logger {
 	destinations := []string{}
 	streams := []Streamer{}
+	records := []Record{}
 
 	for _, parameter := range parameters {
 		switch parameter := parameter.(type) {
 		case *Logger:
-			return CreateIfNil(parameter, name)
+			if parameter != nil {
+				return parameter
+			}
 		case string:
 			destinations = append(destinations, parameter)
-		case Streamer:
-			streams = append(streams, parameter)
+		default:
+			if streamer, ok := parameter.(Streamer); ok {
+				streams = append(streams, streamer)
+			} else if record, ok := parameter.(Record); ok {
+				records = append(records, record)
+			}
 		}
 		// if param is a struct or pointer to struct, or interface
 		// we should use it for the Topic, Scope
@@ -43,12 +50,15 @@ func Create2(name string, parameters ...interface{}) *Logger {
 	for _, destination := range destinations {
 		streams = append(streams, CreateStreamWithDestination(destination))
 	}
-	return CreateWithStream(name, streams...)
-}
-
-// Create creates a new Logger
-func Create(name string) *Logger {
-	return CreateWithDestination(name, "")
+	logger := CreateWithStream(name, streams...)
+	if len(records) > 0 {
+		for _, record := range records {
+			for key, value := range record {
+				logger.record.Set(key, value)
+			}
+		}
+	}
+	return logger
 }
 
 // CreateWithDestination creates a new Logger streaming to the given destination(s)
@@ -102,6 +112,9 @@ func (log *Logger) Recordf(key, value string, args ...interface{}) *Logger {
 //   The key should be castable to a string
 //   If the last value is missing, its key is ignored
 func (log *Logger) Records(params ...interface{}) *Logger {
+	if len(params) == 0 {
+		return log
+	}
 	var key string
 	record := NewRecord()
 	for i, param := range params {
