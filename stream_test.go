@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/suite"
 
@@ -118,4 +119,16 @@ func (suite *StreamSuite) TestCanCreateFileStream() {
 
 func (suite *StreamSuite) SetupSuite() {
 	suite.Name = strings.TrimSuffix(reflect.TypeOf(*suite).Name(), "Suite")
+}
+func (suite *StreamSuite) TestCanGetFlushFrequencyFromEnvironment() {
+	os.Unsetenv("LOG_FLUSHFREQUENCY")
+	frequency := logger.GetFlushFrequencyFromEnvironment()
+	suite.Assert().Equal(5 * time.Minute, frequency, "Frequency should be 5 minutes before being set in the environment")
+	os.Setenv("LOG_FLUSHFREQUENCY", "3600")
+	frequency = logger.GetFlushFrequencyFromEnvironment()
+	suite.Assert().Equal(1 * time.Hour, frequency, "Frequency should be 1 hour after being set in the environment (was %s)", frequency)
+	os.Setenv("LOG_FLUSHFREQUENCY", "P2H")
+	frequency = logger.GetFlushFrequencyFromEnvironment()
+	suite.Assert().Equal(2 * time.Hour, frequency, "Frequency should be 2 hour after being set in the environment (was %s)", frequency)
+	os.Unsetenv("LOG_FLUSHFREQUENCY")
 }
