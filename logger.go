@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"strings"
 	"time"
 )
 
@@ -24,29 +23,40 @@ func Must(log *Logger, err error) *Logger {
 	return log
 }
 
-// Create creates a new Logger
-func Create(name string) *Logger {
-	destination, _ := os.LookupEnv("LOG_DESTINATION")
+// Create2 is underwork...
+func Create2(name string, parameters ...interface{}) *Logger {
+	var (
+		destination string
+		origin      *Logger
+		//sink        bunyan.Sink
+	)
+	for _, parameter := range parameters {
+		if paramDestination, ok := parameter.(string); ok {
+			destination = paramDestination
+		}
+		//if paramSink, ok := parameter.(bunyan.Sink); ok {
+		//	sink = paramSink
+		//}
+		if paramLogger, ok := parameter.(*Logger); ok {
+			origin = paramLogger
+		}
+		// if param is a struct or pointer to struct, or interface
+		// we should use it for the Topic, Scope
+	}
+	if origin != nil {
+		return origin
+	}
 	return CreateWithDestination(name, destination)
 }
 
-// CreateWithDestination creates a new Logger streaming to the given destination
-func CreateWithDestination(name, destination string) *Logger {
-	var stream Streamer
+// Create creates a new Logger
+func Create(name string) *Logger {
+	return CreateWithDestination(name, "")
+}
 
-	destination = strings.ToLower(destination)
-	if "stackdriver" == destination {
-		stream = &MultiStream{ streams: []Streamer{&StdoutStream{}, &StackDriverStream{} }}
-	} else if "gcp" == destination {
-		stream = &GCPStream{}
-	} else if "nil" == destination {
-		stream = &NilStream{}
-	} else if strings.HasPrefix(destination, "file://") {
-		stream = &FileStream{Path: strings.TrimPrefix(destination, "file://")}
-	} else {
-		stream = &StdoutStream{}
-	}
-	return CreateWithStream(name, stream)
+// CreateWithDestination creates a new Logger streaming to the given destination
+func CreateWithDestination(name string, destination ...string) *Logger {
+	return CreateWithStream(name, CreateStreamWithDestination(destination...))
 }
 
 func CreateWithStream(name string, stream Streamer) *Logger {
