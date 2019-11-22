@@ -120,6 +120,7 @@ func (suite *StreamSuite) TestCanCreateFileStream() {
 func (suite *StreamSuite) SetupSuite() {
 	suite.Name = strings.TrimSuffix(reflect.TypeOf(*suite).Name(), "Suite")
 }
+
 func (suite *StreamSuite) TestCanGetFlushFrequencyFromEnvironment() {
 	os.Unsetenv("LOG_FLUSHFREQUENCY")
 	frequency := logger.GetFlushFrequencyFromEnvironment()
@@ -131,4 +132,13 @@ func (suite *StreamSuite) TestCanGetFlushFrequencyFromEnvironment() {
 	frequency = logger.GetFlushFrequencyFromEnvironment()
 	suite.Assert().Equal(2 * time.Hour, frequency, "Frequency should be 2 hour after being set in the environment (was %s)", frequency)
 	os.Unsetenv("LOG_FLUSHFREQUENCY")
+}
+
+func (suite *StreamSuite) TestCanCreateStreamFromEnvironment() {
+	os.Setenv("LOG_DESTINATION", "/var/log/test.log")
+	stream := logger.CreateStreamWithDestination()
+	suite.Require().NotNil(stream, "Failed to create a file stream")
+	suite.Assert().IsType(&logger.FileStream{}, stream)
+	suite.Assert().Equal("/var/log/test.log", stream.(*logger.FileStream).Path, "File Stream Path should be /var/log/test.log")
+	os.Unsetenv("LOG_DESTINATION")
 }
