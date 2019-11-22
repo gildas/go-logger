@@ -5,6 +5,7 @@ go-logger is a logging library based on [node-bunyan](trentm/node-bunyan).
 The output is compatible with the `bunyan` log reader application from that `node` package.
 
 [![Build Status](https://dev.azure.com/keltiek/gildas/_apis/build/status/gildas.go-logger?branchName=master)](https://dev.azure.com/keltiek/gildas/_build/latest?definitionId=1&branchName=master)
+[![Coverage Status](https://coveralls.io/repos/github/gildas/go-logger/badge.svg?branch=master)](https://coveralls.io/github/gildas/go-logger?branch=master)
 
 ## Usage
 
@@ -121,13 +122,16 @@ A `Stream` is where the `Logger` actually writes its `Record` data.
 When creating a `Logger`, you can specify the destination it will write to:
 
 ```go
-var Log = logger.CreateWithDestination("myapp", "file://path/to/myapp.log")
-var Log = logger.CreateWithDestination("myapp", "stackdriver")
-var Log = logger.CreateWithDestination("myapp", "gcp")
-var Log = logger.CreateWithDestination("myapp", "nil")
+var Log = logger.Create("myapp", "file://path/to/myapp.log")
+var Log = logger.Create("myapp", "/path/to/myapp.log")
+var Log = logger.Create("myapp", "./localpath/to/myapp.log")
+var Log = logger.Create("myapp", "stackdriver")
+var Log = logger.Create("myapp", "gcp")
+var Log = logger.Create("myapp", "/path/to/myapp.log", "gcp")
+var Log = logger.Create("myapp", "nil")
 ```
 
-The first `Logger` will write to a file, the second to Google Stackdriver, the third to Google Cloud Platform, and the fourth to nowhere (i.e. logs do not get written at all).
+The first three `Logger` will write to a file, the fourth to Google Stackdriver, the fifth to Google Cloud Platform (GCP), the sixth to a file and GCP,  and the seventh to nowhere (i.e. logs do not get written at all).
 
 By default, when creating the `Logger` with:
 
@@ -140,13 +144,18 @@ The `Logger` will write to the standard output or the destination specified in t
 You can also create a `Logger` by passing it a `Stream` object (these are equivalent to the previous code):
 
 ```go
-var Log = logger.CreateWithStream("myapp", &logger.FileStream{Path: "/path/to/myapp.log"})
-var Log = logger.CreateWithStream("myapp", &logger.StackDriverStream{})
-var Log = logger.CreateWithStream("myapp", &logger.GCPStream{})
-var Log = logger.CreateWithStream("myapp", &logger.NilStream{})
+var Log = logger.Create("myapp", &logger.FileStream{Path: "/path/to/myapp.log"})
+var Log = logger.Create("myapp", &logger.StackDriverStream{})
+var Log = logger.Create("myapp", &logger.GCPStream{})
+var Log = logger.Create("myapp", &logger.NilStream{})
+var Log = logger.Create("myapp", &logger.FileStream{Path: "/path/to/myapp.log"}, &logger.GCPStream{})
 ```
 
 A few notes:
+- `logger.CreateWithStream` can also be used to create with one or more streams.  
+  (Backward compatibility)
+- `logger.CreateWithDestination` can also be used to create with one or more destinations.  
+  (Backward compatibility)
 - the `StackDriverStream` needs a `ProjectID` parameter or the value of the environment variable `PROJECT_ID`.  
   It can use a `LogID` (see Google's StackDriver documentation).
 - `NilStream` is a `Stream` that does not write anything, all messages are lost.
@@ -154,16 +163,27 @@ A few notes:
 - All `Stream` types, except `NilStream` and `MultiStream` can use a `FilterLevel`. When set, `Record` objects that have a `Level` below the `FilterLevel` are not written to the `Stream`. This allows to log only stuff above *Warn* for instance. The `FilterLevel` can be set via the environment variable `LOG_LEVEL`.
 - `StdoutStream` and `FileStream` are buffered by default. Data is written from every `LOG_FLUSHFREQUENCY` (default 5 minutes) or when the `Record`'s `Level` is at least *ERROR*.
 
-You can write your own `Stream` by implementing the `logger.Streamer` interface and create the Logger like this:
+You can also create a `Logger` with a combination of destinations and streams, AND you can even add some records right away:
 
 ```go
-var Log = logger.CreateWithStream("myapp", &MyStream{})
+var Log = logger.Create("myapp",
+    &logger.FileStream{Path: "/path/to/myapp.log"},
+    "stackdriver",
+    NewRecord().Set("key", "value")
+)
+```
+
+You can also write your own `Stream` by implementing the `logger.Streamer` interface and create the Logger like this:
+
+```go
+var Log = logger.Create("myapp", &MyStream{})
 ```
 
 The following convenience methods can be used when creating a `Logger` from another one (received from arguments, for example):
 
 ```go
 var Log = logger.CreateIfNil(OtherLogger, "myapp")
+var Log = logger.Create("myapp", OtherLogger)
 ```
 
 If `OtherLogger` is `nil`, the new `Logger` will write to the `NilStream()`.

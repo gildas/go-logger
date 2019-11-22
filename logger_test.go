@@ -8,11 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 
 	"github.com/gildas/go-logger"
 )
+
+type LoggerSuite struct {
+	suite.Suite
+	Name string
+}
 
 type ErrorForTest struct {
 	Errno string
@@ -23,78 +27,67 @@ func (e *ErrorForTest) Error() string {
 	return fmt.Sprintf("Error %d - %s", e.Code, e.Errno)
 }
 
-func TestCanCreateSimple(t *testing.T) {
-	log := logger.Create("test")
-
-	require.NotNil(t, log, "cannot create a logger.Logger")
-	assert.Equal(t, "main", log.GetRecord("topic").(string))
-	//assert.IsType(t, logger.StdoutStream, log.stream, "The logger stream is not stdout")
+func TestLoggerSuite(t *testing.T) {
+	suite.Run(t, new(LoggerSuite))
 }
 
-func TestCanCreateWithDestination(t *testing.T) {
-	log, teardown := CreateLogger(t, "test.log", false)
-	defer teardown()
-
-	require.NotNil(t, log, "cannot create a logger.Logger")
-}
-
-func TestCanAddRecord(t *testing.T) {
+func (suite *LoggerSuite) TestCanAddRecord() {
 	log := logger.Create("test")
 
-	require.NotNil(t, log, "cannot create a logger.Logger")
+	suite.Require().NotNil(log, "cannot create a logger.Logger")
 	log = log.Record("test", "test")
-	require.NotNil(t, log, "Failed to add a logger.Logger")
-	assert.Equal(t, "test", log.GetRecord("test").(string))
+	suite.Require().NotNil(log, "Failed to add a logger.Logger")
+	suite.Assert().Equal("test", log.GetRecord("test").(string))
 }
 
-func TestCanLogAtInfo(t *testing.T) {
-	log, teardown := CreateLogger(t, "test.log", true)
+func (suite *LoggerSuite) TestCanLogAtInfo() {
+	log, teardown := CreateLogger(suite.T(), "test.log", true)
 	defer teardown()
 
-	require.NotNil(t, log, "cannot create a logger.Logger")
+	suite.Require().NotNil(log, "cannot create a logger.Logger")
 	log.Infof("test of file destination")
 }
 
-func TestCanLogErrorWithDetails(t *testing.T) {
-	log, teardown := CreateLogger(t, "test.log", true)
+func (suite *LoggerSuite) TestCanLogErrorWithDetails() {
+	log, teardown := CreateLogger(suite.T(), "test.log", true)
 	defer teardown()
 
-	require.NotNil(t, log, "cannot create a logger.Logger")
+	suite.Require().NotNil(log, "cannot create a logger.Logger")
 
 	err := &ErrorForTest{Errno: "ENOFOUND", Code: 12}
 	log.Errorf("Got an error with number: %d", 2, err)
 }
 
-func TestCanLogNested(t *testing.T) {
-	log, teardown := CreateLogger(t, "test.log", true)
+func (suite *LoggerSuite) TestCanLogNested() {
+	log, teardown := CreateLogger(suite.T(), "test.log", true)
 	defer teardown()
 
-	require.NotNil(t, log, "cannot create a logger.Logger")
+	suite.Require().NotNil(log, "cannot create a logger.Logger")
 	log.Infof("test with main topic")
 	{
 		expensiveLog := log.Record("key1", "value1").Record("key2", "value2")
 
 		expensiveLog.Debugf("testing with expensive records")
-		t.Logf("Expensive Log (+2 Records): %s", expensiveLog)
+		suite.T().Logf("Expensive Log (+2 Records): %s", expensiveLog)
 	}
 	{
 		innerLog := log.Child("inner", "local", "temperature", "high", "vehicle", "car")
 
 		time.Sleep(1 * time.Second)
 		innerLog.Infof("testing with inner topic")
-		t.Logf("Inner Log (+3 Records): %s", innerLog)
+		suite.T().Logf("Inner Log (+3 Records): %s", innerLog)
 		{
 			innerMostLog := innerLog.Records("temperature", "low", "wind", "strong")
 
 			innerMostLog.Debugf("testing with inner most log")
-			t.Logf("Innermost Log (+3 Records): %s", innerMostLog)
+			suite.T().Logf("Innermost Log (+3 Records): %s", innerMostLog)
 		}
 	}
 	log.Infof("test with main topic is over")
 }
 
-func TestCanLogWithFilter(t *testing.T) {
-	folder, teardown := CreateTempDir(t)
+func (suite *LoggerSuite) TestCanLogWithFilter() {
+	folder, teardown := CreateTempDir(suite.T())
 	defer teardown()
 	path := filepath.Join(folder, "test.log")
 	stream := &logger.FileStream{Path: path, FilterLevel: logger.INFO, Unbuffered: true}
@@ -105,10 +98,10 @@ func TestCanLogWithFilter(t *testing.T) {
 	log.Flush()
 
 	content, err := ioutil.ReadFile(stream.Path)
-	require.Nil(t, err, "Failed to read %s", stream.Path)
+	suite.Require().Nil(err, "Failed to read %s", stream.Path)
 
 	record := &logger.Record{}
 	err = json.Unmarshal(content, &record)
-	require.Nil(t, err, "Failed to unmarshal %s", stream.Path)
-	//assert.Contains(t, record, "bello")
+	suite.Require().Nil(err, "Failed to unmarshal %s", stream.Path)
+	//suite.Assert().Contains(record, "bello")
 }

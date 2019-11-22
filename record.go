@@ -41,9 +41,9 @@ func (record Record) MarshalJSON() ([]byte, error) {
 	buffer := make(map[string]interface{}, len(record))
 
 	for k, v := range record {
-		switch v.(type) {
+		switch v := v.(type) {
 		case func() interface{}:
-			buffer[k] = v.(func() interface{})()
+			buffer[k] = v()
 		default:
 			buffer[k] = v
 		}

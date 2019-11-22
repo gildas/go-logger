@@ -23,6 +23,66 @@ func TestStreamSuite(t *testing.T) {
 	suite.Run(t, new(StreamSuite))
 }
 
+func (suite *StreamSuite) TestCanCreateStreamFromDestination() {
+	var stream logger.Streamer
+
+	stream = logger.CreateStreamWithDestination("nil")
+	suite.Require().NotNil(stream, "Failed to create a nil stream")
+	suite.Assert().IsType(&logger.NilStream{}, stream)
+
+	stream = logger.CreateStreamWithDestination("null")
+	suite.Require().NotNil(stream, "Failed to create a nil stream")
+	suite.Assert().IsType(&logger.NilStream{}, stream)
+
+	stream = logger.CreateStreamWithDestination("void")
+	suite.Require().NotNil(stream, "Failed to create a nil stream")
+	suite.Assert().IsType(&logger.NilStream{}, stream)
+
+	stream = logger.CreateStreamWithDestination("stdout")
+	suite.Require().NotNil(stream, "Failed to create a stdout stream")
+	suite.Assert().IsType(&logger.StdoutStream{}, stream)
+
+	stream = logger.CreateStreamWithDestination("stderr")
+	suite.Require().NotNil(stream, "Failed to create a stderr stream")
+	suite.Assert().IsType(&logger.StderrStream{}, stream)
+
+	stream = logger.CreateStreamWithDestination("gcp")
+	suite.Require().NotNil(stream, "Failed to create a Google Cloud Platform stream")
+	suite.Assert().IsType(&logger.GCPStream{}, stream)
+
+	stream = logger.CreateStreamWithDestination("google")
+	suite.Require().NotNil(stream, "Failed to create a Google Cloud Platform stream")
+	suite.Assert().IsType(&logger.GCPStream{}, stream)
+
+	stream = logger.CreateStreamWithDestination("stackdriver")
+	suite.Require().NotNil(stream, "Failed to create a Google Stackdriver stream")
+	suite.Assert().IsType(&logger.StackDriverStream{}, stream)
+
+	stream = logger.CreateStreamWithDestination("file://./log/test.log")
+	suite.Require().NotNil(stream, "Failed to create a file stream")
+	suite.Assert().IsType(&logger.FileStream{}, stream)
+
+	stream = logger.CreateStreamWithDestination("/var/log/test.log")
+	suite.Require().NotNil(stream, "Failed to create a file stream")
+	suite.Assert().IsType(&logger.FileStream{}, stream)
+
+	stream = logger.CreateStreamWithDestination("./log/test.log")
+	suite.Require().NotNil(stream, "Failed to create a file stream")
+	suite.Assert().IsType(&logger.FileStream{}, stream)
+
+	stream = logger.CreateStreamWithDestination()
+	suite.Require().NotNil(stream, "Failed to create a stream from an empty destination")
+	suite.Assert().IsType(&logger.StdoutStream{}, stream)
+
+	stream = logger.CreateStreamWithDestination("")
+	suite.Require().NotNil(stream, "Failed to create a stream from an empty destination")
+	suite.Assert().IsType(&logger.StdoutStream{}, stream)
+
+	stream = logger.CreateStreamWithDestination("myfile", "stackdriver")
+	suite.Require().NotNil(stream, "Failed to create a stream from an empty destination")
+	suite.Assert().IsType(&logger.MultiStream{}, stream)
+}
+
 func (suite *StreamSuite) TestCanStreamToFile() {
 	folder, teardown := CreateTempDir(suite.T())
 	defer teardown()

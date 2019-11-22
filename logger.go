@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"strings"
 	"time"
 )
 
@@ -14,7 +13,7 @@ type Logger struct {
 	record Record
 }
 
-// Must gives the logger and panics if there is an error or if the Logger is nil
+// Must returns the given logger or panics if there is an error or if the Logger is nil
 func Must(log *Logger, err error) *Logger {
 	if err != nil {
 		panic(err.Error())
@@ -25,31 +24,50 @@ func Must(log *Logger, err error) *Logger {
 }
 
 // Create creates a new Logger
-func Create(name string) *Logger {
-	destination, _ := os.LookupEnv("LOG_DESTINATION")
-	return CreateWithDestination(name, destination)
-}
+func Create(name string, parameters ...interface{}) *Logger {
+	destinations := []string{}
+	streams := []Streamer{}
+	records := []Record{}
 
-// CreateWithDestination creates a new Logger streaming to the given destination
-func CreateWithDestination(name, destination string) *Logger {
-	var stream Streamer
-
-	destination = strings.ToLower(destination)
-	if "stackdriver" == destination {
-		stream = &MultiStream{ streams: []Streamer{&StdoutStream{}, &StackDriverStream{} }}
-	} else if "gcp" == destination {
-		stream = &GCPStream{}
-	} else if "nil" == destination {
-		stream = &NilStream{}
-	} else if strings.HasPrefix(destination, "file://") {
-		stream = &FileStream{Path: strings.TrimPrefix(destination, "file://")}
-	} else {
-		stream = &StdoutStream{}
+	for _, parameter := range parameters {
+		switch parameter := parameter.(type) {
+		case *Logger:
+			if parameter != nil {
+				return parameter
+			}
+		case string:
+			destinations = append(destinations, parameter)
+		default:
+			if streamer, ok := parameter.(Streamer); ok {
+				streams = append(streams, streamer)
+			} else if record, ok := parameter.(Record); ok {
+				records = append(records, record)
+			}
+		}
+		// if param is a struct or pointer to struct, or interface
+		// we should use it for the Topic, Scope
 	}
-	return CreateWithStream(name, stream)
+	for _, destination := range destinations {
+		streams = append(streams, CreateStreamWithDestination(destination))
+	}
+	logger := CreateWithStream(name, streams...)
+	if len(records) > 0 {
+		for _, record := range records {
+			for key, value := range record {
+				logger.record.Set(key, value)
+			}
+		}
+	}
+	return logger
 }
 
-func CreateWithStream(name string, stream Streamer) *Logger {
+// CreateWithDestination creates a new Logger streaming to the given destination(s)
+func CreateWithDestination(name string, destinations ...string) *Logger {
+	return CreateWithStream(name, CreateStreamWithDestination(destinations...))
+}
+
+// CreateWithStream creates a new Logger streaming to the given stream or list of streams
+func CreateWithStream(name string, streams ...Streamer) *Logger {
 	hostname, _ := os.Hostname()
 	record := NewRecord().
 		Set("name", name).
@@ -61,10 +79,12 @@ func CreateWithStream(name string, stream Streamer) *Logger {
 		Set("scope", "main").
 		Set("v", 0)
 
-	if stream == nil {
-		return &Logger{&NilStream{}, record}
+	if len(streams) == 0 {
+		return &Logger{&StdoutStream{}, record}
+	} else if len(streams) == 1 {
+		return &Logger{streams[0], record}
 	}
-	return &Logger{stream, record}
+	return &Logger{&MultiStream{streams: streams}, record}
 }
 
 // CreateIfNil creates a new Logger if the given Logger is nil, otherwise return the said Logger
@@ -72,7 +92,7 @@ func CreateIfNil(logger *Logger, name string) *Logger {
 	if logger != nil {
 		return logger
 	}
-	return CreateWithStream(name, nil)
+	return CreateWithStream(name, &NilStream{})
 }
 
 // Record adds the given Record to the Log
@@ -92,6 +112,9 @@ func (log *Logger) Recordf(key, value string, args ...interface{}) *Logger {
 //   The key should be castable to a string
 //   If the last value is missing, its key is ignored
 func (log *Logger) Records(params ...interface{}) *Logger {
+	if len(params) == 0 {
+		return log
+	}
 	var key string
 	record := NewRecord()
 	for i, param := range params {
