@@ -39,27 +39,27 @@ func (suite *StreamSuite) TestCanCreateStreamFromDestination() {
 	suite.Assert().IsType(&logger.NilStream{}, stream)
 
 	stream = logger.CreateStreamWithDestination("gcp")
-	suite.Require().NotNil(stream, "Failed to create a nil stream")
+	suite.Require().NotNil(stream, "Failed to create a Google Cloud Platform stream")
 	suite.Assert().IsType(&logger.GCPStream{}, stream)
 
 	stream = logger.CreateStreamWithDestination("google")
-	suite.Require().NotNil(stream, "Failed to create a nil stream")
+	suite.Require().NotNil(stream, "Failed to create a Google Cloud Platform stream")
 	suite.Assert().IsType(&logger.GCPStream{}, stream)
 
 	stream = logger.CreateStreamWithDestination("stackdriver")
-	suite.Require().NotNil(stream, "Failed to create a nil stream")
+	suite.Require().NotNil(stream, "Failed to create a Google Stackdriver stream")
 	suite.Assert().IsType(&logger.StackDriverStream{}, stream)
 
 	stream = logger.CreateStreamWithDestination("file://./log/test.log")
-	suite.Require().NotNil(stream, "Failed to create a nil stream")
+	suite.Require().NotNil(stream, "Failed to create a file stream")
 	suite.Assert().IsType(&logger.FileStream{}, stream)
 
 	stream = logger.CreateStreamWithDestination("/var/log/test.log")
-	suite.Require().NotNil(stream, "Failed to create a nil stream")
+	suite.Require().NotNil(stream, "Failed to create a file stream")
 	suite.Assert().IsType(&logger.FileStream{}, stream)
 
 	stream = logger.CreateStreamWithDestination("./log/test.log")
-	suite.Require().NotNil(stream, "Failed to create a nil stream")
+	suite.Require().NotNil(stream, "Failed to create a file stream")
 	suite.Assert().IsType(&logger.FileStream{}, stream)
 
 	stream = logger.CreateStreamWithDestination()
