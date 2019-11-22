@@ -2,6 +2,7 @@ package logger
 
 import (
 	"encoding/json"
+	"github.com/pkg/errors"
 )
 
 // Record is the map that contains all records of a log entry
@@ -56,7 +57,7 @@ func (record Record) MarshalJSON() ([]byte, error) {
 func (record *Record) UnmarshalJSON(payload []byte) error {
 	var placeholder map[string]interface{}
 	if err := json.Unmarshal(payload, &placeholder); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	*record = Record(placeholder)
 	return nil
