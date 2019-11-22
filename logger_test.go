@@ -38,6 +38,19 @@ func (suite *LoggerSuite) TestCanCreateSimple() {
 	suite.Assert().Equal("main", log.GetRecord("topic").(string))
 }
 
+func (suite *LoggerSuite) TestCanCreateWithStreams() {
+	var log *logger.Logger
+
+	log = logger.CreateWithStream("test")
+	suite.Require().NotNil(log, "Failed to create a Log with no stream")
+
+	log = logger.CreateWithStream("test", &logger.NilStream{})
+	suite.Require().NotNil(log, "Failed to create a Log with a nil stream")
+
+	log = logger.CreateWithStream("test", &logger.StdoutStream{}, &logger.StackDriverStream{})
+	suite.Require().NotNil(log, "Failed to create a Log with 2 streams")
+}
+
 func (suite *LoggerSuite) TestCanCreateWithDestination() {
 	log, teardown := CreateLogger(suite.T(), "test.log", false)
 	defer teardown()
