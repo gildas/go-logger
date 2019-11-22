@@ -38,6 +38,14 @@ func (suite *StreamSuite) TestCanCreateStreamFromDestination() {
 	suite.Require().NotNil(stream, "Failed to create a nil stream")
 	suite.Assert().IsType(&logger.NilStream{}, stream)
 
+	stream = logger.CreateStreamWithDestination("stdout")
+	suite.Require().NotNil(stream, "Failed to create a stdout stream")
+	suite.Assert().IsType(&logger.StdoutStream{}, stream)
+
+	stream = logger.CreateStreamWithDestination("stderr")
+	suite.Require().NotNil(stream, "Failed to create a stderr stream")
+	suite.Assert().IsType(&logger.StderrStream{}, stream)
+
 	stream = logger.CreateStreamWithDestination("gcp")
 	suite.Require().NotNil(stream, "Failed to create a Google Cloud Platform stream")
 	suite.Assert().IsType(&logger.GCPStream{}, stream)

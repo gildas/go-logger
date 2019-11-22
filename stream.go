@@ -37,6 +37,10 @@ func CreateStreamWithDestination(destinations ...string) Streamer {
 	for _, destination := range destinations {
 		var stream Streamer
 		switch strings.ToLower(destination) {
+		case "stdout":
+			stream = &StdoutStream{}
+		case "stderr":
+			stream = &StderrStream{}
 		case "gcp", "google", "googlecloud":
 			stream = &GCPStream{}
 		case "stackdriver":
