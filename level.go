@@ -60,7 +60,7 @@ func (level Level) ShouldWrite(filter Level) bool {
 // String gets a string version
 //   implements the fmt.Stringer interface
 func (level Level) String() string {
-	if level > ALWAYS {
+	if level > FATAL {
 		return "ALWAYS"
 	}
 	return []string{"NEVER", "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"}[level / 10]
