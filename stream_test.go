@@ -2,6 +2,7 @@ package logger_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -30,22 +31,29 @@ func (suite *StreamSuite) TestCanCreateStreamFromDestination() {
 	stream = logger.CreateStreamWithDestination("nil")
 	suite.Require().NotNil(stream, "Failed to create a nil stream")
 	suite.Assert().IsType(&logger.NilStream{}, stream)
+	suite.Assert().IsType(&logger.NilStream{}, stream)
+	suite.Assert().Equal("Stream to nil", fmt.Sprintf("%s", stream))
 
 	stream = logger.CreateStreamWithDestination("null")
 	suite.Require().NotNil(stream, "Failed to create a nil stream")
 	suite.Assert().IsType(&logger.NilStream{}, stream)
+	suite.Assert().IsType(&logger.NilStream{}, stream)
+	suite.Assert().Equal("Stream to nil", fmt.Sprintf("%s", stream))
 
 	stream = logger.CreateStreamWithDestination("void")
 	suite.Require().NotNil(stream, "Failed to create a nil stream")
 	suite.Assert().IsType(&logger.NilStream{}, stream)
+	suite.Assert().Equal("Stream to nil", fmt.Sprintf("%s", stream))
 
 	stream = logger.CreateStreamWithDestination("stdout")
 	suite.Require().NotNil(stream, "Failed to create a stdout stream")
 	suite.Assert().IsType(&logger.StdoutStream{}, stream)
+	suite.Assert().Equal("Stream to stdout", fmt.Sprintf("%s", stream))
 
 	stream = logger.CreateStreamWithDestination("stderr")
 	suite.Require().NotNil(stream, "Failed to create a stderr stream")
 	suite.Assert().IsType(&logger.StderrStream{}, stream)
+	suite.Assert().Equal("Stream to stderr", fmt.Sprintf("%s", stream))
 
 	stream = logger.CreateStreamWithDestination("gcp")
 	suite.Require().NotNil(stream, "Failed to create a Google Cloud Platform stream")
@@ -110,8 +118,26 @@ func ExampleStdoutStream() {
 	if err != nil {
 		os.Stdout.WriteString(err.Error() + "\n")
 	}
+	if stream.ShouldWrite(logger.TRACE) {
+		os.Stdout.WriteString("This should not be seen, stream Filter: " + stream.FilterLevel.String() + "\n")
+	}
 	stream.Flush()
 	// Output: {"bello":"banana","だれ":"Me"}
+}
+
+func ExampleNilStream() {
+	stream := &logger.NilStream{}
+	record := logger.NewRecord().Set("bello", "banana").Set("だれ", "Me")
+
+	err := stream.Write(record)
+	if err != nil {
+		os.Stdout.WriteString(err.Error() + "\n")
+	}
+	if stream.ShouldWrite(logger.ALWAYS) {
+		os.Stdout.WriteString("This should not be seen\n")
+	}
+	stream.Flush()
+	// Output:
 }
 
 func (suite *StreamSuite) TestCanCreateFileStream() {
