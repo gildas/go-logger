@@ -13,7 +13,7 @@ type Logger struct {
 	record Record
 }
 
-// Must gives the logger and panics if there is an error or if the Logger is nil
+// Must returns the given logger or panics if there is an error or if the Logger is nil
 func Must(log *Logger, err error) *Logger {
 	if err != nil {
 		panic(err.Error())
@@ -23,30 +23,27 @@ func Must(log *Logger, err error) *Logger {
 	return log
 }
 
-// Create2 is underwork...
+// Create2 creates a new Logger
 func Create2(name string, parameters ...interface{}) *Logger {
-	var (
-		destination string
-		origin      *Logger
-		//sink        bunyan.Sink
-	)
+	destinations := []string{}
+	streams := []Streamer{}
+
 	for _, parameter := range parameters {
-		if paramDestination, ok := parameter.(string); ok {
-			destination = paramDestination
-		}
-		//if paramSink, ok := parameter.(bunyan.Sink); ok {
-		//	sink = paramSink
-		//}
-		if paramLogger, ok := parameter.(*Logger); ok {
-			origin = paramLogger
+		switch parameter := parameter.(type) {
+		case *Logger:
+			return CreateIfNil(parameter, name)
+		case string:
+			destinations = append(destinations, parameter)
+		case Streamer:
+			streams = append(streams, parameter)
 		}
 		// if param is a struct or pointer to struct, or interface
 		// we should use it for the Topic, Scope
 	}
-	if origin != nil {
-		return origin
+	for _, destination := range destinations {
+		streams = append(streams, CreateStreamWithDestination(destination))
 	}
-	return CreateWithDestination(name, destination)
+	return CreateWithStream(name, streams...)
 }
 
 // Create creates a new Logger
@@ -54,12 +51,13 @@ func Create(name string) *Logger {
 	return CreateWithDestination(name, "")
 }
 
-// CreateWithDestination creates a new Logger streaming to the given destination
-func CreateWithDestination(name string, destination ...string) *Logger {
-	return CreateWithStream(name, CreateStreamWithDestination(destination...))
+// CreateWithDestination creates a new Logger streaming to the given destination(s)
+func CreateWithDestination(name string, destinations ...string) *Logger {
+	return CreateWithStream(name, CreateStreamWithDestination(destinations...))
 }
 
-func CreateWithStream(name string, stream Streamer) *Logger {
+// CreateWithStream creates a new Logger streaming to the given stream or list of streams
+func CreateWithStream(name string, streams ...Streamer) *Logger {
 	hostname, _ := os.Hostname()
 	record := NewRecord().
 		Set("name", name).
@@ -71,10 +69,12 @@ func CreateWithStream(name string, stream Streamer) *Logger {
 		Set("scope", "main").
 		Set("v", 0)
 
-	if stream == nil {
-		return &Logger{&NilStream{}, record}
+	if len(streams) == 0 {
+		return &Logger{&StdoutStream{}, record}
+	} else if len(streams) == 1 {
+		return &Logger{streams[0], record}
 	}
-	return &Logger{stream, record}
+	return &Logger{&MultiStream{streams: streams}, record}
 }
 
 // CreateIfNil creates a new Logger if the given Logger is nil, otherwise return the said Logger
@@ -82,7 +82,7 @@ func CreateIfNil(logger *Logger, name string) *Logger {
 	if logger != nil {
 		return logger
 	}
-	return CreateWithStream(name, nil)
+	return CreateWithStream(name, &NilStream{})
 }
 
 // Record adds the given Record to the Log
