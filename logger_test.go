@@ -1,13 +1,17 @@
 package logger_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/gildas/go-logger"
@@ -55,6 +59,17 @@ func (suite *LoggerSuite) TestCanCreateWithNil() {
 	suite.Require().NotNil(log, "cannot create a logger.Logger")
 	log2 := logger.CreateIfNil(log, "test")
 	suite.Require().NotNil(log2, "cannot create a logger.Logger")
+}
+
+func (suite *LoggerSuite) TestCanLoadAndSaveWithContext() {
+	log := logger.Create("test")
+	suite.Require().NotNil(log, "cannot create a logger.Logger")
+	ctx := log.ToContext(context.Background())
+	restored, err := logger.FromContext(ctx)
+	suite.Assert().Nil(err, "Failed to retrieve a Logger from a context")
+	suite.Assert().NotNil(restored, "cannot retrieve a logger.Logger from a context")
+	_, err = logger.FromContext(context.Background())
+	suite.Assert().NotNil(err, "Failed to retrieve a Logger from a context")
 }
 
 func (suite *LoggerSuite) TestCanAddRecord() {
@@ -194,4 +209,29 @@ func ExampleFailsLoggingWithBogusStream() {
 	})
 	fmt.Println(output)
 	// Output: Logger error: This Stream is Bogus
+}
+
+func FakeHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log, err := logger.FromContext(r.Context())
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}
+		
+		w.Write([]byte(fmt.Sprintf("%s", log)))
+	})
+}
+
+func (suite *LoggerSuite) TestLoggerHttpHandler() {
+	log := logger.Create("test")
+	suite.Require().NotNil(log, "cannot create a logger.Logger")
+	req, err := http.NewRequest("GET", "/", nil)
+	suite.Require().Nil(err, "Failed to created an HTTP Request")
+
+	rec := httptest.NewRecorder()
+	router := mux.NewRouter()
+	router.Methods("GET").Path("/").Handler(log.HttpHandler()(FakeHandler()))
+	router.ServeHTTP(rec, req)
 }

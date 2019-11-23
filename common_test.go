@@ -104,3 +104,22 @@ func CaptureStderr(f func()) string {
 	io.Copy(&output, reader)
 	return output.String()
 }
+
+func CaptureStdout(f func()) string {
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		panic(err)
+	}
+	stdout := os.Stdout
+	os.Stdout = writer
+	defer func() {
+		os.Stdout = stdout
+	}()
+
+	f()
+	writer.Close()
+
+	output := bytes.Buffer{}
+	io.Copy(&output, reader)
+	return output.String()
+}

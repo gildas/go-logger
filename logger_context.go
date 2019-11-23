@@ -12,8 +12,7 @@ const ContextKey key = iota + 12583
 
 // FromContext retrieves the Logger stored in the context
 func FromContext(context context.Context) (*Logger, error) {
-	logger := context.Value(ContextKey).(*Logger)
-	if logger != nil {
+	if logger, ok := context.Value(ContextKey).(*Logger); ok {
 		return logger, nil
 	}
 	return nil, errors.New("Context does not contain any Logger")

@@ -19,21 +19,23 @@ func (stream *MultiStream) Write(record Record) error {
 // ShouldWrite tells if the given level should be written to this stream
 //   implements logger.Stream
 func (stream *MultiStream) ShouldWrite(level Level) bool {
-	for _, s := range stream.streams {
-		if !s.ShouldWrite(level) {
-			return false
-		}
-	}
 	return true
 }
 
 // Flush flushes the stream (makes sure records are actually written)
 //   implements logger.Stream
 func (stream *MultiStream) Flush() {
+	for _, s := range stream.streams {
+		s.Flush()
+	}
 }
 
 // String gets a string version
 //   implements the fmt.Stringer interface
 func (stream MultiStream) String() string {
 	return "MultiStream"
+}
+
+func CreateMultiStream(streams ...Streamer) Streamer {
+	return &MultiStream{streams: streams}
 }
