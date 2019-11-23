@@ -33,7 +33,7 @@ func (stream *StdoutStream) Write(record Record) error {
 		}
 		stream.lastFlush = time.Now()
 		stream.flushFrequency = GetFlushFrequencyFromEnvironment()
-		if stream.FilterLevel == 0 {
+		if stream.FilterLevel == UNSET {
 			stream.FilterLevel = GetLevelFromEnvironment()
 		}
 	}
