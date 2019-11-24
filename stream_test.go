@@ -225,7 +225,7 @@ func (suite *StreamSuite) TestCanGetFlushFrequencyFromEnvironment() {
 	os.Unsetenv("LOG_FLUSHFREQUENCY")
 	frequency := logger.GetFlushFrequencyFromEnvironment()
 	suite.Assert().Equal(5 * time.Minute, frequency, "Frequency should be 5 minutes before being set in the environment")
-	os.Setenv("LOG_FLUSHFREQUENCY", "3600")
+	os.Setenv("LOG_FLUSHFREQUENCY", "3600s")
 	frequency = logger.GetFlushFrequencyFromEnvironment()
 	suite.Assert().Equal(1 * time.Hour, frequency, "Frequency should be 1 hour after being set in the environment (was %s)", frequency)
 	os.Setenv("LOG_FLUSHFREQUENCY", "P2H")
