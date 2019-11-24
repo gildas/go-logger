@@ -1,24 +1,123 @@
 package logger_test
 
 import (
-	"github.com/stretchr/testify/assert"
+	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/gildas/go-logger"
 )
 
 func TestCanParseLevel(t *testing.T) {
-	assert.Equal(t, logger.INFO,  logger.ParseLevel("INFO"))
-	assert.Equal(t, logger.INFO,  logger.ParseLevel("info"))
-	assert.Equal(t, logger.NEVER, logger.ParseLevel("whatever"))
+	assert.Equal(t, logger.INFO,  logger.ParseLevel("INFO"), "Failed to parse level \"INFO\"")
+	assert.Equal(t, logger.INFO,  logger.ParseLevel("info"), "Failed to parse level \"INFO\"")
+	assert.Equal(t, logger.UNSET,  logger.ParseLevel("UNSET"), "Failed to parse level \"UNSET\"")
+	assert.Equal(t, logger.NEVER, logger.ParseLevel("whatever"), "Failed to parse level \"whatever\" => NEVER")
+}
+
+func TestCanGetLevelFromEnvironment(t *testing.T) {
+	os.Unsetenv("LOG_LEVEL")
+	level := logger.GetLevelFromEnvironment()
+	assert.Equal(t, logger.INFO, level, "Level should be INFO before being set in the environment")
+	os.Setenv("DEBUG", "1")
+	level = logger.GetLevelFromEnvironment()
+	assert.Equal(t, logger.DEBUG, level, "Level should be INFO before being set in the environment and DEBUG is set")
+	os.Setenv("LOG_LEVEL", "WARN")
+	level = logger.GetLevelFromEnvironment()
+	assert.Equal(t, logger.WARN, level, "Level should be WARN after being set in the environment")
+	os.Unsetenv("LOG_LEVEL")
+	os.Unsetenv("DEBUG")
 }
 
 func TestCanStringLevel(t *testing.T) {
 	assert.Equal(t, "INFO",  logger.INFO.String())
 	assert.Equal(t, "ERROR", logger.ERROR.String())
+	bigLevel := logger.Level(220)
+	assert.Equal(t, "ALWAYS", bigLevel.String())
+	weirdLevel := logger.Level(47)
+	assert.Equal(t, "WARN", weirdLevel.String())
+	neverLevel := logger.UNSET
+	assert.Equal(t, "UNSET", neverLevel.String())
 }
 
-func TestCanCompareProperly(t *testing.T) {
-	assert.True(t , logger.INFO.ShouldWrite(logger.DEBUG), "INFO should be writable with DEBUG filter")
-	assert.False(t, logger.INFO.ShouldWrite(logger.WARN),  "INFO should not be writable with WARN filter")
+func TestCanCompareLevels(t *testing.T) {
+	levels := []logger.Level{logger.UNSET, logger.TRACE, logger.DEBUG, logger.INFO, logger.WARN, logger.ERROR, logger.FATAL, logger.ALWAYS}
+	var filter logger.Level
+	var index  int
+
+	filter = logger.TRACE
+	index  = 2
+	for _, level := range levels[:index-1] {
+		assert.Falsef(t, level.ShouldWrite(filter), "%s should not be writable with %s filter", level, filter)
+	}
+	for _, level := range levels[index:] {
+		assert.Truef(t, level.ShouldWrite(filter),  "%s should be writable with %s filter", level, filter)
+	}
+
+	filter = logger.DEBUG
+	index  = 3
+	for _, level := range levels[:index-1] {
+		assert.Falsef(t, level.ShouldWrite(filter), "%s should not be writable with %s filter", level, filter)
+	}
+	for _, level := range levels[index:] {
+		assert.Truef(t, level.ShouldWrite(filter),  "%s should be writable with %s filter", level, filter)
+	}
+
+	filter = logger.INFO
+	index  = 4
+	for _, level := range levels[:index-1] {
+		assert.Falsef(t, level.ShouldWrite(filter), "%s should not be writable with %s filter", level, filter)
+	}
+	for _, level := range levels[index:] {
+		assert.Truef(t, level.ShouldWrite(filter),  "%s should be writable with %s filter", level, filter)
+	}
+
+	filter = logger.WARN
+	index  = 5
+	for _, level := range levels[:index-1] {
+		assert.Falsef(t, level.ShouldWrite(filter), "%s should not be writable with %s filter", level, filter)
+	}
+	for _, level := range levels[index:] {
+		assert.Truef(t, level.ShouldWrite(filter),  "%s should be writable with %s filter", level, filter)
+	}
+
+	filter = logger.ERROR
+	index  = 6
+	for _, level := range levels[:index-1] {
+		assert.Falsef(t, level.ShouldWrite(filter), "%s should not be writable with %s filter", level, filter)
+	}
+	for _, level := range levels[index:] {
+		assert.Truef(t, level.ShouldWrite(filter),  "%s should be writable with %s filter", level, filter)
+	}
+
+	filter = logger.FATAL
+	index  = 7
+	for _,level := range levels[:index-1] {
+		assert.Falsef(t, level.ShouldWrite(filter), "%s should not be writable with %s filter", level, filter)
+	}
+	for _, level := range levels[index:] {
+		assert.Truef(t, level.ShouldWrite(filter),  "%s should be writable with %s filter", level, filter)
+	}
+
+	filter = logger.NEVER
+	for _, level := range levels {
+		assert.Falsef(t, level.ShouldWrite(filter), "%s should not be writable with %s filter", level, filter)
+	}
+
+	filter = logger.ALWAYS
+	for _,level := range levels[:0] {
+		assert.Falsef(t, level.ShouldWrite(filter), "%s should not be writable with %s filter", level, filter)
+	}
+	for _, level := range levels[1:] {
+		assert.Truef(t, level.ShouldWrite(filter),  "%s should be writable with %s filter", level, filter)
+	}
+
+	filter = logger.UNSET
+	for _,level := range levels[:0] {
+		assert.Falsef(t, level.ShouldWrite(filter), "%s should not be writable with %s filter", level, filter)
+	}
+	for _, level := range levels[1:] {
+		assert.Truef(t, level.ShouldWrite(filter),  "%s should be writable with %s filter", level, filter)
+	}
 }

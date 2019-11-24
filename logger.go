@@ -221,7 +221,7 @@ func (log *Logger) send(level Level, msg string, args ...interface{}) {
 		record["level"] = level
 		record["msg"]   = fmt.Sprintf(msg, args...)
 		if err := log.Write(record); err != nil {
-			fmt.Fprintf(os.Stderr, "Logger error: %s", err)
+			fmt.Fprintf(os.Stderr, "Logger error: %s\n", err)
 		}
 	}
 }

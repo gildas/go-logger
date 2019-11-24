@@ -14,10 +14,22 @@ type Streamer interface {
 }
 
 // GetFlushFrequencyFromEnvironment fetches the flush frequency from the environment
+//  the frequency should be like https://golang.org/pkg/time/#ParseDuration or an ISO8601 duration.  
+//
+//  If not set, the frequency will be 5 minutes
 func GetFlushFrequencyFromEnvironment() time.Duration {
 	if value, ok := os.LookupEnv("LOG_FLUSHFREQUENCY"); ok {
-		if duration, err := time.ParseDuration(value); err == nil {
-			return duration
+		if strings.HasPrefix(value, "P") {
+			if duration, err := parseDuration(value); err == nil {
+				return duration
+			}
+		} else {
+			if !strings.HasSuffix(value, "h") && !strings.HasSuffix(value, "m") && !strings.HasSuffix(value, "s") {
+				value = value + "s"
+			}
+			if duration, err := time.ParseDuration(value); err == nil {
+				return duration
+			}
 		}
 	}
 	return 5 * time.Minute

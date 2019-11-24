@@ -1,15 +1,32 @@
 package logger_test
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/gildas/go-logger"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
+
+type BogusStream struct {
+}
+
+func (stream *BogusStream) Write(record logger.Record) error {
+	return errors.New("This Stream is Bogus")
+}
+
+func (stream *BogusStream) ShouldWrite(level logger.Level) bool {
+	return true
+}
+
+func (stream *BogusStream) Flush() {
+}
 
 // Load loads an object from a file and marshals it
 func Load(filename string, object interface{}) (err error) {
@@ -67,4 +84,42 @@ func CreateLogDir(t *testing.T) (string, func()) {
 		t.Fatalf("Unable to create log folder for log files. Error: %s\n", err)
 	}
 	return dir, func() {}
+}
+
+func CaptureStderr(f func()) string {
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		panic(err)
+	}
+	stderr := os.Stderr
+	os.Stderr = writer
+	defer func() {
+		os.Stderr = stderr
+	}()
+
+	f()
+	writer.Close()
+
+	output := bytes.Buffer{}
+	io.Copy(&output, reader)
+	return output.String()
+}
+
+func CaptureStdout(f func()) string {
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		panic(err)
+	}
+	stdout := os.Stdout
+	os.Stdout = writer
+	defer func() {
+		os.Stdout = stdout
+	}()
+
+	f()
+	writer.Close()
+
+	output := bytes.Buffer{}
+	io.Copy(&output, reader)
+	return output.String()
 }
