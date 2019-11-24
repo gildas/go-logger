@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"strings"
 	"bufio"
 	"encoding/json"
 	"fmt"
@@ -41,7 +42,7 @@ func (stream *FileStream) Write(record Record) (err error) {
 		}
 		stream.lastFlush = time.Now()
 		stream.flushFrequency = GetFlushFrequencyFromEnvironment()
-		if stream.FilterLevel == 0 {
+		if stream.FilterLevel == UNSET {
 			stream.FilterLevel = GetLevelFromEnvironment()
 		}
 	}
@@ -71,8 +72,15 @@ func (stream *FileStream) Flush() {
 // String gets a string version
 //   implements the fmt.Stringer interface
 func (stream FileStream) String() string {
+	var format strings.Builder
+
 	if stream.Unbuffered {
-		return fmt.Sprintf("Unbuffered Stream to %s, Filter: %s", stream.Path, stream.FilterLevel)
+		format.WriteString("Unbuffered ")
 	}
-	return fmt.Sprintf("Stream to %s, Filter: %s", stream.Path, stream.FilterLevel)
+	format.WriteString("Stream to %s")
+	if stream.FilterLevel == UNSET {
+		return fmt.Sprintf(format.String(), stream.Path)
+	}
+	format.WriteString(", Filter: %s")
+	return fmt.Sprintf(format.String(), stream.Path, stream.FilterLevel)
 }

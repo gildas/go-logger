@@ -28,6 +28,14 @@ func (stream *BogusStream) ShouldWrite(level logger.Level) bool {
 func (stream *BogusStream) Flush() {
 }
 
+type BogusValue struct {
+}
+
+func (v *BogusValue) MarshalJSON() ([]byte, error) {
+	return nil, errors.New("Failed to Marshal BogusValue")
+}
+
+
 // Load loads an object from a file and marshals it
 func Load(filename string, object interface{}) (err error) {
 	var payload []byte
