@@ -110,15 +110,6 @@ func (suite *StreamSuite) TestCanStreamToFile() {
 	suite.Assert().JSONEq(string(payload), string(content))
 }
 
-func (suite *StreamSuite) TestFailsToStreamForbiddenLocation() {
-	stream := &logger.FileStream{Path: filepath.Join("/bin", "test.log"), Unbuffered: true}
-
-	suite.Assert().Contains(fmt.Sprintf("%s", stream), "Unbuffered Stream to /bin/test.log")
-	record := logger.NewRecord().Set("bello", "banana").Set("だれ", "Me")
-	err := stream.Write(record)
-	suite.Require().NotNil(err)
-}
-
 func ExampleStdoutStream() {
 	stream := &logger.StdoutStream{}
 
@@ -205,17 +196,6 @@ func (suite *StreamSuite) TestCanStreamToGCPDriver() {
 		suite.Assert().Nil(err, "Failed to write to stream")
 		stream.Flush()
 	})
-}
-
-func (suite *StreamSuite) TestCanStreamToStackDriver() {
-	os.Setenv("PROJECT_ID", "abcd")
-	stream := &logger.StackDriverStream{LogID: "1234567"}
-	suite.Assert().Equal("Stream to Google StackDriver", fmt.Sprintf("%s", stream))
-	suite.Assert().Truef(stream.ShouldWrite(logger.WARN), "It should be possible to write to a %s", stream)
-	err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.ERROR))
-	suite.Assert().Nil(err, "Failed to write to stream")
-	stream.Flush()
-	os.Unsetenv("PROJECT_ID")
 }
 
 func (suite *StreamSuite) TestCanCreateMultiStream() {
