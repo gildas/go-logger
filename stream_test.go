@@ -150,6 +150,7 @@ func ExampleStderrStream() {
 		if stream.ShouldWrite(logger.TRACE) {
 			os.Stderr.WriteString("This should not be seen, stream Filter: " + stream.FilterLevel.String() + "\n")
 		}
+        stream.Flush()
 	})
 	fmt.Println(output)
 	// Output: {"bello":"banana","だれ":"Me"}
@@ -169,9 +170,14 @@ func ExampleNilStream() {
 }
 
 func (suite *StreamSuite) TestCanCreateFileStream() {
+	stream := &logger.FileStream{Path: "/tmp/test.log"}
+	suite.Assert().Equal("Stream to /tmp/test.log", fmt.Sprintf("%s", stream))
+	stream.Unbuffered = true
+	stream.FilterLevel = logger.INFO
+	suite.Assert().Equal("Unbuffered Stream to /tmp/test.log, Filter: INFO", fmt.Sprintf("%s", stream))
 }
 
-func (suite *StreamSuite) TestCanStreamToGCPDriver() {
+func (suite *StreamSuite) TestCanStreamToGCP() {
 	_ = CaptureStdout(func() {
 		stream := &logger.GCPStream{}
 		suite.Assert().Equal("Stream to Google Cloud", fmt.Sprintf("%s", stream))
@@ -198,6 +204,13 @@ func (suite *StreamSuite) TestCanStreamToGCPDriver() {
 	})
 }
 
+func (suite *StreamSuite) TestCanStreamToStackDriver() {
+	stream := &logger.StackDriverStream{}
+	suite.Assert().Equal("Stream to Google StackDriver", fmt.Sprintf("%s", stream))
+	suite.Assert().Truef(stream.ShouldWrite(logger.WARN), "It should be possible to write to a %s", stream)
+	stream.Flush()
+}
+
 func (suite *StreamSuite) TestCanCreateMultiStream() {
 	stream := logger.CreateStreamWithDestination("stdout", "nil")
 	suite.Assert().IsType(&logger.MultiStream{}, stream)
@@ -206,14 +219,6 @@ func (suite *StreamSuite) TestCanCreateMultiStream() {
 	err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.ERROR))
 	suite.Assert().Nil(err, "Failed to write to stream")
 	stream.Flush()
-}
-
-func (suite *StreamSuite) TestFailsWritingtoMultiStreamWithBogusStream() {
-	stream := logger.CreateMultiStream(&logger.StdoutStream{}, &BogusStream{})
-	suite.Assert().IsType(&logger.MultiStream{}, stream)
-	err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "Me"))
-	suite.Assert().NotNil(err, "Should have failed writing to stream")
-
 }
 
 func (suite *StreamSuite) TestCanGetFlushFrequencyFromEnvironment() {
@@ -236,6 +241,40 @@ func (suite *StreamSuite) TestCanCreateStreamFromEnvironment() {
 	suite.Assert().IsType(&logger.FileStream{}, stream)
 	suite.Assert().Equal("/var/log/test.log", stream.(*logger.FileStream).Path, "File Stream Path should be /var/log/test.log")
 	os.Unsetenv("LOG_DESTINATION")
+}
+
+func (suite *StreamSuite) TestFileStreamFailsWritingToInvalidFile() {
+	streamFile := &logger.FileStream{Path: ""}
+	err := streamFile.Write(logger.NewRecord().Set("key", "value"))
+	suite.Assert().NotNil(err)
+	suite.Assert().Contains(err.Error(), "no such file")
+}
+
+func (suite *StreamSuite) TestFailsWritingtoMultiStreamWithBogusStream() {
+	stream := logger.CreateMultiStream(&logger.StdoutStream{}, &BogusStream{})
+	suite.Assert().IsType(&logger.MultiStream{}, stream)
+	err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "Me"))
+	suite.Assert().NotNil(err, "Should have failed writing to stream")
+
+}
+
+func (suite *StreamSuite) TestFailsWritingWithBogusRecordValue() {
+	streamStderr := &logger.StderrStream{}
+	err := streamStderr.Write(logger.NewRecord().Set("key", &BogusValue{}))
+	suite.Assert().NotNil(err)
+	suite.Assert().Contains(err.Error(), "Failed to Marshal BogusValue")
+	streamStdout := &logger.StdoutStream{}
+	err = streamStdout.Write(logger.NewRecord().Set("key", &BogusValue{}))
+	suite.Assert().NotNil(err)
+	suite.Assert().Contains(err.Error(), "Failed to Marshal BogusValue")
+	streamFile := &logger.FileStream{Path: "/tmp/test.log"}
+	err = streamFile.Write(logger.NewRecord().Set("key", &BogusValue{}))
+	suite.Assert().NotNil(err)
+	suite.Assert().Contains(err.Error(), "Failed to Marshal BogusValue")
+	streamGCP := &logger.GCPStream{}
+	err = streamGCP.Write(logger.NewRecord().Set("key", &BogusValue{}).Set("level", logger.INFO))
+	suite.Assert().NotNil(err)
+	suite.Assert().Contains(err.Error(), "Failed to Marshal BogusValue")
 }
 
 func (suite *StreamSuite) SetupSuite() {
