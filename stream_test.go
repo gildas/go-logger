@@ -128,7 +128,7 @@ func ExampleStdoutStream() {
 	// {"bello":"banana","level":50}
 }
 
-func ExampleStdoutStreamUnbuffered() {
+func ExampleStdoutStream_Unbuffered() {
 	stream := &logger.StdoutStream{ Unbuffered: true}
 
 	if err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "Me")); err != nil {
@@ -171,16 +171,16 @@ func ExampleNilStream() {
 
 func (suite *StreamSuite) TestCanCreateFileStream() {
 	stream := &logger.FileStream{Path: "/tmp/test.log"}
-	suite.Assert().Equal("Stream to /tmp/test.log", fmt.Sprintf("%s", stream))
+	suite.Assert().Equal("Stream to /tmp/test.log", stream.String())
 	stream.Unbuffered = true
 	stream.FilterLevel = logger.INFO
-	suite.Assert().Equal("Unbuffered Stream to /tmp/test.log, Filter: INFO", fmt.Sprintf("%s", stream))
+	suite.Assert().Equal("Unbuffered Stream to /tmp/test.log, Filter: INFO", stream.String())
 }
 
 func (suite *StreamSuite) TestCanStreamToGCP() {
 	_ = CaptureStdout(func() {
 		stream := &logger.GCPStream{}
-		suite.Assert().Equal("Stream to Google Cloud", fmt.Sprintf("%s", stream))
+		suite.Assert().Equal("Stream to Google Cloud", stream.String())
 		suite.Assert().Truef(stream.ShouldWrite(logger.WARN), "It should be possible to write to a %s", stream)
 		err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.NEVER))
 		suite.Assert().Nil(err, "Failed to write to stream")
@@ -206,7 +206,7 @@ func (suite *StreamSuite) TestCanStreamToGCP() {
 
 func (suite *StreamSuite) TestCanStreamToStackDriver() {
 	stream := &logger.StackDriverStream{}
-	suite.Assert().Equal("Stream to Google StackDriver", fmt.Sprintf("%s", stream))
+	suite.Assert().Equal("Stream to Google StackDriver", stream.String())
 	suite.Assert().Truef(stream.ShouldWrite(logger.WARN), "It should be possible to write to a %s", stream)
 	stream.Flush()
 }
