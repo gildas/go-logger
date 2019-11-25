@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"github.com/gildas/go-core"
 )
 
 // Streamer is the interface a Logger writes to
@@ -18,21 +19,7 @@ type Streamer interface {
 //
 //  If not set, the frequency will be 5 minutes
 func GetFlushFrequencyFromEnvironment() time.Duration {
-	if value, ok := os.LookupEnv("LOG_FLUSHFREQUENCY"); ok {
-		if strings.HasPrefix(value, "P") {
-			if duration, err := parseDuration(value); err == nil {
-				return duration
-			}
-		} else {
-			if !strings.HasSuffix(value, "h") && !strings.HasSuffix(value, "m") && !strings.HasSuffix(value, "s") {
-				value = value + "s"
-			}
-			if duration, err := time.ParseDuration(value); err == nil {
-				return duration
-			}
-		}
-	}
-	return 5 * time.Minute
+	return core.GetEnvAsDuration("LOG_FLUSHFREQUENCY", 5 * time.Minute)
 }
 
 // CreateStreamWithDestination creates a new Streamer from a list of strings

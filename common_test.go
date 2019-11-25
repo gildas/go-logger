@@ -109,7 +109,7 @@ func CaptureStderr(f func()) string {
 	writer.Close()
 
 	output := bytes.Buffer{}
-	io.Copy(&output, reader)
+	_, _ = io.Copy(&output, reader)
 	return output.String()
 }
 
@@ -128,6 +128,6 @@ func CaptureStdout(f func()) string {
 	writer.Close()
 
 	output := bytes.Buffer{}
-	io.Copy(&output, reader)
+	_, _ = io.Copy(&output, reader)
 	return output.String()
 }

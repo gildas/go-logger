@@ -201,7 +201,7 @@ func (suite *LoggerSuite) TestCanLogWithFilter() {
 	//suite.Assert().Contains(record, "bello")
 }
 
-func ExampleFailsLoggingWithBogusStream() {
+func ExampleLogger_Write_failsWithBogusStream() {
 	output := CaptureStderr(func() {
 		log := logger.Create("test", &BogusStream{})
 
@@ -220,7 +220,12 @@ func FakeHandler() http.Handler {
 			w.WriteHeader(http.StatusOK)
 		}
 		
-		w.Write([]byte(fmt.Sprintf("%s", log)))
+		count, err := w.Write([]byte(log.String()))
+		if err != nil {
+			log.Errorf("Failed to write response", err)
+			return
+		}
+		log.Infof("Written %d bytes", count)
 	})
 }
 
