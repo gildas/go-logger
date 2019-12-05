@@ -33,11 +33,15 @@ func CreateStreamWithDestination(destinations ...string) Streamer {
 	}
 	streams := []Streamer{}
 
+	unbuffered := false
+	if value, ok := os.LookupEnv("DEBUG"); ok && value == "1" {
+		unbuffered = true
+	}
 	for _, destination := range destinations {
 		var stream Streamer
 		switch strings.ToLower(destination) {
 		case "stdout":
-			stream = &StdoutStream{}
+			stream = &StdoutStream{Unbuffered: unbuffered}
 		case "stderr":
 			stream = &StderrStream{}
 		case "gcp", "google", "googlecloud":
@@ -48,11 +52,11 @@ func CreateStreamWithDestination(destinations ...string) Streamer {
 			stream = &NilStream{}
 		default:
 			if strings.HasPrefix(destination, "file://") {
-				stream = &FileStream{Path: strings.TrimPrefix(destination, "file://")}
+				stream = &FileStream{Path: strings.TrimPrefix(destination, "file://"), Unbuffered: unbuffered}
 			} else if len(destination) > 0 {
-				stream = &FileStream{Path: destination}
+				stream = &FileStream{Path: destination, Unbuffered: unbuffered}
 			} else {
-				stream = &StdoutStream{}
+				stream = &StdoutStream{Unbuffered: unbuffered}
 			}
 		}
 		streams = append(streams, stream)

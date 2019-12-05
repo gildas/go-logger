@@ -63,5 +63,8 @@ func (stream *StdoutStream) Flush() {
 // String gets a string version
 //   implements the fmt.Stringer interface
 func (stream StdoutStream) String() string {
+	if stream.Unbuffered {
+		return "Unbuffered Stream to stdout"
+	}
 	return "Stream to stdout"
 }
