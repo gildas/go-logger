@@ -47,15 +47,13 @@ func (stream *FileStream) Write(record Record) (err error) {
 			go stream.flushJob()
 		}
 	}
-	{
-		stream.mutex.Lock()
-		defer stream.mutex.Unlock()
-		if err := stream.Encoder.Encode(record); err != nil {
-			return errors.WithStack(err)
-		}
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	if err := stream.Encoder.Encode(record); err != nil {
+		return errors.WithStack(err)
 	}
-	if GetLevelFromRecord(record) >= ERROR {
-		stream.Flush()
+	if GetLevelFromRecord(record) >= ERROR && stream.output != nil {
+		stream.output.Flush() // calling stream.Flush will Lock the mutex again and end up with a dead-lock
 	}
 	return nil
 }

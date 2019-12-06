@@ -30,12 +30,10 @@ func (stream *GCPStream) Write(record Record) error {
 	delete(record, "level")
 	delete(record, "time")
 	delete(record, "name")
-	{
-		stream.mutex.Lock()
-		defer stream.mutex.Unlock()
-		if err := stream.Encoder.Encode(record); err != nil {
-			return errors.WithStack(err)
-		}
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	if err := stream.Encoder.Encode(record); err != nil {
+		return errors.WithStack(err)
 	}
 	return nil
 }

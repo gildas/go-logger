@@ -3,13 +3,14 @@ package logger
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 )
-
 
 // StdoutStream is the Stream that writes to the standard output
 type StdoutStream struct {
@@ -29,7 +30,7 @@ func (stream *StdoutStream) Write(record Record) error {
 			stream.FilterLevel = GetLevelFromEnvironment()
 		}
 		if stream.Unbuffered {
-			stream.output =  nil
+			stream.output = nil
 			stream.Encoder = json.NewEncoder(os.Stdout)
 		} else {
 			stream.output = bufio.NewWriter(os.Stdout)
@@ -38,15 +39,13 @@ func (stream *StdoutStream) Write(record Record) error {
 			go stream.flushJob()
 		}
 	}
-	{
-		stream.mutex.Lock()
-		defer stream.mutex.Unlock()
-		if err := stream.Encoder.Encode(record); err != nil {
-			return errors.WithStack(err)
-		}
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	if err := stream.Encoder.Encode(record); err != nil {
+		return errors.WithStack(err)
 	}
-	if GetLevelFromRecord(record) >= ERROR {
-		stream.Flush()
+	if GetLevelFromRecord(record) >= ERROR && stream.output != nil {
+		stream.output.Flush() // calling stream.Flush will Lock the mutex again and end up with a dead-lock
 	}
 	return nil
 }
@@ -70,10 +69,17 @@ func (stream *StdoutStream) Flush() {
 // String gets a string version
 //   implements the fmt.Stringer interface
 func (stream *StdoutStream) String() string {
+	var format strings.Builder
+
 	if stream.Unbuffered {
-		return "Unbuffered Stream to stdout"
+		format.WriteString("Unbuffered ")
 	}
-	return "Stream to stdout"
+	format.WriteString("Stream to stdout")
+	if stream.FilterLevel == UNSET {
+		return format.String()
+	}
+	format.WriteString(", Filter: %s")
+	return fmt.Sprintf(format.String(), stream.FilterLevel)
 }
 
 func (stream *StdoutStream) flushJob() {
