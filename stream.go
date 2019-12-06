@@ -24,19 +24,19 @@ func GetFlushFrequencyFromEnvironment() time.Duration {
 
 // CreateStreamWithDestination creates a new Streamer from a list of strings
 func CreateStreamWithDestination(destinations ...string) Streamer {
+	unbuffered := false
+	if value, ok := os.LookupEnv("DEBUG"); ok && value == "1" {
+		unbuffered = true
+	}
 	if len(destinations) == 0 {
 		destination, ok := os.LookupEnv("LOG_DESTINATION")
 		if !ok || len(destination) == 0 {
-			return &StdoutStream{}
+			return &StdoutStream{Unbuffered: unbuffered}
 		}
 		destinations = []string{destination}
 	}
 	streams := []Streamer{}
 
-	unbuffered := false
-	if value, ok := os.LookupEnv("DEBUG"); ok && value == "1" {
-		unbuffered = true
-	}
 	for _, destination := range destinations {
 		var stream Streamer
 		switch strings.ToLower(destination) {
