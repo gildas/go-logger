@@ -24,10 +24,14 @@ func GetFlushFrequencyFromEnvironment() time.Duration {
 
 // CreateStreamWithDestination creates a new Streamer from a list of strings
 func CreateStreamWithDestination(destinations ...string) Streamer {
+	unbuffered := false
+	if value, ok := os.LookupEnv("DEBUG"); ok && value == "1" {
+		unbuffered = true
+	}
 	if len(destinations) == 0 {
 		destination, ok := os.LookupEnv("LOG_DESTINATION")
 		if !ok || len(destination) == 0 {
-			return &StdoutStream{}
+			return &StdoutStream{Unbuffered: unbuffered}
 		}
 		destinations = []string{destination}
 	}
@@ -37,7 +41,7 @@ func CreateStreamWithDestination(destinations ...string) Streamer {
 		var stream Streamer
 		switch strings.ToLower(destination) {
 		case "stdout":
-			stream = &StdoutStream{}
+			stream = &StdoutStream{Unbuffered: unbuffered}
 		case "stderr":
 			stream = &StderrStream{}
 		case "gcp", "google", "googlecloud":
@@ -48,11 +52,11 @@ func CreateStreamWithDestination(destinations ...string) Streamer {
 			stream = &NilStream{}
 		default:
 			if strings.HasPrefix(destination, "file://") {
-				stream = &FileStream{Path: strings.TrimPrefix(destination, "file://")}
+				stream = &FileStream{Path: strings.TrimPrefix(destination, "file://"), Unbuffered: unbuffered}
 			} else if len(destination) > 0 {
-				stream = &FileStream{Path: destination}
+				stream = &FileStream{Path: destination, Unbuffered: unbuffered}
 			} else {
-				stream = &StdoutStream{}
+				stream = &StdoutStream{Unbuffered: unbuffered}
 			}
 		}
 		streams = append(streams, stream)

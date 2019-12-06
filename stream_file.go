@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -20,8 +21,8 @@ type FileStream struct {
 	Unbuffered     bool
 	file           *os.File
 	output         *bufio.Writer
-	lastFlush      time.Time
 	flushFrequency time.Duration
+	mutex          sync.Mutex
 }
 
 // Write writes the given Record
@@ -33,24 +34,26 @@ func (stream *FileStream) Write(record Record) (err error) {
 		if stream.file, err = os.OpenFile(stream.Path, flags, perms); err != nil {
 			return errors.WithStack(err)
 		}
+		if stream.FilterLevel == UNSET {
+			stream.FilterLevel = GetLevelFromEnvironment()
+		}
 		if stream.Unbuffered {
 			stream.output =  nil
 			stream.Encoder = json.NewEncoder(stream.file)
 		} else {
 			stream.output = bufio.NewWriter(stream.file)
 			stream.Encoder = json.NewEncoder(stream.output)
-		}
-		stream.lastFlush = time.Now()
-		stream.flushFrequency = GetFlushFrequencyFromEnvironment()
-		if stream.FilterLevel == UNSET {
-			stream.FilterLevel = GetLevelFromEnvironment()
+			stream.flushFrequency = GetFlushFrequencyFromEnvironment()
+			go stream.flushJob()
 		}
 	}
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
 	if err := stream.Encoder.Encode(record); err != nil {
 		return errors.WithStack(err)
 	}
-	if GetLevelFromRecord(record) >= ERROR || time.Since(stream.lastFlush) >= stream.flushFrequency {
-		stream.Flush()
+	if GetLevelFromRecord(record) >= ERROR && stream.output != nil {
+		stream.output.Flush() // calling stream.Flush will Lock the mutex again and end up with a dead-lock
 	}
 	return nil
 }
@@ -65,13 +68,15 @@ func (stream *FileStream) ShouldWrite(level Level) bool {
 //   implements logger.Stream
 func (stream *FileStream) Flush() {
 	if stream.output != nil {
+		stream.mutex.Lock()
+		defer stream.mutex.Unlock()
 		stream.output.Flush()
 	}
 }
 
 // String gets a string version
 //   implements the fmt.Stringer interface
-func (stream FileStream) String() string {
+func (stream *FileStream) String() string {
 	var format strings.Builder
 
 	if stream.Unbuffered {
@@ -83,4 +88,10 @@ func (stream FileStream) String() string {
 	}
 	format.WriteString(", Filter: %s")
 	return fmt.Sprintf(format.String(), stream.Path, stream.FilterLevel)
+}
+
+func (stream *FileStream) flushJob() {
+	for range time.Tick(stream.flushFrequency) {
+		stream.Flush()
+	}
 }

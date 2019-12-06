@@ -1,7 +1,11 @@
 package logger
 
 import (
+	"bytes"
+	"io"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -32,6 +36,23 @@ func (suite *InternalLoggerSuite) TestCanCreateWithStreams() {
 	suite.Require().Len(log.stream.(*MultiStream).streams, 2)
 	suite.Assert().IsType(&StdoutStream{}, log.stream.(*MultiStream).streams[0])
 	suite.Assert().IsType(&StackDriverStream{}, log.stream.(*MultiStream).streams[1])
+
+	os.Setenv("DEBUG", "1")
+	log = CreateWithStream("test")
+	suite.Require().NotNil(log, "Failed to create a Logger with stdout stream")
+	suite.Assert().IsType(&StdoutStream{}, log.stream)
+	suite.Assert().Equal(true, log.stream.(*StdoutStream).Unbuffered, "In DEBUG mode, stdout should be unbuffered")
+	os.Unsetenv("DEBUG")
+
+	os.Setenv("LOG_FLUSHFREQUENCY", "10ms")
+	log = CreateWithStream("test", &StdoutStream{})
+	suite.Require().NotNil(log, "Failed to create a Logger with stdout stream")
+	suite.Assert().IsType(&StdoutStream{}, log.stream)
+	_ = captureStdout(func() {
+		log.Tracef("writing something")
+	})
+	suite.Assert().Equal(10*time.Millisecond, log.stream.(*StdoutStream).flushFrequency, "this stream should flush every 10 milliseconds")
+	os.Unsetenv("LOG_FLUSHFREQUENCY")
 }
 
 func (suite *InternalLoggerSuite) TestCanCreateWithDestination() {
@@ -146,7 +167,7 @@ func (suite *InternalLoggerSuite) TestCanSmartCreateWithRecord() {
 }
 
 func (suite *InternalLoggerSuite) TestCanSmartCreateWithMix() {
-	log := Create("test", &StderrStream{}, "/var/log/test.log" ,NewRecord().Set("key", "value"))
+	log := Create("test", &StderrStream{}, "/var/log/test.log", NewRecord().Set("key", "value"))
 	suite.Require().NotNil(log, "Failed to create a Logger with a Record")
 	suite.Assert().IsType(&MultiStream{}, log.stream)
 	suite.Require().Len(log.stream.(*MultiStream).streams, 2)
@@ -155,4 +176,23 @@ func (suite *InternalLoggerSuite) TestCanSmartCreateWithMix() {
 	suite.Assert().Equal("/var/log/test.log", log.stream.(*MultiStream).streams[1].(*FileStream).Path)
 	suite.Require().NotNil(log.GetRecord("key"), "there is no Record \"key\" in Logger")
 	suite.Assert().Equal("value", log.GetRecord("key").(string))
+}
+
+func captureStdout(f func()) string {
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		panic(err)
+	}
+	stdout := os.Stdout
+	os.Stdout = writer
+	defer func() {
+		os.Stdout = stdout
+	}()
+
+	f()
+	writer.Close()
+
+	output := bytes.Buffer{}
+	_, _ = io.Copy(&output, reader)
+	return output.String()
 }

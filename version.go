@@ -4,4 +4,4 @@ package logger
 var commit string
 
 // VERSION is the version of this application
-var VERSION = "1.1.2" + commit
+var VERSION = "1.2.0" + commit

@@ -3,12 +3,14 @@ package logger
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"os"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 )
-
 
 // StdoutStream is the Stream that writes to the standard output
 type StdoutStream struct {
@@ -16,32 +18,34 @@ type StdoutStream struct {
 	FilterLevel    Level
 	Unbuffered     bool
 	output         *bufio.Writer
-	lastFlush      time.Time
 	flushFrequency time.Duration
+	mutex          sync.Mutex
 }
 
 // Write writes the given Record
 //   implements logger.Stream
 func (stream *StdoutStream) Write(record Record) error {
 	if stream.Encoder == nil {
+		if stream.FilterLevel == UNSET {
+			stream.FilterLevel = GetLevelFromEnvironment()
+		}
 		if stream.Unbuffered {
-			stream.output =  nil
+			stream.output = nil
 			stream.Encoder = json.NewEncoder(os.Stdout)
 		} else {
 			stream.output = bufio.NewWriter(os.Stdout)
 			stream.Encoder = json.NewEncoder(stream.output)
-		}
-		stream.lastFlush = time.Now()
-		stream.flushFrequency = GetFlushFrequencyFromEnvironment()
-		if stream.FilterLevel == UNSET {
-			stream.FilterLevel = GetLevelFromEnvironment()
+			stream.flushFrequency = GetFlushFrequencyFromEnvironment()
+			go stream.flushJob()
 		}
 	}
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
 	if err := stream.Encoder.Encode(record); err != nil {
 		return errors.WithStack(err)
 	}
-	if GetLevelFromRecord(record) >= ERROR || time.Since(stream.lastFlush) >= stream.flushFrequency {
-		stream.Flush()
+	if GetLevelFromRecord(record) >= ERROR && stream.output != nil {
+		stream.output.Flush() // calling stream.Flush will Lock the mutex again and end up with a dead-lock
 	}
 	return nil
 }
@@ -56,12 +60,30 @@ func (stream *StdoutStream) ShouldWrite(level Level) bool {
 //   implements logger.Stream
 func (stream *StdoutStream) Flush() {
 	if stream.output != nil {
+		stream.mutex.Lock()
+		defer stream.mutex.Unlock()
 		stream.output.Flush()
 	}
 }
 
 // String gets a string version
 //   implements the fmt.Stringer interface
-func (stream StdoutStream) String() string {
-	return "Stream to stdout"
+func (stream *StdoutStream) String() string {
+	var format strings.Builder
+
+	if stream.Unbuffered {
+		format.WriteString("Unbuffered ")
+	}
+	format.WriteString("Stream to stdout")
+	if stream.FilterLevel == UNSET {
+		return format.String()
+	}
+	format.WriteString(", Filter: %s")
+	return fmt.Sprintf(format.String(), stream.FilterLevel)
+}
+
+func (stream *StdoutStream) flushJob() {
+	for range time.Tick(stream.flushFrequency) {
+		stream.Flush()
+	}
 }

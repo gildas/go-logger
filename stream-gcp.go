@@ -3,6 +3,7 @@ package logger
 import (
 	"encoding/json"
 	"os"
+	"sync"
 
 	"github.com/pkg/errors"
 )
@@ -12,6 +13,7 @@ import (
 type GCPStream struct {
 	*json.Encoder
 	FilterLevel Level
+	mutex       sync.Mutex
 }
 
 // Write writes the given Record
@@ -28,6 +30,8 @@ func (stream *GCPStream) Write(record Record) error {
 	delete(record, "level")
 	delete(record, "time")
 	delete(record, "name")
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
 	if err := stream.Encoder.Encode(record); err != nil {
 		return errors.WithStack(err)
 	}
@@ -47,6 +51,6 @@ func (stream *GCPStream) Flush() {
 
 // String gets a string version
 //   implements the fmt.Stringer interface
-func (stream GCPStream) String() string {
+func (stream *GCPStream) String() string {
 	return "Stream to Google Cloud"
 }

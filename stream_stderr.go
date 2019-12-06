@@ -3,6 +3,7 @@ package logger
 import (
 	"encoding/json"
 	"os"
+	"sync"
 
 	"github.com/pkg/errors"
 )
@@ -12,6 +13,7 @@ import (
 type StderrStream struct {
 	*json.Encoder
 	FilterLevel Level
+	mutex          sync.Mutex
 }
 
 // Write writes the given Record
@@ -23,8 +25,12 @@ func (stream *StderrStream) Write(record Record) error {
 			stream.FilterLevel = GetLevelFromEnvironment()
 		}
 	}
-	if err := stream.Encoder.Encode(record); err != nil {
-		return errors.WithStack(err)
+	{
+		stream.mutex.Lock()
+		defer stream.mutex.Unlock()
+		if err := stream.Encoder.Encode(record); err != nil {
+			return errors.WithStack(err)
+		}
 	}
 	return nil
 }
@@ -42,6 +48,6 @@ func (stream *StderrStream) Flush() {
 
 // String gets a string version
 //   implements the fmt.Stringer interface
-func (stream StderrStream) String() string {
+func (stream *StderrStream) String() string {
 	return "Stream to stderr"
 }
