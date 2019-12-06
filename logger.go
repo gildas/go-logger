@@ -37,6 +37,10 @@ func Create(name string, parameters ...interface{}) *Logger {
 			}
 		case string:
 			destinations = append(destinations, parameter)
+		case Level:
+			// TODO: we should be able to create a logger with a FilterLevel
+			// TODO: we should be able to create Stream objects with a FilterLevel
+			// TODO: we should be able to change the FilterLevel
 		default:
 			if streamer, ok := parameter.(Streamer); ok {
 				streams = append(streams, streamer)
