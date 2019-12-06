@@ -25,6 +25,14 @@ type FileStream struct {
 	mutex          sync.Mutex
 }
 
+// SetFilterLevel sets the filter level
+func (stream *FileStream) SetFilterLevel(level Level) Streamer {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevel = level
+	return stream
+}
+
 // Write writes the given Record
 //   implements logger.Stream
 func (stream *FileStream) Write(record Record) (err error) {

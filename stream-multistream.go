@@ -5,6 +5,14 @@ type MultiStream struct {
 	streams []Streamer
 }
 
+// SetFilterLevel sets the filter level of all streams
+func (stream *MultiStream) SetFilterLevel(level Level) Streamer {
+	for _, s := range stream.streams {
+		s.SetFilterLevel(level)
+	}
+	return stream
+}
+
 // Write writes the given Record
 //   implements logger.Stream
 func (stream *MultiStream) Write(record Record) error {

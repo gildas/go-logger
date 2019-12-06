@@ -17,6 +17,11 @@ import (
 type BogusStream struct {
 }
 
+// SetFilterLevel sets the filter level
+func (stream *BogusStream) SetFilterLevel(level logger.Level) logger.Streamer {
+	return stream
+}
+
 func (stream *BogusStream) Write(record logger.Record) error {
 	return errors.New("This Stream is Bogus")
 }

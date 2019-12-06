@@ -3,6 +3,7 @@ package logger
 import (
 	"context"
 	"os"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/logging"
@@ -15,8 +16,17 @@ type StackDriverStream struct {
 	LogID       string
 	ProjectID   string
 	FilterLevel Level
+	mutex       sync.Mutex
 	client      *logging.Client
 	target      *logging.Logger
+}
+
+// SetFilterLevel sets the filter level
+func (stream *StackDriverStream) SetFilterLevel(level Level) Streamer {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevel = level
+	return stream
 }
 
 // Write writes the given Record

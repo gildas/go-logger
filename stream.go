@@ -11,6 +11,7 @@ import (
 type Streamer interface {
 	Write(record Record) error
 	ShouldWrite(level Level) bool
+	SetFilterLevel(level Level) Streamer
 	Flush()
 }
 

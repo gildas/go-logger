@@ -22,6 +22,14 @@ type StdoutStream struct {
 	mutex          sync.Mutex
 }
 
+// SetFilterLevel sets the filter level
+func (stream *StdoutStream) SetFilterLevel(level Level) Streamer {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevel = level
+	return stream
+}
+
 // Write writes the given Record
 //   implements logger.Stream
 func (stream *StdoutStream) Write(record Record) error {

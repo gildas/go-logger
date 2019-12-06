@@ -7,6 +7,12 @@ func (log *Logger) Write(record Record) error {
 	return log.stream.Write(record)
 }
 
+// SetFilterLevel sets the filter level of the streamer
+func (log *Logger) SetFilterLevel(level Level) Streamer {
+	log.stream.SetFilterLevel(level)
+	return log.stream
+}
+
 // ShouldWrite tells if the given level should be written to this stream
 //   implements logger.Stream
 func (log *Logger) ShouldWrite(level Level) bool {

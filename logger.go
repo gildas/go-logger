@@ -26,8 +26,9 @@ func Must(log *Logger, err error) *Logger {
 // Create creates a new Logger
 func Create(name string, parameters ...interface{}) *Logger {
 	destinations := []string{}
-	streams := []Streamer{}
-	records := []Record{}
+	streams      := []Streamer{}
+	records      := []Record{}
+	filterLevel  := GetLevelFromEnvironment()
 
 	for _, parameter := range parameters {
 		switch parameter := parameter.(type) {
@@ -38,9 +39,7 @@ func Create(name string, parameters ...interface{}) *Logger {
 		case string:
 			destinations = append(destinations, parameter)
 		case Level:
-			// TODO: we should be able to create a logger with a FilterLevel
-			// TODO: we should be able to create Stream objects with a FilterLevel
-			// TODO: we should be able to change the FilterLevel
+			filterLevel = parameter
 		default:
 			if streamer, ok := parameter.(Streamer); ok {
 				streams = append(streams, streamer)
@@ -52,7 +51,7 @@ func Create(name string, parameters ...interface{}) *Logger {
 		// we should use it for the Topic, Scope
 	}
 	for _, destination := range destinations {
-		streams = append(streams, CreateStreamWithDestination(destination))
+		streams = append(streams, CreateStreamWithDestination(destination).SetFilterLevel(filterLevel))
 	}
 	logger := CreateWithStream(name, streams...)
 	if len(records) > 0 {

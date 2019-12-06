@@ -16,6 +16,14 @@ type GCPStream struct {
 	mutex       sync.Mutex
 }
 
+// SetFilterLevel sets the filter level
+func (stream *GCPStream) SetFilterLevel(level Level) Streamer {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevel = level
+	return stream
+}
+
 // Write writes the given Record
 //   implements logger.Stream
 func (stream *GCPStream) Write(record Record) error {

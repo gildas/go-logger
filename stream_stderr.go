@@ -13,7 +13,15 @@ import (
 type StderrStream struct {
 	*json.Encoder
 	FilterLevel Level
-	mutex          sync.Mutex
+	mutex       sync.Mutex
+}
+
+// SetFilterLevel sets the filter level
+func (stream *StderrStream) SetFilterLevel(level Level) Streamer {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevel = level
+	return stream
 }
 
 // Write writes the given Record
@@ -25,12 +33,10 @@ func (stream *StderrStream) Write(record Record) error {
 			stream.FilterLevel = GetLevelFromEnvironment()
 		}
 	}
-	{
-		stream.mutex.Lock()
-		defer stream.mutex.Unlock()
-		if err := stream.Encoder.Encode(record); err != nil {
-			return errors.WithStack(err)
-		}
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	if err := stream.Encoder.Encode(record); err != nil {
+		return errors.WithStack(err)
 	}
 	return nil
 }

@@ -4,6 +4,11 @@ package logger
 type NilStream struct {
 }
 
+// SetFilterLevel sets the filter level of all streams
+func (stream *NilStream) SetFilterLevel(level Level) Streamer {
+	return stream
+}
+
 // Write writes the given Record
 //   implements logger.Stream
 func (stream *NilStream) Write(record Record) error {
