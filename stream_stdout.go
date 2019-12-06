@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -16,8 +17,8 @@ type StdoutStream struct {
 	FilterLevel    Level
 	Unbuffered     bool
 	output         *bufio.Writer
-	lastFlush      time.Time
 	flushFrequency time.Duration
+	mutex          sync.Mutex
 }
 
 // Write writes the given Record
@@ -37,11 +38,14 @@ func (stream *StdoutStream) Write(record Record) error {
 			go stream.flushJob()
 		}
 	}
-	if err := stream.Encoder.Encode(record); err != nil {
-		return errors.WithStack(err)
+	{
+		stream.mutex.Lock()
+		defer stream.mutex.Unlock()
+		if err := stream.Encoder.Encode(record); err != nil {
+			return errors.WithStack(err)
+		}
 	}
-	// TODO: if the flush Frequency changed, restart the flushJob
-	if GetLevelFromRecord(record) >= ERROR || time.Since(stream.lastFlush) >= stream.flushFrequency {
+	if GetLevelFromRecord(record) >= ERROR {
 		stream.Flush()
 	}
 	return nil
@@ -57,13 +61,15 @@ func (stream *StdoutStream) ShouldWrite(level Level) bool {
 //   implements logger.Stream
 func (stream *StdoutStream) Flush() {
 	if stream.output != nil {
+		stream.mutex.Lock()
+		defer stream.mutex.Unlock()
 		stream.output.Flush()
 	}
 }
 
 // String gets a string version
 //   implements the fmt.Stringer interface
-func (stream StdoutStream) String() string {
+func (stream *StdoutStream) String() string {
 	if stream.Unbuffered {
 		return "Unbuffered Stream to stdout"
 	}
@@ -72,9 +78,6 @@ func (stream StdoutStream) String() string {
 
 func (stream *StdoutStream) flushJob() {
 	for range time.Tick(stream.flushFrequency) {
-		// TODO: Need to be interruptible
-		// TODO: Add lock
 		stream.Flush()
-		stream.lastFlush = time.Now()
 	}
 }
