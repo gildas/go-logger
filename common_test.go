@@ -71,7 +71,7 @@ func CreateLogger(t *testing.T, filename string, wantLocal bool) (*logger.Logger
 	//if _, err := os.Stat(path); err != nil {
 	//	t.Fatalf("Log file was not created at: %s. Error: %s\n", path, err)
 	//}
-	return log, teardown
+	return log, func() { log.Flush(); teardown() }
 }
 
 // CreateTempDir creates a temporary directory

@@ -92,7 +92,29 @@ func (suite *StreamSuite) TestCanCreateStreamFromDestination() {
 	suite.Assert().IsType(&logger.MultiStream{}, stream)
 }
 
+func (suite *StreamSuite) TestCanCreateStdoutStream() {
+	stream := &logger.StdoutStream{}
+	suite.Assert().Equal("Stream to stdout", stream.String())
+}
+
+func (suite *StreamSuite) TestCanCreateUnbufferedStdoutStream() {
+	stream := &logger.StdoutStream{Unbuffered: true, FilterLevel: logger.INFO}
+	suite.Assert().Equal("Unbuffered Stream to stdout, Filter: INFO", stream.String())
+}
+
+func (suite *StreamSuite) TestCanCreateFileStream() {
+	stream := &logger.FileStream{Path: "/tmp/test.log"}
+	suite.Assert().Equal("Stream to /tmp/test.log", stream.String())
+}
+
+func (suite *StreamSuite) TestCanCreateUnbufferedFileStream() {
+	stream := &logger.FileStream{Path: "/tmp/test.log", Unbuffered: true, FilterLevel: logger.INFO}
+	suite.Assert().Equal("Unbuffered Stream to /tmp/test.log, Filter: INFO", stream.String())
+}
+
 func (suite *StreamSuite) TestCanStreamToFile() {
+	os.Setenv("LOG_FLUSHFREQUENCY", "10ms")
+	defer os.Unsetenv("LOG_FLUSHFREQUENCY")
 	folder, teardown := CreateTempDir(suite.T())
 	defer teardown()
 	stream := &logger.FileStream{Path: filepath.Join(folder, "test.log")}
@@ -100,6 +122,7 @@ func (suite *StreamSuite) TestCanStreamToFile() {
 	record := logger.NewRecord().Set("bello", "banana").Set("だれ", "Me")
 	err := stream.Write(record)
 	suite.Require().Nil(err)
+	time.Sleep(11 * time.Millisecond)
 	stream.Flush()
 
 	payload, err := json.Marshal(record)
@@ -111,6 +134,8 @@ func (suite *StreamSuite) TestCanStreamToFile() {
 }
 
 func ExampleStdoutStream() {
+	os.Setenv("LOG_FLUSHFREQUENCY", "10ms")
+	defer os.Unsetenv("LOG_FLUSHFREQUENCY")
 	stream := &logger.StdoutStream{}
 
 	if err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "Me")); err != nil {
@@ -123,6 +148,7 @@ func ExampleStdoutStream() {
 		os.Stdout.WriteString(err.Error() + "\n")
 	}
 	stream.Flush()
+	time.Sleep(11 * time.Millisecond)
 	// Output: 
 	// {"bello":"banana","だれ":"Me"}
 	// {"bello":"banana","level":50}
@@ -167,14 +193,6 @@ func ExampleNilStream() {
 	}
 	stream.Flush()
 	// Output:
-}
-
-func (suite *StreamSuite) TestCanCreateFileStream() {
-	stream := &logger.FileStream{Path: "/tmp/test.log"}
-	suite.Assert().Equal("Stream to /tmp/test.log", stream.String())
-	stream.Unbuffered = true
-	stream.FilterLevel = logger.INFO
-	suite.Assert().Equal("Unbuffered Stream to /tmp/test.log, Filter: INFO", stream.String())
 }
 
 func (suite *StreamSuite) TestCanStreamToGCP() {

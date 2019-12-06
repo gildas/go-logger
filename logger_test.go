@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -59,6 +60,13 @@ func (suite *LoggerSuite) TestCanCreateWithNil() {
 	suite.Require().NotNil(log, "cannot create a logger.Logger")
 	log2 := logger.CreateIfNil(log, "test")
 	suite.Require().NotNil(log2, "cannot create a logger.Logger")
+}
+
+func (suite *LoggerSuite) TestCanCreateUnbufferedStdoutStreamInDEBUG() {
+	os.Setenv("DEBUG", "1")
+	logger := logger.CreateWithStream("test")
+	suite.Assert().Equal("Logger(Unbuffered Stream to stdout)", logger.String())
+	os.Unsetenv("DEBUG")
 }
 
 func (suite *LoggerSuite) TestCanLoadAndSaveWithContext() {
