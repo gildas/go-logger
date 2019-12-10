@@ -12,6 +12,7 @@ import (
 // StderrStream is the Stream that writes to the standard output
 type StderrStream struct {
 	*json.Encoder
+	Converter   Converter
 	FilterLevel Level
 	mutex       sync.Mutex
 }
@@ -35,7 +36,10 @@ func (stream *StderrStream) Write(record Record) error {
 			stream.FilterLevel = GetLevelFromEnvironment()
 		}
 	}
-	if err := stream.Encoder.Encode(record); err != nil {
+	if stream.Converter == nil {
+		stream.Converter = GetConverterFromEnvironment()
+	}
+	if err := stream.Encoder.Encode(stream.Converter.Convert(record)); err != nil {
 		return errors.WithStack(err)
 	}
 	return nil

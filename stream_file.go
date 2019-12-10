@@ -17,6 +17,7 @@ import (
 type FileStream struct {
 	*json.Encoder
 	Path           string
+	Converter      Converter
 	FilterLevel    Level
 	Unbuffered     bool
 	file           *os.File
@@ -47,6 +48,9 @@ func (stream *FileStream) Write(record Record) (err error) {
 		if stream.FilterLevel == UNSET {
 			stream.FilterLevel = GetLevelFromEnvironment()
 		}
+		if stream.Converter == nil {
+			stream.Converter = GetConverterFromEnvironment()
+		}
 		if stream.Unbuffered {
 			stream.output  =  nil
 			stream.Encoder = json.NewEncoder(stream.file)
@@ -57,7 +61,7 @@ func (stream *FileStream) Write(record Record) (err error) {
 			go stream.flushJob()
 		}
 	}
-	if err := stream.Encoder.Encode(record); err != nil {
+	if err := stream.Encoder.Encode(stream.Converter.Convert(record)); err != nil {
 		return errors.WithStack(err)
 	}
 	if GetLevelFromRecord(record) >= ERROR && stream.output != nil {

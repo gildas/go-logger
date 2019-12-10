@@ -1,9 +1,11 @@
 package logger
 
 import (
+	"os"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"cloud.google.com/go/logging"
 	"github.com/stretchr/testify/suite"
@@ -19,18 +21,34 @@ func TestConverterSuite(t *testing.T) {
 	suite.Run(t, new(ConverterSuite))
 }
 
+func (suite *ConverterSuite) TestCanGetConverterFromEnvironment() {
+	os.Setenv("LOG_CONVERTER", "bunyan")
+	converter := GetConverterFromEnvironment()
+	suite.Assert().IsType(&BunyanConverter{}, converter)
+	os.Setenv("LOG_CONVERTER", "stackdriver")
+	converter = GetConverterFromEnvironment()
+	suite.Assert().IsType(&StackDriverConverter{}, converter)
+	os.Setenv("LOG_CONVERTER", "bello")
+	converter = GetConverterFromEnvironment()
+	suite.Assert().IsType(&BunyanConverter{}, converter)
+	os.Unsetenv("LOG_CONVERTER")
+}
+
 func (suite *ConverterSuite) TestCanConvertWithBunyanConverter() {
 	converter := &BunyanConverter{}
-	record := NewRecord().Set("bello", "banana")
+	record := NewRecord().Set("time", time.Now().UTC()).Set("bello", "banana")
 	converted := converter.Convert(record)
 	suite.Assert().Exactly(record, converted)
+	suite.Assert().IsType("string", converted["time"])
 }
 
 func (suite *ConverterSuite) TestCanConvertWithStackDriverConverter() {
 	converter := &StackDriverConverter{}
-	record := converter.Convert(NewRecord().Set("level", INFO).Set("msg", "Hello World!"))
+	record := converter.Convert(NewRecord().Set("level", INFO).Set("time", time.Now().UTC()).Set("msg", "Hello World!"))
 	suite.Assert().Contains(record, "message")
 	suite.Assert().Contains(record, "severity")
+	suite.Assert().Contains(record, "time")
+	suite.Assert().IsType("string", record["time"])
 	suite.Assert().NotContains(record, "level")
 	suite.Assert().NotContains(record, "msg")
 	suite.Assert().NotContains(record, "name")

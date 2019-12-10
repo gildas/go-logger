@@ -41,7 +41,7 @@ func (stream *StdoutStream) Write(record Record) error {
 			stream.FilterLevel = GetLevelFromEnvironment()
 		}
 		if stream.Converter == nil {
-			stream.Converter = &BunyanConverter{}
+			stream.Converter = GetConverterFromEnvironment()
 		}
 		if stream.Unbuffered {
 			stream.output  = nil
