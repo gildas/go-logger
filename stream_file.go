@@ -82,6 +82,18 @@ func (stream *FileStream) Flush() {
 	}
 }
 
+// Close closes the stream
+func (stream *FileStream) Close() {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	if stream.output != nil {
+		stream.output.Flush()
+	}
+	if stream.file != nil {
+		stream.file.Close()
+	}
+}
+
 // String gets a string version
 //   implements the fmt.Stringer interface
 func (stream *FileStream) String() string {

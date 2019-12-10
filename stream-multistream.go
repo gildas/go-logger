@@ -38,6 +38,13 @@ func (stream *MultiStream) Flush() {
 	}
 }
 
+// Close closes the stream
+func (stream *MultiStream) Close() {
+	for _, s := range stream.streams {
+		s.Close()
+	}
+}
+
 // String gets a string version
 //   implements the fmt.Stringer interface
 func (stream MultiStream) String() string {

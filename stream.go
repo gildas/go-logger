@@ -13,6 +13,7 @@ type Streamer interface {
 	ShouldWrite(level Level) bool
 	SetFilterLevel(level Level) Streamer
 	Flush()
+	Close()
 }
 
 // GetFlushFrequencyFromEnvironment fetches the flush frequency from the environment

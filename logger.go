@@ -101,6 +101,11 @@ func CreateIfNil(logger *Logger, name string) *Logger {
 	return CreateWithStream(name, &NilStream{})
 }
 
+// Close closes the logger's stream
+func (log *Logger) Close() {
+	log.stream.Close()
+}
+
 // Record adds the given Record to the Log
 func (log *Logger) Record(key string, value interface{}) *Logger {
 	// This func requires Logger to be a Stream

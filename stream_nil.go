@@ -27,6 +27,10 @@ func (stream *NilStream) ShouldWrite(level Level) bool {
 func (stream *NilStream) Flush() {
 }
 
+// Close closes the stream
+func (stream *NilStream) Close() {
+}
+
 // String gets a string version
 //   implements the fmt.Stringer interface
 func (stream NilStream) String() string {

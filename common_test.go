@@ -33,6 +33,9 @@ func (stream *BogusStream) ShouldWrite(level logger.Level) bool {
 func (stream *BogusStream) Flush() {
 }
 
+func (stream *BogusStream) Close() {
+}
+
 type BogusValue struct {
 }
 
@@ -76,7 +79,7 @@ func CreateLogger(t *testing.T, filename string, wantLocal bool) (*logger.Logger
 	//if _, err := os.Stat(path); err != nil {
 	//	t.Fatalf("Log file was not created at: %s. Error: %s\n", path, err)
 	//}
-	return log, func() { log.Flush(); teardown() }
+	return log, func() { log.Close(); teardown() }
 }
 
 // CreateTempDir creates a temporary directory

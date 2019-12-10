@@ -78,6 +78,15 @@ func (stream *StdoutStream) Flush() {
 	}
 }
 
+// Close closes the stream
+func (stream *StdoutStream) Close() {
+	if stream.output != nil {
+		stream.mutex.Lock()
+		defer stream.mutex.Unlock()
+		stream.output.Flush()
+	}
+}
+
 // String gets a string version
 //   implements the fmt.Stringer interface
 func (stream *StdoutStream) String() string {

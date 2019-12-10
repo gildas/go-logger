@@ -37,6 +37,8 @@ func (stream *StackDriverStream) SetFilterLevel(level Level) Streamer {
 // Write writes the given Record
 //   implements logger.Stream
 func (stream *StackDriverStream) Write(record Record) (err error) {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
 	if stream.client == nil {
 		ctx := context.Background()
 		if len(stream.Parent) == 0 {
@@ -62,7 +64,6 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 		if err != nil {
 			return errors.WithStack(err)
 		}
-		//defer client.Close()
 		stream.target = stream.client.Logger(stream.LogID)
 		if stream.FilterLevel == 0 {
 			stream.FilterLevel = GetLevelFromEnvironment()
@@ -91,7 +92,21 @@ func (stream *StackDriverStream) ShouldWrite(level Level) bool {
 //   implements logger.Stream
 func (stream *StackDriverStream) Flush() {
 	if stream.target != nil {
+		stream.mutex.Lock()
+		defer stream.mutex.Unlock()
 		stream.target.Flush()
+	}
+}
+
+// Close closes the stream
+func (stream *StackDriverStream) Close() {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	if stream.target != nil {
+		stream.target.Flush()
+	}
+	if stream.client != nil {
+		stream.client.Close()
 	}
 }
 

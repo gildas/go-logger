@@ -52,6 +52,10 @@ func (stream *StderrStream) ShouldWrite(level Level) bool {
 func (stream *StderrStream) Flush() {
 }
 
+// Close closes the stream
+func (stream *StderrStream) Close() {
+}
+
 // String gets a string version
 //   implements the fmt.Stringer interface
 func (stream *StderrStream) String() string {
