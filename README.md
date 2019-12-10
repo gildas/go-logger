@@ -301,6 +301,24 @@ func main() {
 }
 ```
 
+## Environment Variables
+
+The `Logger` can be configured completely by environment variables if needed. These are:  
+- `LOG_DESTINATION`, default: `StdoutStream`
+  The `Stream`s to write logs to. It can be a comma-separated list (for a `MultiStream`)
+- `LOG_LEVEL`, default: INFO  
+  The level to filter by default. If the environment `DEBUG` is set the default level is DEBUG
+- `LOG_CONVERTER`, default: "bunyan"
+  The default `Converter` to use
+- `LOG_FLUSHFREQUENCY`, default: 5 minutes
+  The default Flush Frequency for the streams that will be buffered
+- `GOOGLE_APPLICATION_CREDENTIALS`
+  The path to the credential file for the `StackDriverStream`
+- `GOOGLE_PROJECT_ID`
+  The Google Cloud Project ID for the `StackDriverStream`
+- `DEBUG`, default: none  
+  If set to "1", this will set the default level to filter to DEBUG
+
 # Thanks
 
 Special thanks to [@chakrit](https://github.com/chakrit) for his [chakrit/go-bunyan](https://github.com/chakrit/go-bunyan) that inspired me. In fact earlier versions were wrappers around his library.  
