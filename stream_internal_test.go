@@ -40,13 +40,6 @@ func TestStdoutStreamCanSetFilterLevel(t *testing.T) {
 	assert.Equal(t, WARN, stream.FilterLevel)
 }
 
-func TestGCPStreamCanSetFilterLevel(t *testing.T) {
-	stream := &GCPStream{}
-	assert.Equal(t, UNSET, stream.FilterLevel)
-	stream.SetFilterLevel(WARN)
-	assert.Equal(t, WARN, stream.FilterLevel)
-}
-
 func TestStackDriverStreamCanSetFilterLevel(t *testing.T) {
 	stream := &StackDriverStream{}
 	assert.Equal(t, UNSET, stream.FilterLevel)

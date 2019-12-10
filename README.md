@@ -127,11 +127,11 @@ var Log = logger.Create("myapp", "/path/to/myapp.log")
 var Log = logger.Create("myapp", "./localpath/to/myapp.log")
 var Log = logger.Create("myapp", "stackdriver")
 var Log = logger.Create("myapp", "gcp")
-var Log = logger.Create("myapp", "/path/to/myapp.log", "gcp")
+var Log = logger.Create("myapp", "/path/to/myapp.log", "stderr")
 var Log = logger.Create("myapp", "nil")
 ```
 
-The first three `Logger` will write to a file, the fourth to Google Stackdriver, the fifth to Google Cloud Platform (GCP), the sixth to a file and GCP,  and the seventh to nowhere (i.e. logs do not get written at all).
+The first three `Logger` will write to a file, the fourth to Google Stackdriver, the fifth to Google Cloud Platform (GCP), the sixth to a file and stderr, and the seventh to nowhere (i.e. logs do not get written at all).
 
 By default, when creating the `Logger` with:
 
@@ -146,9 +146,8 @@ You can also create a `Logger` by passing it a `Stream` object (these are equiva
 ```go
 var Log = logger.Create("myapp", &logger.FileStream{Path: "/path/to/myapp.log"})
 var Log = logger.Create("myapp", &logger.StackDriverStream{})
-var Log = logger.Create("myapp", &logger.GCPStream{})
 var Log = logger.Create("myapp", &logger.NilStream{})
-var Log = logger.Create("myapp", &logger.FileStream{Path: "/path/to/myapp.log"}, &logger.GCPStream{})
+var Log = logger.Create("myapp", &logger.FileStream{Path: "/path/to/myapp.log"}, &logger.StderrStream{})
 ```
 
 A few notes:
@@ -162,6 +161,7 @@ A few notes:
 - `MultiStream` is a `Stream` than can write to several streams.
 - All `Stream` types, except `NilStream` and `MultiStream` can use a `FilterLevel`. When set, `Record` objects that have a `Level` below the `FilterLevel` are not written to the `Stream`. This allows to log only stuff above *Warn* for instance. The `FilterLevel` can be set via the environment variable `LOG_LEVEL`.
 - `StdoutStream` and `FileStream` are buffered by default. Data is written from every `LOG_FLUSHFREQUENCY` (default 5 minutes) or when the `Record`'s `Level` is at least *ERROR*.
+- Streams convert the `Record` to write via a `Converter`. The converter is set to a default value per Stream.
 
 You can also create a `Logger` with a combination of destinations and streams, AND you can even add some records right away:
 
@@ -172,6 +172,48 @@ var Log = logger.Create("myapp",
     NewRecord().Set("key", "value")
 )
 ```
+
+### StackDriver Stream
+
+If you plan to log to Google's StackDriver from a Google Cloud Kubernetes or a Google Cloud Instance, you do not need the StackDriver Stream and should use the Stdout Stream with the StackDriver Converter, since the standard output of your application will be captured automatically by Google to feed StackDriver:  
+```go
+var Log = logger.Create("myapp", "gcp") // "google" or "googlecloud" are valid aliases
+var Log = logger.Create("myapp", &logger.StdoutStream{Converter: &logger.StackDriverConverter{}})
+```
+
+To be able to use the StackDriver Stream from outside Google Cloud, you have some configuration to do first.
+
+On your workstation, you need to get the key filename:  
+1. Authenticate with Google Cloud  
+```console
+gcloud auth login
+```
+2. Create a Service Account (`logger-account` is just an example of a service account name)  
+```console
+gcloud iam service-acccount create logger-account
+```
+3. Associate the Service Account to the Project you want to use  
+```console
+gcloud projects add-iam-policy-binding my-logging-project \
+  --member "serviceAccount:logger-account@my-logging-account.iam.gserviceaccount.com" \
+  --role "roles/logging.logWriter"
+```
+4. Retrieve the key filename  
+```console
+gcloud iam service-accounts keys create /path/to/key.json \
+  --iam-account logger-account@my-logging-account.iam.gserviceaccount.com
+```
+
+You can either set the `GOOGLE_APPLICATION_CREDENTIAL` and `GOOGLE_PROJECT_ID` environment variables with the path of the obtained key and Google Project ID or provide them to the StackDriver stream:  
+```go
+var Log = logger.Create("myapp", &logger.StackDriverStream{})
+var Log = logger.Create("myapp", &logger.StackDriverStream{
+    ProjectID:   "my-logging-project",
+    KeyFilename: "/path/to/key.json",
+})
+```
+
+### Writing your own Stream
 
 You can also write your own `Stream` by implementing the `logger.Streamer` interface and create the Logger like this:
 
@@ -196,6 +238,34 @@ var Log = logger.Must(logger.FromContext(context))
 
 `FromContext` can be used to retrieve a `Logger` from a GO context. (This is used in the next paragraph)  
 `log.ToContext` will store the `Logger` to the given GO context.
+
+## Converters
+
+The `Converter` object is responsible for converting the `Record`, given to the `Stream` to write, to match other log viewers.
+
+The default `Converter` is `BunyanConverter` so the `bunyan` log viewer can read the logs.
+
+Here is a list of all the converters:
+
+- `BunyanConverter`, the default converter (does nothing, actually),
+- `StackDriverConverter` produces logs that are nicer with Google StackDriver log viewer,
+
+### Writing your own Converter
+
+You can also write your own `Converter` by implementing the `logger.Converter` interface:  
+
+```go
+type MyConverter struct {
+
+}
+
+func (converter *MyConverter) Convert(record Record) Record {
+    record["newvalue"] = true
+    return record
+}
+
+var Log = logger.Create("myapp", &logger.StdoutStream{Converter: &MyConverter{}})
+```
 
 ## HTTP Usage
 

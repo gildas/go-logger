@@ -15,6 +15,7 @@ import (
 // StdoutStream is the Stream that writes to the standard output
 type StdoutStream struct {
 	*json.Encoder
+	Converter      Converter
 	FilterLevel    Level
 	Unbuffered     bool
 	output         *bufio.Writer
@@ -39,6 +40,9 @@ func (stream *StdoutStream) Write(record Record) error {
 		if stream.FilterLevel == UNSET {
 			stream.FilterLevel = GetLevelFromEnvironment()
 		}
+		if stream.Converter == nil {
+			stream.Converter = &BunyanConverter{}
+		}
 		if stream.Unbuffered {
 			stream.output  = nil
 			stream.Encoder = json.NewEncoder(os.Stdout)
@@ -49,7 +53,7 @@ func (stream *StdoutStream) Write(record Record) error {
 			go stream.flushJob()
 		}
 	}
-	if err := stream.Encoder.Encode(record); err != nil {
+	if err := stream.Encoder.Encode(stream.Converter.Convert(record)); err != nil {
 		return errors.WithStack(err)
 	}
 	if GetLevelFromRecord(record) >= ERROR && stream.output != nil {

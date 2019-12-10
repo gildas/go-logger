@@ -57,11 +57,13 @@ func (suite *StreamSuite) TestCanCreateStreamFromDestination() {
 
 	stream = logger.CreateStreamWithDestination("gcp")
 	suite.Require().NotNil(stream, "Failed to create a Google Cloud Platform stream")
-	suite.Assert().IsType(&logger.GCPStream{}, stream)
+	suite.Assert().IsType(&logger.StdoutStream{}, stream)
+	suite.Assert().NotNil((stream.(*logger.StdoutStream)).Converter)
+	suite.Assert().IsType(&logger.StackDriverConverter{}, (stream.(*logger.StdoutStream)).Converter)
 
 	stream = logger.CreateStreamWithDestination("google")
 	suite.Require().NotNil(stream, "Failed to create a Google Cloud Platform stream")
-	suite.Assert().IsType(&logger.GCPStream{}, stream)
+	suite.Assert().IsType(&logger.StdoutStream{}, stream)
 
 	stream = logger.CreateStreamWithDestination("stackdriver")
 	suite.Require().NotNil(stream, "Failed to create a Google Stackdriver stream")
@@ -92,6 +94,15 @@ func (suite *StreamSuite) TestCanCreateStreamFromDestination() {
 	suite.Assert().IsType(&logger.MultiStream{}, stream)
 }
 
+func (suite *StreamSuite) TestCanCreateStreamFromEnvironment() {
+	os.Setenv("LOG_DESTINATION", "/var/log/test.log")
+	stream := logger.CreateStreamWithDestination()
+	suite.Require().NotNil(stream, "Failed to create a file stream")
+	suite.Assert().IsType(&logger.FileStream{}, stream)
+	suite.Assert().Equal("/var/log/test.log", stream.(*logger.FileStream).Path, "File Stream Path should be /var/log/test.log")
+	os.Unsetenv("LOG_DESTINATION")
+}
+
 func (suite *StreamSuite) TestCanCreateStdoutStream() {
 	stream := &logger.StdoutStream{}
 	suite.Assert().Equal("Stream to stdout", stream.String())
@@ -110,6 +121,17 @@ func (suite *StreamSuite) TestCanCreateFileStream() {
 func (suite *StreamSuite) TestCanCreateUnbufferedFileStream() {
 	stream := &logger.FileStream{Path: "/tmp/test.log", Unbuffered: true, FilterLevel: logger.INFO}
 	suite.Assert().Equal("Unbuffered Stream to /tmp/test.log, Filter: INFO", stream.String())
+}
+
+func (suite *StreamSuite) TestCanCreateStackDriverStream() {
+	stream := &logger.StackDriverStream{Parent: "go-logger-test", KeyFilename: "./tmp/key.json"}
+	suite.Assert().Equal("Stream to Google StackDriver", stream.String())
+}
+
+func (suite *StreamSuite) TestCanCreateMultiStream() {
+	stream := logger.CreateStreamWithDestination("stdout", "nil")
+	suite.Assert().IsType(&logger.MultiStream{}, stream)
+	suite.Assert().Equal("MultiStream", fmt.Sprintf("%s", stream))
 }
 
 func (suite *StreamSuite) TestCanStreamToFile() {
@@ -195,48 +217,30 @@ func ExampleNilStream() {
 	// Output:
 }
 
-func (suite *StreamSuite) TestCanStreamToGCP() {
-	_ = CaptureStdout(func() {
-		stream := &logger.GCPStream{}
-		suite.Assert().Equal("Stream to Google Cloud", stream.String())
+func (suite *StreamSuite) TestCanStreamToStackDriver() {
+	stream := &logger.StackDriverStream{LogID: "test"}
+	suite.Assert().Equal("Stream to Google StackDriver", stream.String())
+	suite.Assert().Truef(stream.ShouldWrite(logger.WARN), "It should be possible to write to a %s", stream)
+	if _, ok := os.LookupEnv("GOOGLE_APPLICATION_CREDENTIALS"); ok {
+		err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.WARN).Set("time", time.Now().Format(time.RFC3339)).Set("msg", "Hello 01"))
+		suite.Assert().Nil(err, "Failed to write to stream")
+		err = stream.Write(logger.NewRecord().Set("bello", "mata banana").Set("level", logger.ERROR).Set("time", time.Now().Format(time.RFC3339)).Set("msg", "Hello 02"))
+		suite.Assert().Nil(err, "Failed to write to stream")
+		stream.Flush()
+	}
+}
+
+func (suite *StreamSuite) TestCanStreamToMultiStream() {
+	output := CaptureStdout(func() {
+		stream := logger.CreateStreamWithDestination("stdout", "nil")
+		suite.Assert().IsType(&logger.MultiStream{}, stream)
+		suite.Assert().Equal("MultiStream", fmt.Sprintf("%s", stream))
 		suite.Assert().Truef(stream.ShouldWrite(logger.WARN), "It should be possible to write to a %s", stream)
-		err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.NEVER))
-		suite.Assert().Nil(err, "Failed to write to stream")
-		err = stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.TRACE))
-		suite.Assert().Nil(err, "Failed to write to stream")
-		err = stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.DEBUG))
-		suite.Assert().Nil(err, "Failed to write to stream")
-		err = stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.INFO))
-		suite.Assert().Nil(err, "Failed to write to stream")
-		err = stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.WARN))
-		suite.Assert().Nil(err, "Failed to write to stream")
-		err = stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.ERROR))
-		suite.Assert().Nil(err, "Failed to write to stream")
-		err = stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.FATAL))
-		suite.Assert().Nil(err, "Failed to write to stream")
-		err = stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.ALWAYS))
-		suite.Assert().Nil(err, "Failed to write to stream")
-		err = stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.UNSET))
+		err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.ERROR))
 		suite.Assert().Nil(err, "Failed to write to stream")
 		stream.Flush()
 	})
-}
-
-func (suite *StreamSuite) TestCanStreamToStackDriver() {
-	stream := &logger.StackDriverStream{}
-	suite.Assert().Equal("Stream to Google StackDriver", stream.String())
-	suite.Assert().Truef(stream.ShouldWrite(logger.WARN), "It should be possible to write to a %s", stream)
-	stream.Flush()
-}
-
-func (suite *StreamSuite) TestCanCreateMultiStream() {
-	stream := logger.CreateStreamWithDestination("stdout", "nil")
-	suite.Assert().IsType(&logger.MultiStream{}, stream)
-	suite.Assert().Equal("MultiStream", fmt.Sprintf("%s", stream))
-	suite.Assert().Truef(stream.ShouldWrite(logger.WARN), "It should be possible to write to a %s", stream)
-	err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.ERROR))
-	suite.Assert().Nil(err, "Failed to write to stream")
-	stream.Flush()
+	suite.Assert().Equal("{\"bello\":\"banana\",\"level\":50}\n", output)
 }
 
 func (suite *StreamSuite) TestCanGetFlushFrequencyFromEnvironment() {
@@ -250,15 +254,6 @@ func (suite *StreamSuite) TestCanGetFlushFrequencyFromEnvironment() {
 	frequency = logger.GetFlushFrequencyFromEnvironment()
 	suite.Assert().Equal(2 * time.Hour, frequency, "Frequency should be 2 hour after being set in the environment (was %s)", frequency)
 	os.Unsetenv("LOG_FLUSHFREQUENCY")
-}
-
-func (suite *StreamSuite) TestCanCreateStreamFromEnvironment() {
-	os.Setenv("LOG_DESTINATION", "/var/log/test.log")
-	stream := logger.CreateStreamWithDestination()
-	suite.Require().NotNil(stream, "Failed to create a file stream")
-	suite.Assert().IsType(&logger.FileStream{}, stream)
-	suite.Assert().Equal("/var/log/test.log", stream.(*logger.FileStream).Path, "File Stream Path should be /var/log/test.log")
-	os.Unsetenv("LOG_DESTINATION")
 }
 
 func (suite *StreamSuite) TestFileStreamFailsWritingToInvalidFile() {
@@ -287,10 +282,6 @@ func (suite *StreamSuite) TestFailsWritingWithBogusRecordValue() {
 	suite.Assert().Contains(err.Error(), "Failed to Marshal BogusValue")
 	streamFile := &logger.FileStream{Path: "/tmp/test.log"}
 	err = streamFile.Write(logger.NewRecord().Set("key", &BogusValue{}))
-	suite.Assert().NotNil(err)
-	suite.Assert().Contains(err.Error(), "Failed to Marshal BogusValue")
-	streamGCP := &logger.GCPStream{}
-	err = streamGCP.Write(logger.NewRecord().Set("key", &BogusValue{}).Set("level", logger.INFO))
 	suite.Assert().NotNil(err)
 	suite.Assert().Contains(err.Error(), "Failed to Marshal BogusValue")
 }

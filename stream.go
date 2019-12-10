@@ -46,7 +46,7 @@ func CreateStreamWithDestination(destinations ...string) Streamer {
 		case "stderr":
 			stream = &StderrStream{}
 		case "gcp", "google", "googlecloud":
-			stream = &GCPStream{}
+			stream = &StdoutStream{Unbuffered: true, Converter: &StackDriverConverter{}}
 		case "stackdriver":
 			stream =  &StackDriverStream{}
 		case "nil", "null", "void", "blackhole", "nether":
