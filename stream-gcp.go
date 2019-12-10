@@ -27,6 +27,8 @@ func (stream *GCPStream) SetFilterLevel(level Level) Streamer {
 // Write writes the given Record
 //   implements logger.Stream
 func (stream *GCPStream) Write(record Record) error {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
 	if stream.Encoder == nil {
 		stream.Encoder = json.NewEncoder(os.Stdout)
 		if stream.FilterLevel == 0 {
@@ -38,8 +40,6 @@ func (stream *GCPStream) Write(record Record) error {
 	delete(record, "level")
 	delete(record, "time")
 	delete(record, "name")
-	stream.mutex.Lock()
-	defer stream.mutex.Unlock()
 	if err := stream.Encoder.Encode(record); err != nil {
 		return errors.WithStack(err)
 	}

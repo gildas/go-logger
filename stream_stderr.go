@@ -27,14 +27,14 @@ func (stream *StderrStream) SetFilterLevel(level Level) Streamer {
 // Write writes the given Record
 //   implements logger.Stream
 func (stream *StderrStream) Write(record Record) error {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
 	if stream.Encoder == nil {
 		stream.Encoder = json.NewEncoder(os.Stderr)
-		if stream.FilterLevel == 0 {
+		if stream.FilterLevel == UNSET {
 			stream.FilterLevel = GetLevelFromEnvironment()
 		}
 	}
-	stream.mutex.Lock()
-	defer stream.mutex.Unlock()
 	if err := stream.Encoder.Encode(record); err != nil {
 		return errors.WithStack(err)
 	}

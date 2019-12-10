@@ -36,6 +36,8 @@ func (stream *FileStream) SetFilterLevel(level Level) Streamer {
 // Write writes the given Record
 //   implements logger.Stream
 func (stream *FileStream) Write(record Record) (err error) {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
 	if stream.file == nil {
 		const flags = os.O_CREATE | os.O_APPEND | os.O_WRONLY
 		const perms = 0644
@@ -46,17 +48,15 @@ func (stream *FileStream) Write(record Record) (err error) {
 			stream.FilterLevel = GetLevelFromEnvironment()
 		}
 		if stream.Unbuffered {
-			stream.output =  nil
+			stream.output  =  nil
 			stream.Encoder = json.NewEncoder(stream.file)
 		} else {
-			stream.output = bufio.NewWriter(stream.file)
+			stream.output  = bufio.NewWriter(stream.file)
 			stream.Encoder = json.NewEncoder(stream.output)
 			stream.flushFrequency = GetFlushFrequencyFromEnvironment()
 			go stream.flushJob()
 		}
 	}
-	stream.mutex.Lock()
-	defer stream.mutex.Unlock()
 	if err := stream.Encoder.Encode(record); err != nil {
 		return errors.WithStack(err)
 	}

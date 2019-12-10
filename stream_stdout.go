@@ -33,22 +33,22 @@ func (stream *StdoutStream) SetFilterLevel(level Level) Streamer {
 // Write writes the given Record
 //   implements logger.Stream
 func (stream *StdoutStream) Write(record Record) error {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
 	if stream.Encoder == nil {
 		if stream.FilterLevel == UNSET {
 			stream.FilterLevel = GetLevelFromEnvironment()
 		}
 		if stream.Unbuffered {
-			stream.output = nil
+			stream.output  = nil
 			stream.Encoder = json.NewEncoder(os.Stdout)
 		} else {
-			stream.output = bufio.NewWriter(os.Stdout)
+			stream.output  = bufio.NewWriter(os.Stdout)
 			stream.Encoder = json.NewEncoder(stream.output)
 			stream.flushFrequency = GetFlushFrequencyFromEnvironment()
 			go stream.flushJob()
 		}
 	}
-	stream.mutex.Lock()
-	defer stream.mutex.Unlock()
 	if err := stream.Encoder.Encode(record); err != nil {
 		return errors.WithStack(err)
 	}
