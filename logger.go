@@ -77,7 +77,6 @@ func CreateWithStream(name string, streams ...Streamer) *Logger {
 		Set("hostname", hostname).
 		Set("pid", os.Getpid()).
 		Set("tid", func() interface{} { return Gettid() }).
-		Set("time", func() interface{} { return time.Now().Format(time.RFC3339) }).
 		Set("topic", "main").
 		Set("scope", "main").
 		Set("v", 0)
@@ -225,6 +224,7 @@ func (log *Logger) Fatalf(msg string, args ...interface{}) {
 func (log *Logger) send(level Level, msg string, args ...interface{}) {
 	if log.ShouldWrite(level) {
 		record := NewRecord()
+		record["time"]  = time.Now().Format(time.RFC3339)
 		record["level"] = level
 		record["msg"]   = fmt.Sprintf(msg, args...)
 		if err := log.Write(record); err != nil {
