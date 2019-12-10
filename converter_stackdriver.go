@@ -1,6 +1,8 @@
 package logger
 
 import (
+	"time"
+
 	"cloud.google.com/go/logging"
 )
 
@@ -10,7 +12,12 @@ type StackDriverConverter struct {
 func (converter *StackDriverConverter) Convert(record Record) Record {
 	// StackDriver special fields: https://cloud.google.com/logging/docs/agent/configuration#special-fields
 	record["severity"] = severity(record["level"])
-	record["message"] = record["msg"]
+	record["message"]  = record["msg"]
+	if value, ok := record["time"]; ok {
+		if rtime, ok := value.(time.Time); ok {
+			record["time"] = rtime.Format(time.RFC3339)
+		}
+	}
 	delete(record, "level")
 	delete(record, "name")
 	delete(record, "msg")

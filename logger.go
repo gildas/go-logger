@@ -229,7 +229,7 @@ func (log *Logger) Fatalf(msg string, args ...interface{}) {
 func (log *Logger) send(level Level, msg string, args ...interface{}) {
 	if log.ShouldWrite(level) {
 		record := NewRecord()
-		record["time"]  = time.Now().Format(time.RFC3339)
+		record["time"]  = time.Now().UTC()
 		record["level"] = level
 		record["msg"]   = fmt.Sprintf(msg, args...)
 		if err := log.Write(record); err != nil {
