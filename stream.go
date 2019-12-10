@@ -35,13 +35,13 @@ func CreateStreamWithDestination(destinations ...string) Streamer {
 		if !ok || len(destination) == 0 {
 			return &StdoutStream{Unbuffered: unbuffered}
 		}
-		destinations = []string{destination}
+		destinations = strings.Split(destination, ",")
 	}
 	streams := []Streamer{}
 
 	for _, destination := range destinations {
 		var stream Streamer
-		switch strings.ToLower(destination) {
+		switch strings.ToLower(strings.TrimSpace(destination)) {
 		case "stdout":
 			stream = &StdoutStream{Unbuffered: unbuffered}
 		case "stderr":
