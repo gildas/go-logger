@@ -53,7 +53,7 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 		if stream.Key != nil {
 			payload, err := json.Marshal(stream.Key)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			options = append(options, googleoption.WithCredentialsJSON(payload))
 		} else if len(stream.KeyFilename) != 0 {
