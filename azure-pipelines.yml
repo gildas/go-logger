@@ -10,6 +10,7 @@ variables:
   GOROOT: '/usr/local/go1.11' # Go installation path
   GOPATH: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
   modulePath: '$(GOPATH)/src/github.com/$(build.repository.name)' # Path to the module's code
+  GOOGLE_APPLICATION_CREDENTIALS: '$(modulePath)/gcloud-key.json' # Path to Google Cloud's credentials (uploaded via secrets)
 
 steps:
 - script: |
@@ -18,6 +19,7 @@ steps:
     mkdir -p '$(modulePath)'
     shopt -s extglob
     mv !(gopath) '$(modulePath)'
+    echo '$(GOOGLE_CREDENTIALS_KEY)' > '$(GOOGLE_APPLICATION_CREDENTIALS)'
     echo '##vso[task.prependpath]$(GOBIN)'
     echo '##vso[task.prependpath]$(GOROOT)/bin'
   displayName: 'Set up the Go workspace'
