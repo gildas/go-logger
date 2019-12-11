@@ -249,6 +249,7 @@ The default `Converter` is `BunyanConverter` so the `bunyan` log viewer can read
 Here is a list of all the converters:
 
 - `BunyanConverter`, the default converter (does nothing, actually),
+- `PinoConverter` produces logs that can be used by [pino](http://getpino.io),
 - `StackDriverConverter` produces logs that are nicer with Google StackDriver log viewer,
 
 ### Writing your own Converter

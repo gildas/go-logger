@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-
 type ConverterSuite struct {
 	suite.Suite
 	Name string
@@ -40,6 +39,16 @@ func (suite *ConverterSuite) TestCanConvertWithBunyanConverter() {
 	converted := converter.Convert(record)
 	suite.Assert().Exactly(record, converted)
 	suite.Assert().IsType("string", converted["time"])
+}
+
+func (suite *ConverterSuite) TestCanConvertWithPinoConverter() {
+	converter := &PinoConverter{}
+	record := NewRecord().Set("time", time.Now().UTC()).Set("level", INFO).Set("bello", "banana")
+	converted := converter.Convert(record)
+	suite.Assert().IsType(int64(0), converted["time"])
+	suite.Assert().Equal(30, converted["level"])
+	suite.Assert().Equal(1, converted["v"])
+	// {"level":30,"time":1573664685469,"bello":"banana","v":1}
 }
 
 func (suite *ConverterSuite) TestCanConvertWithStackDriverConverter() {
