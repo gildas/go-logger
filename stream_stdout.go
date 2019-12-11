@@ -15,6 +15,7 @@ import (
 // StdoutStream is the Stream that writes to the standard output
 type StdoutStream struct {
 	*json.Encoder
+	Converter      Converter
 	FilterLevel    Level
 	Unbuffered     bool
 	output         *bufio.Writer
@@ -22,26 +23,37 @@ type StdoutStream struct {
 	mutex          sync.Mutex
 }
 
+// SetFilterLevel sets the filter level
+func (stream *StdoutStream) SetFilterLevel(level Level) Streamer {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevel = level
+	return stream
+}
+
 // Write writes the given Record
 //   implements logger.Stream
 func (stream *StdoutStream) Write(record Record) error {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
 	if stream.Encoder == nil {
 		if stream.FilterLevel == UNSET {
 			stream.FilterLevel = GetLevelFromEnvironment()
 		}
+		if stream.Converter == nil {
+			stream.Converter = GetConverterFromEnvironment()
+		}
 		if stream.Unbuffered {
-			stream.output = nil
+			stream.output  = nil
 			stream.Encoder = json.NewEncoder(os.Stdout)
 		} else {
-			stream.output = bufio.NewWriter(os.Stdout)
+			stream.output  = bufio.NewWriter(os.Stdout)
 			stream.Encoder = json.NewEncoder(stream.output)
 			stream.flushFrequency = GetFlushFrequencyFromEnvironment()
 			go stream.flushJob()
 		}
 	}
-	stream.mutex.Lock()
-	defer stream.mutex.Unlock()
-	if err := stream.Encoder.Encode(record); err != nil {
+	if err := stream.Encoder.Encode(stream.Converter.Convert(record)); err != nil {
 		return errors.WithStack(err)
 	}
 	if GetLevelFromRecord(record) >= ERROR && stream.output != nil {
@@ -59,6 +71,15 @@ func (stream *StdoutStream) ShouldWrite(level Level) bool {
 // Flush flushes the stream (makes sure records are actually written)
 //   implements logger.Stream
 func (stream *StdoutStream) Flush() {
+	if stream.output != nil {
+		stream.mutex.Lock()
+		defer stream.mutex.Unlock()
+		stream.output.Flush()
+	}
+}
+
+// Close closes the stream
+func (stream *StdoutStream) Close() {
 	if stream.output != nil {
 		stream.mutex.Lock()
 		defer stream.mutex.Unlock()

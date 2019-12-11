@@ -26,8 +26,9 @@ func Must(log *Logger, err error) *Logger {
 // Create creates a new Logger
 func Create(name string, parameters ...interface{}) *Logger {
 	destinations := []string{}
-	streams := []Streamer{}
-	records := []Record{}
+	streams      := []Streamer{}
+	records      := []Record{}
+	filterLevel  := GetLevelFromEnvironment()
 
 	for _, parameter := range parameters {
 		switch parameter := parameter.(type) {
@@ -37,6 +38,8 @@ func Create(name string, parameters ...interface{}) *Logger {
 			}
 		case string:
 			destinations = append(destinations, parameter)
+		case Level:
+			filterLevel = parameter
 		default:
 			if streamer, ok := parameter.(Streamer); ok {
 				streams = append(streams, streamer)
@@ -48,7 +51,7 @@ func Create(name string, parameters ...interface{}) *Logger {
 		// we should use it for the Topic, Scope
 	}
 	for _, destination := range destinations {
-		streams = append(streams, CreateStreamWithDestination(destination))
+		streams = append(streams, CreateStreamWithDestination(destination).SetFilterLevel(filterLevel))
 	}
 	logger := CreateWithStream(name, streams...)
 	if len(records) > 0 {
@@ -74,7 +77,6 @@ func CreateWithStream(name string, streams ...Streamer) *Logger {
 		Set("hostname", hostname).
 		Set("pid", os.Getpid()).
 		Set("tid", func() interface{} { return Gettid() }).
-		Set("time", func() interface{} { return time.Now().Format(time.RFC3339) }).
 		Set("topic", "main").
 		Set("scope", "main").
 		Set("v", 0)
@@ -97,6 +99,11 @@ func CreateIfNil(logger *Logger, name string) *Logger {
 		return logger
 	}
 	return CreateWithStream(name, &NilStream{})
+}
+
+// Close closes the logger's stream
+func (log *Logger) Close() {
+	log.stream.Close()
 }
 
 // Record adds the given Record to the Log
@@ -222,6 +229,7 @@ func (log *Logger) Fatalf(msg string, args ...interface{}) {
 func (log *Logger) send(level Level, msg string, args ...interface{}) {
 	if log.ShouldWrite(level) {
 		record := NewRecord()
+		record["time"]  = time.Now().UTC()
 		record["level"] = level
 		record["msg"]   = fmt.Sprintf(msg, args...)
 		if err := log.Write(record); err != nil {

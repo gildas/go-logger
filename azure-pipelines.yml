@@ -1,15 +1,21 @@
 # Run the Unit Tests
 trigger:
 - master
+- dev
 
 pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  GOBIN:  '$(GOPATH)/bin' # Go binaries path
-  GOROOT: '/usr/local/go1.11' # Go installation path
-  GOPATH: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
-  modulePath: '$(GOPATH)/src/github.com/$(build.repository.name)' # Path to the module's code
+  - group: GOOGLE_STACKDRIVER
+  - name:  GOBIN
+    value: '$(GOPATH)/bin' # Go binaries path
+  - name:  GOROOT
+    value: '/usr/local/go1.11' # Go installation path
+  - name:  GOPATH
+    value: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
+  - name:  modulePath
+    value: '$(GOPATH)/src/github.com/$(build.repository.name)' # Path to the module's code
 
 steps:
 - script: |
@@ -22,6 +28,17 @@ steps:
     echo '##vso[task.prependpath]$(GOROOT)/bin'
   displayName: 'Set up the Go workspace'
 
+# Download Google Cloud's key
+- task: DownloadSecureFile@1
+  name: gcloudkey # The name with which to reference the secure file's path on the agent, like $(gcloudkey.secureFilePath)
+  inputs:
+    secureFile: gcloud-key.json
+
+- script: |
+    cp '$(gcloudkey.secureFilePath)' .
+  workingDirectory: '$(modulePath)'
+  displayName: 'Installing Keys'
+
 - script: go get -v -t -d ./...
   workingDirectory: '$(modulePath)'
   displayName: 'go get dependencies'
@@ -31,7 +48,7 @@ steps:
     go get github.com/axw/gocov/gocov
     go get github.com/AlekSi/gocov-xml
     go get -u gopkg.in/matm/v1/gocov-html
-    go test -v -coverprofile=coverage.txt -covermode count . 2>&1 | go-junit-report > report.xml
+    GOOGLE_APPLICATION_CREDENTIALS=gcloud-key.json GOOGLE_PROJECT_ID=$(GOOGLE_PROJECT_ID) go test -v -coverprofile=coverage.txt -covermode count . 2>&1 | go-junit-report > report.xml
     gocov convert coverage.txt > coverage.json
     gocov-xml < coverage.json > coverage.xml
     mkdir coverage

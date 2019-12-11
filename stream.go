@@ -11,7 +11,9 @@ import (
 type Streamer interface {
 	Write(record Record) error
 	ShouldWrite(level Level) bool
+	SetFilterLevel(level Level) Streamer
 	Flush()
+	Close()
 }
 
 // GetFlushFrequencyFromEnvironment fetches the flush frequency from the environment
@@ -33,19 +35,19 @@ func CreateStreamWithDestination(destinations ...string) Streamer {
 		if !ok || len(destination) == 0 {
 			return &StdoutStream{Unbuffered: unbuffered}
 		}
-		destinations = []string{destination}
+		destinations = strings.Split(destination, ",")
 	}
 	streams := []Streamer{}
 
 	for _, destination := range destinations {
 		var stream Streamer
-		switch strings.ToLower(destination) {
+		switch strings.ToLower(strings.TrimSpace(destination)) {
 		case "stdout":
 			stream = &StdoutStream{Unbuffered: unbuffered}
 		case "stderr":
 			stream = &StderrStream{}
 		case "gcp", "google", "googlecloud":
-			stream = &GCPStream{}
+			stream = &StdoutStream{Unbuffered: true, Converter: &StackDriverConverter{}}
 		case "stackdriver":
 			stream =  &StackDriverStream{}
 		case "nil", "null", "void", "blackhole", "nether":

@@ -69,6 +69,12 @@ func (suite *LoggerSuite) TestCanCreateUnbufferedStdoutStreamInDEBUG() {
 	os.Unsetenv("DEBUG")
 }
 
+func (suite *LoggerSuite) TestCanSetFilterLevel() {
+	log := logger.Create("test", logger.INFO)
+	suite.Require().NotNil(log, "cannot create a logger.Logger")
+	log.SetFilterLevel(logger.WARN)
+}
+
 func (suite *LoggerSuite) TestCanLoadAndSaveWithContext() {
 	log := logger.Create("test")
 	suite.Require().NotNil(log, "cannot create a logger.Logger")

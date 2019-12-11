@@ -12,25 +12,35 @@ import (
 // StderrStream is the Stream that writes to the standard output
 type StderrStream struct {
 	*json.Encoder
+	Converter   Converter
 	FilterLevel Level
-	mutex          sync.Mutex
+	mutex       sync.Mutex
+}
+
+// SetFilterLevel sets the filter level
+func (stream *StderrStream) SetFilterLevel(level Level) Streamer {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevel = level
+	return stream
 }
 
 // Write writes the given Record
 //   implements logger.Stream
 func (stream *StderrStream) Write(record Record) error {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
 	if stream.Encoder == nil {
 		stream.Encoder = json.NewEncoder(os.Stderr)
-		if stream.FilterLevel == 0 {
+		if stream.FilterLevel == UNSET {
 			stream.FilterLevel = GetLevelFromEnvironment()
 		}
 	}
-	{
-		stream.mutex.Lock()
-		defer stream.mutex.Unlock()
-		if err := stream.Encoder.Encode(record); err != nil {
-			return errors.WithStack(err)
-		}
+	if stream.Converter == nil {
+		stream.Converter = GetConverterFromEnvironment()
+	}
+	if err := stream.Encoder.Encode(stream.Converter.Convert(record)); err != nil {
+		return errors.WithStack(err)
 	}
 	return nil
 }
@@ -44,6 +54,10 @@ func (stream *StderrStream) ShouldWrite(level Level) bool {
 // Flush flushes the stream (makes sure records are actually written)
 //   implements logger.Stream
 func (stream *StderrStream) Flush() {
+}
+
+// Close closes the stream
+func (stream *StderrStream) Close() {
 }
 
 // String gets a string version
