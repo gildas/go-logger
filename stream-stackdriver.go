@@ -112,6 +112,6 @@ func (stream *StackDriverStream) Close() {
 
 // String gets a string version
 //   implements the fmt.Stringer interface
-func (stream StackDriverStream) String() string {
+func (stream *StackDriverStream) String() string {
 	return "Stream to Google StackDriver"
 }

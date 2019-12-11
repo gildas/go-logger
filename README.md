@@ -155,8 +155,7 @@ A few notes:
   (Backward compatibility)
 - `logger.CreateWithDestination` can also be used to create with one or more destinations.  
   (Backward compatibility)
-- the `StackDriverStream` needs a `ProjectID` parameter or the value of the environment variable `PROJECT_ID`.  
-  It can use a `LogID` (see Google's StackDriver documentation).
+- the `StackDriverStream` needs a `LogID` parameter or the value of the environment variable `GOOGLE_PROJECT_ID`. (see [Google's StackDriver documentation](https://godoc.org/cloud.google.com/go/logging#NewClient) for the description of that parameter).
 - `NilStream` is a `Stream` that does not write anything, all messages are lost.
 - `MultiStream` is a `Stream` than can write to several streams.
 - All `Stream` types, except `NilStream` and `MultiStream` can use a `FilterLevel`. When set, `Record` objects that have a `Level` below the `FilterLevel` are not written to the `Stream`. This allows to log only stuff above *Warn* for instance. The `FilterLevel` can be set via the environment variable `LOG_LEVEL`.
@@ -208,7 +207,7 @@ You can either set the `GOOGLE_APPLICATION_CREDENTIAL` and `GOOGLE_PROJECT_ID` e
 ```go
 var Log = logger.Create("myapp", &logger.StackDriverStream{})
 var Log = logger.Create("myapp", &logger.StackDriverStream{
-    ProjectID:   "my-logging-project",
+    Parent:      "my-logging-project",
     KeyFilename: "/path/to/key.json",
 })
 ```
@@ -220,6 +219,8 @@ You can also write your own `Stream` by implementing the `logger.Streamer` inter
 ```go
 var Log = logger.Create("myapp", &MyStream{})
 ```
+
+### Miscellaneous
 
 The following convenience methods can be used when creating a `Logger` from another one (received from arguments, for example):
 
@@ -304,20 +305,20 @@ func main() {
 ## Environment Variables
 
 The `Logger` can be configured completely by environment variables if needed. These are:  
-- `LOG_DESTINATION`, default: `StdoutStream`
+- `LOG_DESTINATION`, default: `StdoutStream`  
   The `Stream`s to write logs to. It can be a comma-separated list (for a `MultiStream`)
-- `LOG_LEVEL`, default: INFO  
-  The level to filter by default. If the environment `DEBUG` is set the default level is DEBUG
-- `LOG_CONVERTER`, default: "bunyan"
+- `LOG_LEVEL`, default: *INFO*  
+  The level to filter by default. If the environment `DEBUG` is set the default level is *DEBUG*
+- `LOG_CONVERTER`, default: "bunyan"  
   The default `Converter` to use
-- `LOG_FLUSHFREQUENCY`, default: 5 minutes
+- `LOG_FLUSHFREQUENCY`, default: 5 minutes  
   The default Flush Frequency for the streams that will be buffered
-- `GOOGLE_APPLICATION_CREDENTIALS`
+- `GOOGLE_APPLICATION_CREDENTIALS`  
   The path to the credential file for the `StackDriverStream`
-- `GOOGLE_PROJECT_ID`
+- `GOOGLE_PROJECT_ID`  
   The Google Cloud Project ID for the `StackDriverStream`
 - `DEBUG`, default: none  
-  If set to "1", this will set the default level to filter to DEBUG
+  If set to "1", this will set the default level to filter to *DEBUG*
 
 # Thanks
 
