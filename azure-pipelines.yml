@@ -7,11 +7,17 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  GOBIN:  '$(GOPATH)/bin' # Go binaries path
-  GOROOT: '/usr/local/go1.11' # Go installation path
-  GOPATH: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
-  modulePath: '$(GOPATH)/src/github.com/$(build.repository.name)' # Path to the module's code
-  GOOGLE_APPLICATION_CREDENTIALS: '$(modulePath)/gcloud-key.json' # Path to Google Cloud's credentials (uploaded via secrets)
+  - group: GOOGLE_STACKDRIVER
+  - name:  GOBIN
+    value: '$(GOPATH)/bin' # Go binaries path
+  - name:  GOROOT
+    value: '/usr/local/go1.11' # Go installation path
+  - name:  GOPATH
+    value: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
+  - name:  modulePath
+    value: '$(GOPATH)/src/github.com/$(build.repository.name)' # Path to the module's code
+  - name:  GOOGLE_APPLICATION_CREDENTIALS
+    value: '$(modulePath)/gcloud-key.json' # Path to Google Cloud's credentials (uploaded via secrets)
 
 steps:
 - script: |
