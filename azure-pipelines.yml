@@ -35,7 +35,7 @@ steps:
     secureFile: gcloud-key.json
 
 - script: |
-    cp '$(gcloudkey.secureFilePath' .
+    cp '$(gcloudkey.secureFilePath)' .
   workingDirectory: '$(modulePath)'
   displayName: 'Installing Keys'
 
