@@ -1,6 +1,7 @@
 # Run the Unit Tests
 trigger:
 - master
+- dev
 
 pool:
   vmImage: 'ubuntu-latest'
