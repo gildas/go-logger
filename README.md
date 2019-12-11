@@ -194,13 +194,13 @@ gcloud iam service-acccount create logger-account
 3. Associate the Service Account to the Project you want to use  
 ```console
 gcloud projects add-iam-policy-binding my-logging-project \
-  --member "serviceAccount:logger-account@my-logging-account.iam.gserviceaccount.com" \
+  --member "serviceAccount:logger-account@my-logging-project.iam.gserviceaccount.com" \
   --role "roles/logging.logWriter"
 ```
 4. Retrieve the key filename  
 ```console
 gcloud iam service-accounts keys create /path/to/key.json \
-  --iam-account logger-account@my-logging-account.iam.gserviceaccount.com
+  --iam-account logger-account@my-logging-project.iam.gserviceaccount.com
 ```
 
 You can either set the `GOOGLE_APPLICATION_CREDENTIAL` and `GOOGLE_PROJECT_ID` environment variables with the path of the obtained key and Google Project ID or provide them to the StackDriver stream:  
