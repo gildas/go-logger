@@ -4,9 +4,9 @@ go-logger is a logging library based on [node-bunyan](trentm/node-bunyan).
 
 The output is compatible with the `bunyan` log reader application from that `node` package.
 
-[![Build Status](https://dev.azure.com/keltiek/gildas/_apis/build/status/gildas.go-logger?branchName=master "master")](https://dev.azure.com/keltiek/gildas/_build/latest?definitionId=1&branchName=master)
-[![Build Status](https://dev.azure.com/keltiek/gildas/_apis/build/status/gildas.go-logger?branchName=dev  "dev")](https://dev.azure.com/keltiek/gildas/_build/latest?definitionId=1&branchName=dev)
 ![Azure DevOps coverage](https://img.shields.io/azure-devops/coverage/keltiek/gildas/1)
+[Master: ![Build Status](https://dev.azure.com/keltiek/gildas/_apis/build/status/gildas.go-logger?branchName=master "master")](https://dev.azure.com/keltiek/gildas/_build/latest?definitionId=1&branchName=master)
+[Dev: ![Build Status](https://dev.azure.com/keltiek/gildas/_apis/build/status/gildas.go-logger?branchName=dev  "dev")](https://dev.azure.com/keltiek/gildas/_build/latest?definitionId=1&branchName=dev)
 
 ## Usage
 
