@@ -2,7 +2,7 @@ package logger
 
 import (
 	"context"
-	"github.com/pkg/errors"
+	"github.com/gildas/go-errors"
 )
 
 type key int
@@ -15,7 +15,7 @@ func FromContext(context context.Context) (*Logger, error) {
 	if logger, ok := context.Value(ContextKey).(*Logger); ok {
 		return logger, nil
 	}
-	return nil, errors.New("Context does not contain any Logger")
+	return nil, errors.ArgumentMissingError.WithWhat("Logger")
 }
 
 // ToContext stores the Logger in the given context

@@ -3,6 +3,7 @@ package logger_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -10,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/gildas/go-logger"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,7 +23,7 @@ func (stream *BogusStream) SetFilterLevel(level logger.Level) logger.Streamer {
 }
 
 func (stream *BogusStream) Write(record logger.Record) error {
-	return errors.New("This Stream is Bogus")
+	return fmt.Errorf("This Stream is Bogus")
 }
 
 func (stream *BogusStream) ShouldWrite(level logger.Level) bool {
@@ -40,7 +40,7 @@ type BogusValue struct {
 }
 
 func (v *BogusValue) MarshalJSON() ([]byte, error) {
-	return nil, errors.New("Failed to Marshal BogusValue")
+	return nil, fmt.Errorf("Failed to Marshal BogusValue")
 }
 
 

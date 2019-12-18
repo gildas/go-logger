@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
+	"github.com/gildas/go-errors"
 )
 
 // FileStream is the Stream that writes to a file
@@ -62,7 +62,7 @@ func (stream *FileStream) Write(record Record) (err error) {
 		}
 	}
 	if err := stream.Encoder.Encode(stream.Converter.Convert(record)); err != nil {
-		return errors.WithStack(err)
+		return errors.JSONMarshalError.Wrap(err)
 	}
 	if GetLevelFromRecord(record) >= ERROR && stream.output != nil {
 		stream.output.Flush() // calling stream.Flush will Lock the mutex again and end up with a dead-lock

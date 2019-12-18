@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging"
-	"github.com/pkg/errors"
+	"github.com/gildas/go-errors"
 	googleoption "google.golang.org/api/option"
 )
 
@@ -44,7 +44,7 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 		if len(stream.Parent) == 0 {
 			projectID, ok := os.LookupEnv("GOOGLE_PROJECT_ID")
 			if !ok {
-				return errors.New("Missing environment variable GOOGLE_PROJECT_ID")
+				return errors.EnvironmentMissingError.WithWhat("GOOGLE_PROJECT_ID")
 			}
 			stream.Parent = "projects/" + projectID
 		}
@@ -53,7 +53,7 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 		if stream.Key != nil {
 			payload, err := json.Marshal(stream.Key)
 			if err != nil {
-				return errors.WithStack(err)
+				return errors.JSONMarshalError.Wrap(err)
 			}
 			options = append(options, googleoption.WithCredentialsJSON(payload))
 		} else if len(stream.KeyFilename) != 0 {

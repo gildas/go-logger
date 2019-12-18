@@ -5,9 +5,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/pkg/errors"
+	"github.com/gildas/go-errors"
 )
-
 
 // StderrStream is the Stream that writes to the standard output
 type StderrStream struct {
@@ -40,7 +39,7 @@ func (stream *StderrStream) Write(record Record) error {
 		stream.Converter = GetConverterFromEnvironment()
 	}
 	if err := stream.Encoder.Encode(stream.Converter.Convert(record)); err != nil {
-		return errors.WithStack(err)
+		return errors.JSONMarshalError.Wrap(err)
 	}
 	return nil
 }
