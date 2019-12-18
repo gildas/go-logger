@@ -18,13 +18,13 @@ func (stream *MultiStream) SetFilterLevel(level Level) Streamer {
 // Write writes the given Record
 //   implements logger.Stream
 func (stream *MultiStream) Write(record Record) error {
-	// TODO: Use a multi error in the future
+	errs := errors.MultiError{}
 	for _, s := range stream.streams {
 		if err := s.Write(record); err != nil {
-			return errors.WithStack(err)
+			errs.Append(errors.WithStack(err))
 		}
 	}
-	return nil
+	return errs.AsError()
 }
 
 // ShouldWrite tells if the given level should be written to this stream
