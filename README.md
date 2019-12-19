@@ -33,7 +33,7 @@ Log.Errorf("This is a message at the error level for %s", myObject, err)
 Log.Fatalf("This is a message at the fatal level for %s", myObject, err)
 ```
 
-Note the `err` variable (must implement the [error](https://blog.golang.org/error-handling-and-go) interface) used with the last two log calls. By just adding it to the list of arguments while not mentioning it in the format string will tell the `Logger` to spit that error in a bunyan [Record field](https://github.com/trentm/node-bunyan#log-record-fields).
+Note the `err` variable (must implement the [error](https://blog.golang.org/error-handling-and-go) interface) used with the last two log calls. By just adding it to the list of arguments at Error or Fatal level while not mentioning it in the format string will tell the `Logger` to spit that error in a bunyan [Record field](https://github.com/trentm/node-bunyan#log-record-fields).
 
 More generally, [Record fields](https://github.com/trentm/node-bunyan#log-record-fields) can be logged like this:
 
@@ -82,7 +82,7 @@ func (s Stuff) DoSomething(other *OtherStuff) error {
 }
 ```
 
-The call to `Record(key, value)` creates a new `Logger` object. So, they are like Russian dolls when it comes down to actually writing the log message to the output stream. In other words, `Record` are collected from their parent's `Logger` back to the original `Logger`.  
+The call to `Record(key, value)` creates a new `Logger` object. So, they are like Russian dolls when it comes down to actually writing the log message to the output stream. In other words, `Record` objects are collected from their parent's `Logger` back to the original `Logger`.  
 
 For example:  
 ```go
@@ -134,7 +134,7 @@ var Log = logger.Create("myapp", "/path/to/myapp.log", "stderr")
 var Log = logger.Create("myapp", "nil")
 ```
 
-The first three `Logger` will write to a file, the fourth to Google Stackdriver, the fifth to Google Cloud Platform (GCP), the sixth to a file and stderr, and the seventh to nowhere (i.e. logs do not get written at all).
+The first three `Logger` objects will write to a file, the fourth to Google Stackdriver, the fifth to Google Cloud Platform (GCP), the sixth to a file and stderr, and the seventh to nowhere (i.e. logs do not get written at all).
 
 By default, when creating the `Logger` with:
 
@@ -171,7 +171,7 @@ You can also create a `Logger` with a combination of destinations and streams, A
 var Log = logger.Create("myapp",
     &logger.FileStream{Path: "/path/to/myapp.log"},
     "stackdriver",
-    NewRecord().Set("key", "value")
+    NewRecord().Set("key", "value"),
 )
 ```
 
@@ -238,9 +238,9 @@ If `OtherLogger` is `nil`, the new `Logger` will write to the `NilStream()`.
 var Log = logger.Must(logger.FromContext(context))
 ```
 
-`Must` can be used to create a `Logger` from a method that returns `*Logger, error`, if there is an error, `Must`will `panic`.
+`Must` can be used to create a `Logger` from a method that returns `*Logger, error`, if there is an error, `Must` will panic.
 
-`FromContext` can be used to retrieve a `Logger` from a GO context. (This is used in the next paragraph)  
+`FromContext` can be used to retrieve a `Logger` from a GO context. (This is used in the paragraph about HTTP Usage)  
 `log.ToContext` will store the `Logger` to the given GO context.
 
 ## Converters
@@ -261,7 +261,7 @@ You can also write your own `Converter` by implementing the `logger.Converter` i
 
 ```go
 type MyConverter struct {
-
+	// ...
 }
 
 func (converter *MyConverter) Convert(record Record) Record {

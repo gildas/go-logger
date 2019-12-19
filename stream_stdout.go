@@ -32,8 +32,8 @@ func (stream *StdoutStream) SetFilterLevel(level Level) Streamer {
 }
 
 // Write writes the given Record
-//   implements logger.Stream
 func (stream *StdoutStream) Write(record Record) error {
+	// implements logger.Stream
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.Encoder == nil {
@@ -63,14 +63,14 @@ func (stream *StdoutStream) Write(record Record) error {
 }
 
 // ShouldWrite tells if the given level should be written to this stream
-//   implements logger.Stream
 func (stream *StdoutStream) ShouldWrite(level Level) bool {
+	// implements logger.Stream
 	return level.ShouldWrite(stream.FilterLevel)
 }
 
 // Flush flushes the stream (makes sure records are actually written)
-//   implements logger.Stream
 func (stream *StdoutStream) Flush() {
+	// implements logger.Stream
 	if stream.output != nil {
 		stream.mutex.Lock()
 		defer stream.mutex.Unlock()
@@ -88,8 +88,8 @@ func (stream *StdoutStream) Close() {
 }
 
 // String gets a string version
-//   implements the fmt.Stringer interface
 func (stream *StdoutStream) String() string {
+	// implements the fmt.Stringer interface
 	var format strings.Builder
 
 	if stream.Unbuffered {

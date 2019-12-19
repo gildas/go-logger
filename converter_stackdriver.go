@@ -6,9 +6,11 @@ import (
 	"cloud.google.com/go/logging"
 )
 
+// StackDriverConverter is used to convert a Record for StackDriver
 type StackDriverConverter struct {
 }
 
+// Convert converts the Record into a StackDriver compatible Record
 func (converter *StackDriverConverter) Convert(record Record) Record {
 	// StackDriver special fields: https://cloud.google.com/logging/docs/agent/configuration#special-fields
 	record["severity"] = severity(record["level"])

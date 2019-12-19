@@ -2,9 +2,11 @@ package logger
 
 import "time"
 
+// PinoConverter is used to convert Records to be read by pino
 type PinoConverter struct {
 }
 
+// Convert converts the Record into a Pino compatible Record
 func (converter *PinoConverter) Convert(record Record) Record {
 	if value, ok := record["level"]; ok {
 		if level, ok := value.(Level); ok {

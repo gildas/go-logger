@@ -4,5 +4,5 @@ package logger
 
 import ()
 
-// Gettid returns the current thread identifier
-func Gettid() int { return 0 }
+// gettid returns the current thread identifier
+func gettid() int { return 0 }

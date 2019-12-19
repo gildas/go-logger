@@ -6,7 +6,8 @@ import (
 )
 
 // Record is the map that contains all records of a log entry
-//   If the value at a key is a func() interface the func will be called when the record is marshaled
+//
+// If the value at a key is a func() interface the func will be called when the record is marshaled
 type Record map[string]interface{}
 
 // NewRecord creates a new empty record
@@ -14,7 +15,7 @@ func NewRecord() Record {
 	return Record(make(map[string]interface{}))
 }
 
-// Set the key and value if not yet set
+// Set sets the key and value if not yet set
 func (record Record) Set(key string, value interface{}) Record {
 	if value == nil {
 		return record
@@ -26,7 +27,8 @@ func (record Record) Set(key string, value interface{}) Record {
 }
 
 // Merge merges a source Record into this Record
-//   values already set in this record cannot be overriden
+//
+// values already set in this record cannot be overriden
 func (record Record) Merge(source Record) Record {
 	for key, value := range source {
 		record.Set(key, value)

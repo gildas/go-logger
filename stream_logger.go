@@ -1,8 +1,8 @@
 package logger
 
 // Write writes the given Record
-//   implements logger.Stream
 func (log *Logger) Write(record Record) error {
+	// implements logger.Stream
 	record.Merge(log.record)
 	return log.stream.Write(record)
 }
@@ -14,13 +14,13 @@ func (log *Logger) SetFilterLevel(level Level) Streamer {
 }
 
 // ShouldWrite tells if the given level should be written to this stream
-//   implements logger.Stream
 func (log *Logger) ShouldWrite(level Level) bool {
+	// implements logger.Stream
 	return log.stream.ShouldWrite(level)
 }
 
 // Flush flushes the stream (makes sure records are actually written)
-//   implements logger.Stream
 func (log *Logger) Flush() {
+	// implements logger.Stream
 	log.stream.Flush()
 }

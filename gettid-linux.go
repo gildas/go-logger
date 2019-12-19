@@ -6,5 +6,5 @@ import (
 	"syscall"
 )
 
-// Gettid returns the current thread identifier
-func Gettid() int { return syscall.Gettid() }
+// gettid returns the current thread identifier
+func gettid() int { return syscall.Gettid() }

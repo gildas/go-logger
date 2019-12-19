@@ -5,6 +5,8 @@ import (
 	"strings"
 )
 
+// Level represents the log Level
+// The higher the value the more chances to write in the Stream
 type Level byte
 
 const (
@@ -37,6 +39,7 @@ func ParseLevel(value string) Level {
 	return NEVER
 }
 
+// GetLevelFromRecord retrieves the level from the given Record
 func GetLevelFromRecord(record Record) Level {
 	if value, ok := record["level"]; ok {
 		if level, ok := value.(Level); ok {
@@ -46,7 +49,7 @@ func GetLevelFromRecord(record Record) Level {
 	return NEVER
 }
 
-// GetLevelFromEnvironment
+// GetLevelFromEnvironment retrieves the level from the environment LOG_LEVEL
 func GetLevelFromEnvironment() Level {
 	if value, ok := os.LookupEnv("LOG_LEVEL"); ok {
 		return ParseLevel(value)
@@ -66,8 +69,8 @@ func (level Level) ShouldWrite(filter Level) bool {
 }
 
 // String gets a string version
-//   implements the fmt.Stringer interface
 func (level Level) String() string {
+	// implements the fmt.Stringer interface
 	if level > FATAL {
 		return "ALWAYS"
 	}

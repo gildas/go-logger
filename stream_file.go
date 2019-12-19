@@ -71,14 +71,14 @@ func (stream *FileStream) Write(record Record) (err error) {
 }
 
 // ShouldWrite tells if the given level should be written to this stream
-//   implements logger.Stream
 func (stream *FileStream) ShouldWrite(level Level) bool {
+	// implements logger.Stream
 	return level.ShouldWrite(stream.FilterLevel)
 }
 
 // Flush flushes the stream (makes sure records are actually written)
-//   implements logger.Stream
 func (stream *FileStream) Flush() {
+	// implements logger.Stream
 	if stream.output != nil {
 		stream.mutex.Lock()
 		defer stream.mutex.Unlock()
@@ -99,8 +99,8 @@ func (stream *FileStream) Close() {
 }
 
 // String gets a string version
-//   implements the fmt.Stringer interface
 func (stream *FileStream) String() string {
+	// implements the fmt.Stringer interface
 	var format strings.Builder
 
 	if stream.Unbuffered {
