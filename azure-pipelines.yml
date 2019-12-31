@@ -11,7 +11,7 @@ variables:
   - name:  GOBIN
     value: '$(GOPATH)/bin' # Go binaries path
   - name:  GOROOT
-    value: '/usr/local/go1.11' # Go installation path
+    value: '/usr/local/go1.13' # Go installation path
   - name:  GOPATH
     value: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
   - name:  modulePath
@@ -23,6 +23,7 @@ steps:
     mkdir -p '$(GOPATH)/pkg'
     mkdir -p '$(modulePath)'
     shopt -s extglob
+    shopt -s dotglob
     mv !(gopath) '$(modulePath)'
     echo '##vso[task.prependpath]$(GOBIN)'
     echo '##vso[task.prependpath]$(GOROOT)/bin'
@@ -39,7 +40,15 @@ steps:
   workingDirectory: '$(modulePath)'
   displayName: 'Installing Keys'
 
-- script: go get -v -t -d ./...
+- script: |
+    go version
+    # Get all packages for testing (-t) and source code (-d)
+    go get -v -t -d ./...
+    go list -m all
+    if [ -f Gopkg.toml ]; then
+        curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+        dep ensure
+    fi
   workingDirectory: '$(modulePath)'
   displayName: 'go get dependencies'
 
@@ -47,12 +56,9 @@ steps:
     go get github.com/jstemmer/go-junit-report
     go get github.com/axw/gocov/gocov
     go get github.com/AlekSi/gocov-xml
-    go get -u gopkg.in/matm/v1/gocov-html
     GOOGLE_APPLICATION_CREDENTIALS=gcloud-key.json GOOGLE_PROJECT_ID=$(GOOGLE_PROJECT_ID) go test -v -coverprofile=coverage.txt -covermode count . 2>&1 | go-junit-report > report.xml
     gocov convert coverage.txt > coverage.json
     gocov-xml < coverage.json > coverage.xml
-    mkdir coverage
-    gocov-html < coverage.json > coverage/index.html
   workingDirectory: '$(modulePath)'
   displayName: 'Run tests'
 
