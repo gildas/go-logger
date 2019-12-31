@@ -56,7 +56,6 @@ func (suite *RecordSuite) TestFailsUnmarshalInvalidJSON() {
 	err := json.Unmarshal([]byte(source), &record)
 	suite.Require().NotNil(err)
 	suite.Assert().True(errors.Is(err, errors.JSONUnmarshalError), "error should be a JSON Unmarshal error")
-	suite.T().Log(err)
 }
 
  func (suite *RecordSuite) TestCanSet() {
