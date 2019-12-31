@@ -1,17 +1,16 @@
 package logger
 
 import (
-	"encoding/json"
 	"context"
+	"encoding/json"
 	"os"
 	"sync"
 	"time"
 
 	"cloud.google.com/go/logging"
-	"github.com/pkg/errors"
+	"github.com/gildas/go-errors"
 	googleoption "google.golang.org/api/option"
 )
-
 
 // GCPStream is the Stream that writes to the standard output
 type StackDriverStream struct {
@@ -35,8 +34,8 @@ func (stream *StackDriverStream) SetFilterLevel(level Level) Streamer {
 }
 
 // Write writes the given Record
-//   implements logger.Stream
 func (stream *StackDriverStream) Write(record Record) (err error) {
+	// implements logger.Stream
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.client == nil {
@@ -44,7 +43,7 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 		if len(stream.Parent) == 0 {
 			projectID, ok := os.LookupEnv("GOOGLE_PROJECT_ID")
 			if !ok {
-				return errors.New("Missing environment variable GOOGLE_PROJECT_ID")
+				return errors.EnvironmentMissingError.WithWhat("GOOGLE_PROJECT_ID")
 			}
 			stream.Parent = "projects/" + projectID
 		}
@@ -53,7 +52,7 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 		if stream.Key != nil {
 			payload, err := json.Marshal(stream.Key)
 			if err != nil {
-				return errors.WithStack(err)
+				return errors.JSONMarshalError.Wrap(err)
 			}
 			options = append(options, googleoption.WithCredentialsJSON(payload))
 		} else if len(stream.KeyFilename) != 0 {
@@ -69,8 +68,8 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 			stream.FilterLevel = GetLevelFromEnvironment()
 		}
 	}
-	grecord  := stream.Converter.Convert(record)
-	stamp, _ := time.Parse(time.RFC3339, grecord["time"].(string));
+	grecord := stream.Converter.Convert(record)
+	stamp, _ := time.Parse(time.RFC3339, grecord["time"].(string))
 	severity := grecord["severity"].(logging.Severity)
 	delete(grecord, "time")
 	delete(grecord, "severity")
@@ -83,14 +82,14 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 }
 
 // ShouldWrite tells if the given level should be written to this stream
-//   implements logger.Stream
 func (stream *StackDriverStream) ShouldWrite(level Level) bool {
+	// implements logger.Stream
 	return level.ShouldWrite(stream.FilterLevel)
 }
 
 // Flush flushes the stream (makes sure records are actually written)
-//   implements logger.Stream
 func (stream *StackDriverStream) Flush() {
+	// implements logger.Stream
 	if stream.target != nil {
 		stream.mutex.Lock()
 		defer stream.mutex.Unlock()
@@ -111,7 +110,7 @@ func (stream *StackDriverStream) Close() {
 }
 
 // String gets a string version
-//   implements the fmt.Stringer interface
 func (stream *StackDriverStream) String() string {
+	// implements the fmt.Stringer interface
 	return "Stream to Google StackDriver"
 }

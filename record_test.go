@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/gildas/go-logger"
+	"github.com/gildas/go-errors"
 )
 
 type RecordSuite struct {
@@ -54,6 +55,8 @@ func (suite *RecordSuite) TestFailsUnmarshalInvalidJSON() {
 	record := logger.NewRecord()
 	err := json.Unmarshal([]byte(source), &record)
 	suite.Require().NotNil(err)
+	suite.Assert().True(errors.Is(err, errors.JSONUnmarshalError), "error should be a JSON Unmarshal error")
+	suite.T().Log(err)
 }
 
  func (suite *RecordSuite) TestCanSet() {

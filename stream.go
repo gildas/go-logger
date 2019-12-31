@@ -17,14 +17,32 @@ type Streamer interface {
 }
 
 // GetFlushFrequencyFromEnvironment fetches the flush frequency from the environment
-//  the frequency should be like https://golang.org/pkg/time/#ParseDuration or an ISO8601 duration.  
+// the frequency should be like https://golang.org/pkg/time/#ParseDuration or an ISO8601 duration.  
 //
-//  If not set, the frequency will be 5 minutes
+// If not set, the frequency will be 5 minutes
 func GetFlushFrequencyFromEnvironment() time.Duration {
 	return core.GetEnvAsDuration("LOG_FLUSHFREQUENCY", 5 * time.Minute)
 }
 
 // CreateStreamWithDestination creates a new Streamer from a list of strings
+//
+// "stdout" will create a StdoutStream
+//
+// "stderr" will create a StderrStream
+//
+// "nil", "null" will create a NilStream
+//
+// "stackdriver" will create a StackDriverStream
+//
+// "gcp", "googlecloud", "google" will create a StdoutStream, unbuffered, with the StackDriverConverter
+//
+// "file:///path/to/file" or "path/to/file", "/path/to/file" will create a FileStream on the given location
+//
+// If more than one string is given, a MultiStream of all Streams from strings is created.
+//
+// If the environment variable DEBUG is set to 1, all Streams are created unbuffered.
+//
+// If the list is empty, the environment variable LOG_DESTINATION is used.
 func CreateStreamWithDestination(destinations ...string) Streamer {
 	unbuffered := false
 	if value, ok := os.LookupEnv("DEBUG"); ok && value == "1" {

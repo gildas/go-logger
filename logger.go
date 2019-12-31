@@ -76,7 +76,7 @@ func CreateWithStream(name string, streams ...Streamer) *Logger {
 		Set("name", name).
 		Set("hostname", hostname).
 		Set("pid", os.Getpid()).
-		Set("tid", func() interface{} { return Gettid() }).
+		Set("tid", func() interface{} { return gettid() }).
 		Set("topic", "main").
 		Set("scope", "main").
 		Set("v", 0)

@@ -1,5 +1,7 @@
 package logger
 
+import "github.com/gildas/go-errors"
+
 // MultiStream is the Stream that writes to several streams
 type MultiStream struct {
 	streams []Streamer
@@ -14,25 +16,26 @@ func (stream *MultiStream) SetFilterLevel(level Level) Streamer {
 }
 
 // Write writes the given Record
-//   implements logger.Stream
 func (stream *MultiStream) Write(record Record) error {
+	// implements logger.Stream
+	errs := errors.MultiError{}
 	for _, s := range stream.streams {
 		if err := s.Write(record); err != nil {
-			return err
+			errs.Append(errors.WithStack(err))
 		}
 	}
-	return nil
+	return errs.AsError()
 }
 
 // ShouldWrite tells if the given level should be written to this stream
-//   implements logger.Stream
 func (stream *MultiStream) ShouldWrite(level Level) bool {
+	// implements logger.Stream
 	return true
 }
 
 // Flush flushes the stream (makes sure records are actually written)
-//   implements logger.Stream
 func (stream *MultiStream) Flush() {
+	// implements logger.Stream
 	for _, s := range stream.streams {
 		s.Flush()
 	}
@@ -46,8 +49,8 @@ func (stream *MultiStream) Close() {
 }
 
 // String gets a string version
-//   implements the fmt.Stringer interface
 func (stream MultiStream) String() string {
+	// implements the fmt.Stringer interface
 	return "MultiStream"
 }
 

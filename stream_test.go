@@ -13,12 +13,13 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
+	"github.com/gildas/go-errors"
 	"github.com/gildas/go-logger"
 )
 
 type StreamSuite struct {
 	suite.Suite
-	Name  string
+	Name string
 }
 
 func TestStreamSuite(t *testing.T) {
@@ -187,13 +188,13 @@ func ExampleStdoutStream() {
 	stream.Flush()
 	time.Sleep(11 * time.Millisecond)
 	stream.Close()
-	// Output: 
+	// Output:
 	// {"bello":"banana","だれ":"Me"}
 	// {"bello":"banana","level":50}
 }
 
 func ExampleStdoutStream_Unbuffered() {
-	stream := &logger.StdoutStream{ Unbuffered: true}
+	stream := &logger.StdoutStream{Unbuffered: true}
 
 	if err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "Me")); err != nil {
 		os.Stdout.WriteString(err.Error() + "\n")
@@ -214,7 +215,7 @@ func ExampleStderrStream() {
 		if stream.ShouldWrite(logger.TRACE) {
 			os.Stderr.WriteString("This should not be seen, stream Filter: " + stream.FilterLevel.String() + "\n")
 		}
-        stream.Flush()
+		stream.Flush()
 	})
 	fmt.Println(output)
 	// Output: {"bello":"banana","だれ":"Me"}
@@ -294,13 +295,13 @@ func (suite *StreamSuite) TestCanStreamToMultiStream() {
 func (suite *StreamSuite) TestCanGetFlushFrequencyFromEnvironment() {
 	os.Unsetenv("LOG_FLUSHFREQUENCY")
 	frequency := logger.GetFlushFrequencyFromEnvironment()
-	suite.Assert().Equal(5 * time.Minute, frequency, "Frequency should be 5 minutes before being set in the environment")
+	suite.Assert().Equal(5*time.Minute, frequency, "Frequency should be 5 minutes before being set in the environment")
 	os.Setenv("LOG_FLUSHFREQUENCY", "3600s")
 	frequency = logger.GetFlushFrequencyFromEnvironment()
-	suite.Assert().Equal(1 * time.Hour, frequency, "Frequency should be 1 hour after being set in the environment (was %s)", frequency)
+	suite.Assert().Equal(1*time.Hour, frequency, "Frequency should be 1 hour after being set in the environment (was %s)", frequency)
 	os.Setenv("LOG_FLUSHFREQUENCY", "P2H")
 	frequency = logger.GetFlushFrequencyFromEnvironment()
-	suite.Assert().Equal(2 * time.Hour, frequency, "Frequency should be 2 hour after being set in the environment (was %s)", frequency)
+	suite.Assert().Equal(2*time.Hour, frequency, "Frequency should be 2 hour after being set in the environment (was %s)", frequency)
 	os.Unsetenv("LOG_FLUSHFREQUENCY")
 }
 
@@ -312,7 +313,10 @@ func (suite *StreamSuite) TestFailsWritingToStackDriverWithNoParent() {
 	stream := &logger.StackDriverStream{}
 	err := stream.Write(logger.NewRecord().Set("key", "value"))
 	suite.Require().NotNil(err, "Should have failed writing to stream")
-	suite.Assert().Contains(err.Error(), "Missing environment variable GOOGLE_PROJECT_ID")
+	suite.Assert().True(errors.Is(err, errors.EnvironmentMissingError), "error should be an Environment Missing error")
+	var details *errors.Error
+	suite.Require().True(errors.As(err, &details), "Error chain should contain an errors.Error")
+	suite.Assert().Equal("GOOGLE_PROJECT_ID", details.What, "Error's What is wrong")
 }
 
 func (suite *StreamSuite) TestFailsWritingToStackDriverWithNoCredentials() {
@@ -350,20 +354,24 @@ func (suite *StreamSuite) TestFailsWritingtoMultiStreamWithBogusStream() {
 	suite.Assert().IsType(&logger.MultiStream{}, stream)
 	err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "Me"))
 	suite.Require().NotNil(err, "Should have failed writing to stream")
+	suite.T().Log(err)
 }
 
 func (suite *StreamSuite) TestFailsWritingWithBogusRecordValue() {
 	streamStderr := &logger.StderrStream{}
 	err := streamStderr.Write(logger.NewRecord().Set("key", &BogusValue{}))
 	suite.Require().NotNil(err, "Should have failed writing to stream")
+	suite.Assert().True(errors.Is(err, errors.JSONMarshalError), "error should be a JSON Marshal error")
 	suite.Assert().Contains(err.Error(), "Failed to Marshal BogusValue")
 	streamStdout := &logger.StdoutStream{}
 	err = streamStdout.Write(logger.NewRecord().Set("key", &BogusValue{}))
 	suite.Require().NotNil(err, "Should have failed writing to stream")
+	suite.Assert().True(errors.Is(err, errors.JSONMarshalError), "error should be a JSON Marshal error")
 	suite.Assert().Contains(err.Error(), "Failed to Marshal BogusValue")
 	streamFile := &logger.FileStream{Path: "/tmp/test.log"}
 	err = streamFile.Write(logger.NewRecord().Set("key", &BogusValue{}))
 	suite.Require().NotNil(err, "Should have failed writing to stream")
+	suite.Assert().True(errors.Is(err, errors.JSONMarshalError), "error should be a JSON Marshal error")
 	suite.Assert().Contains(err.Error(), "Failed to Marshal BogusValue")
 }
 

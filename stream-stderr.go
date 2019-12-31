@@ -5,9 +5,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/pkg/errors"
+	"github.com/gildas/go-errors"
 )
-
 
 // StderrStream is the Stream that writes to the standard output
 type StderrStream struct {
@@ -26,8 +25,8 @@ func (stream *StderrStream) SetFilterLevel(level Level) Streamer {
 }
 
 // Write writes the given Record
-//   implements logger.Stream
 func (stream *StderrStream) Write(record Record) error {
+	// implements logger.Stream
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.Encoder == nil {
@@ -40,20 +39,20 @@ func (stream *StderrStream) Write(record Record) error {
 		stream.Converter = GetConverterFromEnvironment()
 	}
 	if err := stream.Encoder.Encode(stream.Converter.Convert(record)); err != nil {
-		return errors.WithStack(err)
+		return errors.JSONMarshalError.Wrap(err)
 	}
 	return nil
 }
 
 // ShouldWrite tells if the given level should be written to this stream
-//   implements logger.Stream
 func (stream *StderrStream) ShouldWrite(level Level) bool {
+	// implements logger.Stream
 	return level.ShouldWrite(stream.FilterLevel)
 }
 
 // Flush flushes the stream (makes sure records are actually written)
-//   implements logger.Stream
 func (stream *StderrStream) Flush() {
+	// implements logger.Stream
 }
 
 // Close closes the stream
@@ -61,7 +60,7 @@ func (stream *StderrStream) Close() {
 }
 
 // String gets a string version
-//   implements the fmt.Stringer interface
 func (stream *StderrStream) String() string {
+	// implements the fmt.Stringer interface
 	return "Stream to stderr"
 }
