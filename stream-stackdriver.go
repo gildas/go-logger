@@ -43,7 +43,7 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 		if len(stream.Parent) == 0 {
 			projectID, ok := os.LookupEnv("GOOGLE_PROJECT_ID")
 			if !ok {
-				return errors.EnvironmentMissingError.WithWhat("GOOGLE_PROJECT_ID")
+				return errors.EnvironmentMissingError.With("GOOGLE_PROJECT_ID").WithStack()
 			}
 			stream.Parent = "projects/" + projectID
 		}
