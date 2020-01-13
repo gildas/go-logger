@@ -12,8 +12,6 @@ github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/gildas/go-core v0.4.1 h1:6yjshmc5FQ9UZFunjHVVhPaIfewd+3jbFbhsYvrT0Ec=
 github.com/gildas/go-core v0.4.1/go.mod h1:+OB8rruJogwuwQ4k/OvL+aWRMCi/nP078q8/vvqGqdM=
-github.com/gildas/go-errors v0.0.1 h1:64VeSeHTCCqgYvsa+0kdcfpYcc3YQQHl2bW4qYO0Ph4=
-github.com/gildas/go-errors v0.0.1/go.mod h1:yBq+5XkcQRiWPXJlNF3ovGL8WuuegPfaFlt8XU35U7M=
 github.com/gildas/go-errors v0.0.2 h1:jtKgkMo30vItztEE6kkk15k2Gn1r/yGHxNditAGybP0=
 github.com/gildas/go-errors v0.0.2/go.mod h1:yBq+5XkcQRiWPXJlNF3ovGL8WuuegPfaFlt8XU35U7M=
 github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b h1:VKtxabqXZkF25pY9ekfRL6a582T4P37/31XEstQ5p58=
