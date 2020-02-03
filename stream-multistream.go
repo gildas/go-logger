@@ -21,7 +21,7 @@ func (stream *MultiStream) Write(record Record) error {
 	errs := errors.MultiError{}
 	for _, s := range stream.streams {
 		if err := s.Write(record); err != nil {
-			errs.Append(errors.WithStack(err))
+			_ = errs.Append(errors.WithStack(err))
 		}
 	}
 	return errs.AsError()
