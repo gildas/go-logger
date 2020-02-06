@@ -90,7 +90,7 @@ func (suite *LoggerSuite) TestCanLoadAndSaveWithContext() {
 func (suite *LoggerSuite) TestShouldFailLoadingFromContextWithoutLogger() {
 	_, err := logger.FromContext(context.Background())
 	suite.Require().NotNil(err, "Context should not contain a Logger")
-	suite.Assert().True(errors.Is(err, errors.ArgumentMissingError), "error should be an Argument Missing error")
+	suite.Assert().True(errors.Is(err, errors.ArgumentMissing), "error should be an Argument Missing error")
 	var details *errors.Error
 	suite.Require().True(errors.As(err, &details), "Error chain should contain an errors.Error")
 	suite.Assert().Equal("Logger", details.What, "Error's What is wrong")
