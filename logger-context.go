@@ -15,7 +15,7 @@ func FromContext(context context.Context) (*Logger, error) {
 	if logger, ok := context.Value(contextKey).(*Logger); ok {
 		return logger, nil
 	}
-	return nil, errors.ArgumentMissingError.With("Logger").WithStack()
+	return nil, errors.ArgumentMissing.With("Logger").WithStack()
 }
 
 // ToContext stores the Logger in the given context
