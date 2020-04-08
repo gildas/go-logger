@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -129,13 +130,18 @@ func (suite *StreamSuite) TestCanCreateUnbufferedStdoutStream() {
 }
 
 func (suite *StreamSuite) TestCanCreateFileStream() {
-	stream := &logger.FileStream{Path: "/tmp/test.log"}
-	suite.Assert().Equal("Stream to /tmp/test.log", stream.String())
+	stream := &logger.FileStream{Path: "log/test.log"}
+	suite.Assert().Equal("Stream to log/test.log", stream.String())
+	err := stream.Write(logger.NewRecord().Set("key", "value"))
+	suite.Assert().Nil(err, "FileStream should have written something")
+	stream.Flush()
 }
 
 func (suite *StreamSuite) TestCanCreateUnbufferedFileStream() {
-	stream := &logger.FileStream{Path: "/tmp/test.log", Unbuffered: true, FilterLevel: logger.INFO}
-	suite.Assert().Equal("Unbuffered Stream to /tmp/test.log, Filter: INFO", stream.String())
+	stream := &logger.FileStream{Path: "log/test.log", Unbuffered: true, FilterLevel: logger.INFO}
+	suite.Assert().Equal("Unbuffered Stream to log/test.log, Filter: INFO", stream.String())
+	err := stream.Write(logger.NewRecord().Set("key", "value"))
+	suite.Assert().Nil(err, "FileStream should have written something")
 }
 
 func (suite *StreamSuite) TestCanCreateStackDriverStream() {
@@ -258,7 +264,7 @@ func (suite *StreamSuite) TestCanStreamToStackDriverWithKeyFilename() {
 	suite.Assert().Equal("Stream to Google StackDriver", stream.String())
 	suite.Assert().Truef(stream.ShouldWrite(logger.WARN), "It should be possible to write to a %s", stream)
 	err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.WARN).Set("time", time.Now()).Set("msg", "Hello with key filename"))
-	suite.Assert().Nil(err, "Failed to write to stream")
+	suite.Require().Nil(err, "Failed to write to stream")
 	stream.Flush()
 }
 
@@ -275,7 +281,7 @@ func (suite *StreamSuite) TestCanStreamToStackDriverWithKey() {
 	suite.Assert().Equal("Stream to Google StackDriver", stream.String())
 	suite.Assert().Truef(stream.ShouldWrite(logger.WARN), "It should be possible to write to a %s", stream)
 	err = stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.WARN).Set("time", time.Now()).Set("msg", "Hello with key filename"))
-	suite.Assert().Nil(err, "Failed to write to stream")
+	suite.Require().Nil(err, "Failed to write to stream")
 	stream.Flush()
 }
 
@@ -347,6 +353,21 @@ func (suite *StreamSuite) TestFailsWritingToFileStreamWithInvalidFile() {
 	err := streamFile.Write(logger.NewRecord().Set("key", "value"))
 	suite.Require().NotNil(err, "Should have failed writing to stream")
 	suite.Assert().Contains(err.Error(), "no such file")
+	var details *os.PathError
+	suite.Require().True(errors.As(err, &details), "Error should have been a os.PathError")
+	suite.Assert().Equal("open", details.Op)
+	suite.Assert().Equal(streamFile.Path, details.Path)
+}
+
+func (suite *StreamSuite) TestFailsWritingToFileStreamWithForbiddenPath() {
+	streamFile := &logger.FileStream{Path: "/x/test.log"}
+	err := streamFile.Write(logger.NewRecord().Set("key", "value"))
+	suite.Require().NotNil(err, "Should have failed writing to stream")
+	suite.Assert().Contains(err.Error(), "permission denied")
+	var details *os.PathError
+	suite.Require().True(errors.As(err, &details), "Error should have been a os.PathError")
+	suite.Assert().Equal("mkdir", details.Op)
+	suite.Assert().Equal(path.Dir(streamFile.Path), details.Path)
 }
 
 func (suite *StreamSuite) TestFailsWritingtoMultiStreamWithBogusStream() {
@@ -354,7 +375,7 @@ func (suite *StreamSuite) TestFailsWritingtoMultiStreamWithBogusStream() {
 	suite.Assert().IsType(&logger.MultiStream{}, stream)
 	err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "Me"))
 	suite.Require().NotNil(err, "Should have failed writing to stream")
-	suite.T().Log(err)
+	suite.T().Logf("(Expected) Error: %s", err.Error())
 }
 
 func (suite *StreamSuite) TestFailsWritingWithBogusRecordValue() {
