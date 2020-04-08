@@ -46,10 +46,7 @@ func GetFlushFrequencyFromEnvironment() time.Duration {
 //
 // If the list is empty, the environment variable LOG_DESTINATION is used.
 func CreateStreamWithDestination(destinations ...string) Streamer {
-	unbuffered := false
-	if value, ok := os.LookupEnv("DEBUG"); ok && value == "1" {
-		unbuffered = true
-	}
+	unbuffered := core.GetEnvAsBool("DEBUG", false)
 	if len(destinations) == 0 {
 		destination, ok := os.LookupEnv("LOG_DESTINATION")
 		if !ok || len(destination) == 0 {
