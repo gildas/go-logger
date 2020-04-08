@@ -1,13 +1,13 @@
 package logger
 
 import (
-	"github.com/google/uuid"
 	"context"
 	"html"
 	"net/http"
 	"time"
-)
 
+	"github.com/google/uuid"
+)
 
 // HttpHandler function will wrap an http handler with extra logging information
 func (l *Logger) HttpHandler() func(http.Handler) http.Handler {

@@ -1,11 +1,12 @@
 package logger
 
 import (
-	"strings"
 	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
+	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -42,6 +43,10 @@ func (stream *FileStream) Write(record Record) (err error) {
 	if stream.file == nil {
 		const flags = os.O_CREATE | os.O_APPEND | os.O_WRONLY
 		const perms = 0644
+		err = os.MkdirAll(path.Dir(stream.Path), os.ModePerm)
+		if err != nil {
+			return errors.WithStack(err)
+		}
 		if stream.file, err = os.OpenFile(stream.Path, flags, perms); err != nil {
 			return errors.WithStack(err)
 		}
@@ -52,10 +57,10 @@ func (stream *FileStream) Write(record Record) (err error) {
 			stream.Converter = GetConverterFromEnvironment()
 		}
 		if stream.Unbuffered {
-			stream.output  =  nil
+			stream.output = nil
 			stream.Encoder = json.NewEncoder(stream.file)
 		} else {
-			stream.output  = bufio.NewWriter(stream.file)
+			stream.output = bufio.NewWriter(stream.file)
 			stream.Encoder = json.NewEncoder(stream.output)
 			stream.flushFrequency = GetFlushFrequencyFromEnvironment()
 			go stream.flushJob()

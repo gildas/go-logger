@@ -1,7 +1,11 @@
 # go-logger
 
-[![GoDoc](https://godoc.org/github.com/gildas/go-logger?status.svg)](https://godoc.org/github.com/gildas/go-logger)
-go-logger is a logging library based on [node-bunyan](trentm/node-bunyan). 
+![GoVersion](https://img.shields.io/github/go-mod/go-version/gildas/go-logger)
+[![GoDoc](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/gildas/go-logger) 
+[![License](https://img.shields.io/github/license/gildas/go-logger)](https://github.com/gildas/go-logger/blob/master/LICENSE) 
+[![Report](https://goreportcard.com/badge/github.com/gildas/go-logger)](https://goreportcard.com/report/github.com/gildas/go-logger)  
+
+go-logger is a logging library based on [node-bunyan](https://github.com/trentm/node-bunyan).
 
 The output is compatible with the `bunyan` log reader application from that `node` package.
 
@@ -306,6 +310,80 @@ func main() {
 }
 ```
 
+## Obfuscation
+
+There might be some situation where some parts of the logged messages have to be obfuscated. Typical usage could be:  
+- Hiding passwords  
+- Hiding personal information to comply to regulations such as HIPAA, PCI-DSS
+
+To achieve this, the logger can obfuscate automatically or manually. Manually, the easiest of all, is when the obfuscation is called from the source code directly:  
+
+```go
+func Authenticate(user, password string) bool {
+  Log.Debugf("Authenticating User: %s with Password: %s", user, logger.Obfuscate(password))
+  if user == "admin" && password == "SuperS3cr3t" {
+    Log.Infof("User %s is authenticated via super complex authentication", user)
+    return true
+  }
+  Log.Warnf("Invalid Credentials for user %s", user)
+  return false
+}
+```
+
+The advantage of this method is the total control what is to be obfuscated. Its disadvantage is obvious, we need to add knowledge in the code...
+
+The automated way is configured by adding regular expressions to the `Obfuscator`:  
+
+```go
+func main() {
+  Log := logger.Create("MYAPP", logger.ObfuscateRule{`4[0-9]{12}(?:[0-9]{3})?`}) // Obfuscate VISA card number
+  Log.ObfuscateRule('3[47][0-9]{13}') // Obfuscate also AMEX card numbers
+  // . . .
+  Log.Debugf("Credit card entered: %s", visacard)
+}
+```
+
+As seen in this code, obfuscation rules can be added at the logger's creation time or later in the code.
+
+It is also possible to instruct the Obfuscator to process some properties of struct types:
+
+```go
+type Stuff struct {
+  ID     string
+  Secret string `logger:"obfuscate"`
+}
+
+func main() {
+  Log := logger.Create()
+  stuff := Stuff{}
+  // . . .
+  Log.Infof("Found stuff: %v", stuff)
+}
+```
+
+To obfuscate, a random SHA-256/AES?!? key is created at the beginning on the application and is used to hash the target data.
+
+If you need reversible obfuscation, create an SSL key pair, and provide the logger with the public key via the environment variable `LOG_OBFUSCATION_KEY`.
+
+To decode the obfuscated data, you will need to manually use the private key with tools like `openssl` or `gpg`.
+
+Food for thoughts:  
+
+- symetric key/password
+```console
+encrypted=$(echo "Hello" | openssl enc -aes-256-cbc -pbkdf2 -a -iter 20000 -k yummy)
+echo $encrypted| base64 -d | openssl enc -d -aes-256-cbc -pbkdf2 -iter 20000 -k yummy
+```
+
+- public/private key
+```console
+openssl genrsa -out ~/.ssh/logkey
+openssl rsa -in ~/.ssh/logkey -out ~/.ssl/logkey.pub -pubout # Default format is PEM
+encrypted=$(echo "Hello" | openssl rsautl -encrypt -inkey tmp/mykey.pub -pubin | base64)
+
+echo $encrypted | base64 -d | openssl rsautl -decrypt -inkey tmp/mykey
+```
+
 ## Environment Variables
 
 The `Logger` can be configured completely by environment variables if needed. These are:  
@@ -317,6 +395,8 @@ The `Logger` can be configured completely by environment variables if needed. Th
   The default `Converter` to use
 - `LOG_FLUSHFREQUENCY`, default: 5 minutes  
   The default Flush Frequency for the streams that will be buffered
+- `LOG_OBFUSCATION_KEY`, default: none  
+  The SSL public key to use when obfuscating if you want a reversible obfuscation
 - `GOOGLE_APPLICATION_CREDENTIALS`  
   The path to the credential file for the `StackDriverStream`
 - `GOOGLE_PROJECT_ID`  

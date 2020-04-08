@@ -54,6 +54,7 @@ func (stream MultiStream) String() string {
 	return "MultiStream"
 }
 
+// CreateMultiStream creates a MultiStream that contains all given Streamer objects
 func CreateMultiStream(streams ...Streamer) Streamer {
 	return &MultiStream{streams: streams}
 }

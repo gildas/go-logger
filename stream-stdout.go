@@ -44,10 +44,10 @@ func (stream *StdoutStream) Write(record Record) error {
 			stream.Converter = GetConverterFromEnvironment()
 		}
 		if stream.Unbuffered {
-			stream.output  = nil
+			stream.output = nil
 			stream.Encoder = json.NewEncoder(os.Stdout)
 		} else {
-			stream.output  = bufio.NewWriter(os.Stdout)
+			stream.output = bufio.NewWriter(os.Stdout)
 			stream.Encoder = json.NewEncoder(stream.output)
 			stream.flushFrequency = GetFlushFrequencyFromEnvironment()
 			go stream.flushJob()

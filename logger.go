@@ -25,10 +25,12 @@ func Must(log *Logger, err error) *Logger {
 
 // Create creates a new Logger
 func Create(name string, parameters ...interface{}) *Logger {
-	destinations := []string{}
-	streams      := []Streamer{}
-	records      := []Record{}
-	filterLevel  := GetLevelFromEnvironment()
+	var (
+		destinations = []string{}
+		streams      = []Streamer{}
+		records      = []Record{}
+		filterLevel  = GetLevelFromEnvironment()
+	)
 
 	for _, parameter := range parameters {
 		switch parameter := parameter.(type) {
@@ -84,9 +86,8 @@ func CreateWithStream(name string, streams ...Streamer) *Logger {
 	if len(streams) == 0 {
 		if value, ok := os.LookupEnv("DEBUG"); ok && value == "1" {
 			return &Logger{&StdoutStream{Unbuffered: true}, record}
-		} else {
-			return &Logger{&StdoutStream{}, record}
 		}
+		return &Logger{&StdoutStream{}, record}
 	} else if len(streams) == 1 {
 		return &Logger{streams[0], record}
 	}
@@ -129,7 +130,7 @@ func (log *Logger) Records(params ...interface{}) *Logger {
 	var key string
 	record := NewRecord()
 	for i, param := range params {
-		if i % 2 == 0 {
+		if i%2 == 0 {
 			key = param.(string)
 		} else if len(key) > 0 {
 			record.Set(key, param)
@@ -153,7 +154,7 @@ func (log *Logger) Child(topic, scope interface{}, params ...interface{}) *Logge
 	var key string
 	record := NewRecord().Set("topic", topic).Set("scope", scope)
 	for i, param := range params {
-		if i % 2 == 0 {
+		if i%2 == 0 {
 			key = param.(string)
 		} else if len(key) > 0 {
 			record.Set(key, param)
@@ -229,9 +230,9 @@ func (log *Logger) Fatalf(msg string, args ...interface{}) {
 func (log *Logger) send(level Level, msg string, args ...interface{}) {
 	if log.ShouldWrite(level) {
 		record := NewRecord()
-		record["time"]  = time.Now().UTC()
+		record["time"] = time.Now().UTC()
 		record["level"] = level
-		record["msg"]   = fmt.Sprintf(msg, args...)
+		record["msg"] = fmt.Sprintf(msg, args...)
 		if err := log.Write(record); err != nil {
 			fmt.Fprintf(os.Stderr, "Logger error: %s\n", err)
 		}

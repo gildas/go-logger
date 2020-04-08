@@ -43,7 +43,6 @@ func (v *BogusValue) MarshalJSON() ([]byte, error) {
 	return nil, fmt.Errorf("Failed to Marshal BogusValue")
 }
 
-
 // Load loads an object from a file and marshals it
 func Load(filename string, object interface{}) (err error) {
 	var payload []byte
@@ -75,7 +74,7 @@ func CreateLogger(t *testing.T, filename string, wantLocal bool) (*logger.Logger
 		folder, teardown = CreateTempDir(t)
 	}
 	path := filepath.Join(folder, filename)
-	log := logger.CreateWithDestination("test", "file://" + path)
+	log := logger.CreateWithDestination("test", "file://"+path)
 	//if _, err := os.Stat(path); err != nil {
 	//	t.Fatalf("Log file was not created at: %s. Error: %s\n", path, err)
 	//}

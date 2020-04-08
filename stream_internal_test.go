@@ -4,12 +4,17 @@ import (
 	"os"
 	"testing"
 
+	"github.com/gildas/go-core"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCreateUnbufferedStreamWithDEBUG(t *testing.T) {
 	os.Setenv("DEBUG", "1")
 	defer os.Unsetenv("DEBUG")
+	status := core.GetEnvAsBool("DEBUG", false)
+	require.True(t, status, "DEBUG should be true in the environment")
+
 	stream := CreateStreamWithDestination()
 	assert.True(t, stream.(*StdoutStream).Unbuffered, "Stdout should be unbuffered with DEBUG set")
 }
