@@ -2,6 +2,7 @@ package logger
 
 import (
 	"strings"
+
 	"github.com/gildas/go-core"
 )
 

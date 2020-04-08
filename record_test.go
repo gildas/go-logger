@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/gildas/go-logger"
 	"github.com/gildas/go-errors"
+	"github.com/gildas/go-logger"
 )
 
 type RecordSuite struct {
@@ -58,7 +58,7 @@ func (suite *RecordSuite) TestFailsUnmarshalInvalidJSON() {
 	suite.Assert().True(errors.Is(err, errors.JSONUnmarshalError), "error should be a JSON Unmarshal error")
 }
 
- func (suite *RecordSuite) TestCanSet() {
+func (suite *RecordSuite) TestCanSet() {
 	record := logger.NewRecord().Set("key", "value")
 	suite.Require().NotNil(record, "Failed to create a Record")
 	suite.Require().Len(record, 1)
@@ -70,7 +70,7 @@ func (suite *RecordSuite) TestFailsUnmarshalInvalidJSON() {
 	suite.Assert().NotContains(record, "nilvalue")
 }
 
- func (suite *RecordSuite) TestCannotOverwrite() {
+func (suite *RecordSuite) TestCannotOverwrite() {
 	record := logger.NewRecord().Set("key", "value")
 	suite.Require().NotNil(record, "Failed to create a Record")
 	suite.Require().Len(record, 1)

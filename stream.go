@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 	"time"
+
 	"github.com/gildas/go-core"
 )
 
@@ -17,11 +18,12 @@ type Streamer interface {
 }
 
 // GetFlushFrequencyFromEnvironment fetches the flush frequency from the environment
-// the frequency should be like https://golang.org/pkg/time/#ParseDuration or an ISO8601 duration.  
+//
+// the frequency should be like https://golang.org/pkg/time/#ParseDuration or an ISO8601 duration.
 //
 // If not set, the frequency will be 5 minutes
 func GetFlushFrequencyFromEnvironment() time.Duration {
-	return core.GetEnvAsDuration("LOG_FLUSHFREQUENCY", 5 * time.Minute)
+	return core.GetEnvAsDuration("LOG_FLUSHFREQUENCY", 5*time.Minute)
 }
 
 // CreateStreamWithDestination creates a new Streamer from a list of strings
@@ -67,7 +69,7 @@ func CreateStreamWithDestination(destinations ...string) Streamer {
 		case "gcp", "google", "googlecloud":
 			stream = &StdoutStream{Unbuffered: true, Converter: &StackDriverConverter{}}
 		case "stackdriver":
-			stream =  &StackDriverStream{}
+			stream = &StackDriverStream{}
 		case "nil", "null", "void", "blackhole", "nether":
 			stream = &NilStream{}
 		default:
@@ -84,5 +86,5 @@ func CreateStreamWithDestination(destinations ...string) Streamer {
 	if len(streams) == 1 {
 		return streams[0]
 	}
-	return &MultiStream{ streams: streams }
+	return &MultiStream{streams: streams}
 }

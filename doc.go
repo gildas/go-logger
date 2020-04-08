@@ -66,11 +66,12 @@ Here is a simple example how Record fields can be used with a type:
 
 The call to Record(key, value) creates a new Logger object.
 So, they are like Russian dolls when it comes down to actually
-writing the log message to the output stream. 
-In other words, Record objects are collected from their parent's `Logger`
-back to the original `Logger.  
+writing the log message to the output stream.
 
-For example:  
+In other words, Record objects are collected from their parent's `Logger`
+back to the original Logger.
+
+For example:
 
 	var Log   = logger.Create("test")
 	var child = Log.Record("key1", "value1").Record("key2", "value2")
@@ -123,10 +124,10 @@ You can also create a Logger by passing it a Stream object (these are equivalent
 
 A few notes:
 
-- logger.CreateWithStream can also be used to create with one or more streams.  
+- logger.CreateWithStream can also be used to create with one or more streams.
 (Backward compatibility)
 
-- logger.CreateWithDestination can also be used to create with one or more destinations.  
+- logger.CreateWithDestination can also be used to create with one or more destinations.
 (Backward compatibility)
 
 - the StackDriverStream needs a LogID parameter or the value of the environment variable GOOGLE_PROJECT_ID.
@@ -166,12 +167,12 @@ since the standard output of your application will be captured automatically by 
 
 To be able to use the StackDriver Stream from outside Google Cloud, you have some configuration to do first.
 
-On your workstation, you need to get the key filename:  
-1. Authenticate with Google Cloud  
+On your workstation, you need to get the key filename:
+1. Authenticate with Google Cloud
 	gcloud auth login
-2. Create a Service Account (`logger-account` is just an example of a service account name)  
+2. Create a Service Account (`logger-account` is just an example of a service account name)
 	gcloud iam service-acccount create logger-account
-3. Associate the Service Account to the Project you want to use  
+3. Associate the Service Account to the Project you want to use
 	gcloud projects add-iam-policy-binding my-logging-project \
 	  --member "serviceAccount:logger-account@my-logging-project.iam.gserviceaccount.com" \
 	  --role "roles/logging.logWriter"
@@ -179,7 +180,7 @@ On your workstation, you need to get the key filename:
 	gcloud iam service-accounts keys create /path/to/key.json \
 	  --iam-account logger-account@my-logging-project.iam.gserviceaccount.com
 
-You can either set the GOOGLE_APPLICATION_CREDENTIAL and GOOGLE_PROJECT_ID environment variables 
+You can either set the GOOGLE_APPLICATION_CREDENTIAL and GOOGLE_PROJECT_ID environment variables
 with the path of the obtained key and Google Project ID or provide them to the StackDriver stream:
 
 	var Log = logger.Create("myapp", &logger.StackDriverStream{})
@@ -226,7 +227,7 @@ Here is a list of all the converters:
 
 Writing your own Converter
 
-You can also write your own Converter by implementing the logger.Converter interface:  
+You can also write your own Converter by implementing the logger.Converter interface:
 
 	type MyConverter struct {
 		// ...
@@ -275,27 +276,27 @@ Here is an example:
 
 Environment Variables
 
-The Logger can be configured completely by environment variables if needed. These are:  
+The Logger can be configured completely by environment variables if needed. These are:
 
-  LOG_DESTINATION, default: StdoutStream  
+  LOG_DESTINATION, default: StdoutStream
 The Stream to write logs to. It can be a comma-separated list (for a MultiStream)
 
-  LOG_LEVEL, default: INFO  
+  LOG_LEVEL, default: INFO
 The level to filter by default. If the environment DEBUG is set the default level is DEBUG
 
-  LOG_CONVERTER, default: bunyan  
+  LOG_CONVERTER, default: bunyan
 The default Converter to use
 
-  LOG_FLUSHFREQUENCY, default: 5 minutes  
+  LOG_FLUSHFREQUENCY, default: 5 minutes
 The default Flush Frequency for the streams that will be buffered
 
-  GOOGLE_APPLICATION_CREDENTIALS  
+  GOOGLE_APPLICATION_CREDENTIALS
 The path to the credential file for the StackDriverStream
 
-  GOOGLE_PROJECT_ID  
+  GOOGLE_PROJECT_ID
 The Google Cloud Project ID for the StackDriverStream
 
-  DEBUG, default: none  
+  DEBUG, default: none
 If set to "1", this will set the default level to filter to DEBUG
 */
 

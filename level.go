@@ -27,21 +27,21 @@ const (
 	// ALWAYS level should be used for entries that should always be logged, like app version, etc.
 	ALWAYS Level = 255
 	// NEVER level should be used for entries that should never be logged
-	NEVER  Level = 1
+	NEVER Level = 1
 )
 
 // ParseLevel converts a string into a Level
 func ParseLevel(value string) Level {
 	if level, ok := map[string]Level{
-	"NEVER":  NEVER,
-	"TRACE":  TRACE,
-	"DEBUG":  DEBUG,
-	"INFO":   INFO,
-	"WARN":   WARN,
-	"ERROR":  ERROR,
-	"FATAL":  FATAL,
-	"ALWAYS": ALWAYS,
-	"UNSET":  UNSET,
+		"NEVER":  NEVER,
+		"TRACE":  TRACE,
+		"DEBUG":  DEBUG,
+		"INFO":   INFO,
+		"WARN":   WARN,
+		"ERROR":  ERROR,
+		"FATAL":  FATAL,
+		"ALWAYS": ALWAYS,
+		"UNSET":  UNSET,
 	}[strings.ToUpper(value)]; ok {
 		return level
 	}
@@ -86,5 +86,5 @@ func (level Level) String() string {
 	if level == UNSET {
 		return "UNSET"
 	}
-	return []string{"NEVER", "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"}[level / 10]
+	return []string{"NEVER", "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"}[level/10]
 }

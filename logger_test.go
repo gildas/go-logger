@@ -15,8 +15,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/gildas/go-logger"
 	"github.com/gildas/go-errors"
+	"github.com/gildas/go-logger"
 )
 
 type LoggerSuite struct {
@@ -243,7 +243,7 @@ func FakeHandler() http.Handler {
 		} else {
 			w.WriteHeader(http.StatusOK)
 		}
-		
+
 		count, err := w.Write([]byte(log.String()))
 		if err != nil {
 			log.Errorf("Failed to write response", err)

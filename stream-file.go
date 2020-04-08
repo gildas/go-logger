@@ -1,11 +1,11 @@
 package logger
 
 import (
-	"strings"
 	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -52,10 +52,10 @@ func (stream *FileStream) Write(record Record) (err error) {
 			stream.Converter = GetConverterFromEnvironment()
 		}
 		if stream.Unbuffered {
-			stream.output  =  nil
+			stream.output = nil
 			stream.Encoder = json.NewEncoder(stream.file)
 		} else {
-			stream.output  = bufio.NewWriter(stream.file)
+			stream.output = bufio.NewWriter(stream.file)
 			stream.Encoder = json.NewEncoder(stream.output)
 			stream.flushFrequency = GetFlushFrequencyFromEnvironment()
 			go stream.flushJob()
