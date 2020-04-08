@@ -10,14 +10,23 @@ import (
 type Level byte
 
 const (
+	// UNSET level means the level is not yet set
 	UNSET Level = iota * 10
+	// TRACE level should be used for entries that should be used by the developer of the app/package only
 	TRACE
+	// DEBUG level should be used for detailed logging as they tend to be noisy
 	DEBUG
+	// INFO level should be used as the standard level. Entries that really mean something to most people should go there
 	INFO
+	// WARN level should be used when the code considers a situation as not optimal but it can live with it
 	WARN
+	// ERROR level should be used when the code encounters an issue and normal flow is disrupted
 	ERROR
+	// FATAL level should be used when the code eoncounters an issue it cannot recover from
 	FATAL
+	// ALWAYS level should be used for entries that should always be logged, like app version, etc.
 	ALWAYS Level = 255
+	// NEVER level should be used for entries that should never be logged
 	NEVER  Level = 1
 )
 

@@ -12,7 +12,7 @@ import (
 	googleoption "google.golang.org/api/option"
 )
 
-// GCPStream is the Stream that writes to the standard output
+// StackDriverStream is the Stream that writes to the standard output
 type StackDriverStream struct {
 	LogID       string
 	Parent      string
