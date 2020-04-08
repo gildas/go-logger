@@ -28,7 +28,7 @@ func (record Record) Set(key string, value interface{}) Record {
 
 // Merge merges a source Record into this Record
 //
-// values already set in this record cannot be overriden
+// values already set in this record cannot be overridden
 func (record Record) Merge(source Record) Record {
 	for key, value := range source {
 		record.Set(key, value)

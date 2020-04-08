@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/github/license/gildas/go-logger)](https://github.com/gildas/go-logger/blob/master/LICENSE) 
 [![Report](https://goreportcard.com/badge/github.com/gildas/go-logger)](https://goreportcard.com/report/github.com/gildas/go-logger)  
 
-go-logger is a logging library based on [node-bunyan](trentm/node-bunyan). 
+go-logger is a logging library based on [node-bunyan](https://github.com/trentm/node-bunyan).
 
 The output is compatible with the `bunyan` log reader application from that `node` package.
 
