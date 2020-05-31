@@ -2,7 +2,6 @@ package logger
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"reflect"
 	"time"
@@ -179,11 +178,6 @@ func (log *Logger) GetRecord(key string) interface{} {
 //   implements the fmt.Stringer interface
 func (log Logger) String() string {
 	return fmt.Sprintf("Logger(%s)", log.stream)
-}
-
-// Writer gets a n io.Writer to use with the standard log (for example)
-func (log *Logger) Writer() io.Writer {
-	return &loggerWriter{logger: log}
 }
 
 // Tracef traces a message at the TRACE Level

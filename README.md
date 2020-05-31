@@ -278,7 +278,31 @@ var Log = logger.Create("myapp", &logger.StdoutStream{Converter: &MyConverter{}}
 
 ## Standard Log Compatibility
 
-To use a `Logger` with the standard go `log` library, you can simply call the `Writer()` method.  
+To use a `Logger` with the standard go `log` library, you can simply call the `AsStandardLog()` method. You can optionally give a `Level`  
+```go
+package main
+
+import (
+  "net/http"
+	"github.com/gildas/go-logger"
+)
+
+func main() {
+    log := logger.Create("myapp")
+
+    server1 := http.Server{
+      // extra http stuff
+      ErrorLog: log.AsStandardLog()
+    }
+
+    server2 := http.Server{
+      // extra http stuff
+      ErrorLog: log.AsStandardLog(logger.WARN)
+    }
+}
+```
+
+You can also give an `io.Writer` to the standard `log` constructor:  
 ```go
 package main
 
@@ -291,14 +315,17 @@ import (
 func main() {
     mylog := logger.Create("myapp")
 
-    server := http.Server{
+    server1 := http.Server{
       // extra http stuff
       ErrorLog: log.New(mylog.Writer(), "", 0),
     }
+
+    server2 := http.Server{
+      // extra http stuff
+      ErrorLog: log.New(mylog.Writer(logger.WARN), "", 0),
+    }
 }
 ```
-
-Note that entries are logged at `level.INFO`.
 
 Since `Writer()` returns `io.Writer`, anything that uses that interface could, in theory, write to a `Logger`.
 

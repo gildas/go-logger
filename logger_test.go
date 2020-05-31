@@ -267,12 +267,40 @@ func (suite *LoggerSuite) TestLoggerHttpHandler() {
 	router.ServeHTTP(rec, req)
 }
 
-func (suite *LoggerSuite) TestCanUseWithStandardLog() {
+func (suite *LoggerSuite) TestCanUseWithIOWriter() {
 	output := CaptureStdout(func() {
 		logger := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
 		log := log.New(logger.Writer(), "", 0)
 		log.Print("This is a Standard Log message")
 	})
 	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9]+","level":30,"msg":"This is a Standard Log message\\n","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+}
+
+func (suite *LoggerSuite) TestCanUseWithIOWriterWithLevel() {
+	output := CaptureStdout(func() {
+		l := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log := log.New(l.Writer(logger.WARN), "", 0)
+		log.Print("This is a Standard Log message")
+	})
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9]+","level":40,"msg":"This is a Standard Log message\\n","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+}
+
+func (suite *LoggerSuite) TestCanUseWithStandardLog() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true}).AsStandardLog()
+		log.Print("This is a Standard Log message")
+	})
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9]+","level":30,"msg":"This is a Standard Log message\\n","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+}
+
+func (suite *LoggerSuite) TestCanUseWithStandardLogWithLevel() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true}).AsStandardLog(logger.WARN)
+		log.Print("This is a Standard Log message")
+	})
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9]+","level":40,"msg":"This is a Standard Log message\\n","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
 	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
 }
