@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
 	"testing"
 	"time"
 
@@ -263,4 +265,14 @@ func (suite *LoggerSuite) TestLoggerHttpHandler() {
 	router := mux.NewRouter()
 	router.Methods("GET").Path("/").Handler(log.HttpHandler()(FakeHandler()))
 	router.ServeHTTP(rec, req)
+}
+
+func (suite *LoggerSuite) TestCanUseWithStandardLog() {
+	output := CaptureStdout(func() {
+		logger := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log := log.New(logger.Writer(), "", 0)
+		log.Print("This is a Standard Log message")
+	})
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9]+","level":30,"msg":"This is a Standard Log message\\n","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
 }
