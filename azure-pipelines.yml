@@ -8,27 +8,28 @@ pool:
 
 variables:
   - group: GOOGLE_STACKDRIVER
-  - name:  GOBIN
-    value: '$(GOPATH)/bin' # Go binaries path
-  - name:  GOROOT
-    value: '/usr/local/go1.13' # Go installation path
-  - name:  GOPATH
-    value: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
   - name:  modulePath
     value: '$(GOPATH)/src/github.com/$(build.repository.name)' # Path to the module's code
 
-steps:
-- script: |
-    mkdir -p '$(GOBIN)'
-    mkdir -p '$(GOPATH)/pkg'
-    mkdir -p '$(modulePath)'
-    shopt -s extglob
-    shopt -s dotglob
-    mv !(gopath) '$(modulePath)'
-    echo '##vso[task.prependpath]$(GOBIN)'
-    echo '##vso[task.prependpath]$(GOROOT)/bin'
-  displayName: 'Set up the Go workspace'
-
+steps: 
+- task: GoTool@0
+  inputs:
+    version: '1.14'
+- task: Go@0
+  inputs:
+    command: 'get'
+    arguments: '-d'
+    workingDirectory: '$(System.DefaultWorkingDirectory)'
+- task: Go@0
+  inputs:
+    command: 'build'
+    workingDirectory: '$(System.DefaultWorkingDirectory)'
+- task: CopyFiles@2
+  inputs:
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+- task: PublishBuildArtifacts@1
+  inputs:
+     artifactName: drop
 # Download Google Cloud's key
 - task: DownloadSecureFile@1
   name: gcloudkey # The name with which to reference the secure file's path on the agent, like $(gcloudkey.secureFilePath)
@@ -40,35 +41,8 @@ steps:
   workingDirectory: '$(modulePath)'
   displayName: 'Installing Keys'
 
-- script: |
-    go version
-    # Get all packages for testing (-t) and source code (-d)
-    go get -v -t -d ./...
-    go list -m all
-    if [ -f Gopkg.toml ]; then
-        curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-        dep ensure
-    fi
-  workingDirectory: '$(modulePath)'
-  displayName: 'go get dependencies'
-
-- script: |
-    go get github.com/jstemmer/go-junit-report
-    go get github.com/axw/gocov/gocov
-    go get github.com/AlekSi/gocov-xml
-    GOOGLE_APPLICATION_CREDENTIALS=gcloud-key.json GOOGLE_PROJECT_ID=$(GOOGLE_PROJECT_ID) go test -v -coverprofile=coverage.txt -covermode count . 2>&1 | go-junit-report > report.xml
-    gocov convert coverage.txt > coverage.json
-    gocov-xml < coverage.json > coverage.xml
-  workingDirectory: '$(modulePath)'
-  displayName: 'Run tests'
-
-- task: PublishTestResults@2
+- task: Go@0
   inputs:
-    testRunner: JUnit
-    testResultsFiles: $(System.DefaultWorkingDirectory)/**/report.xml
-
-- task: PublishCodeCoverageResults@1
-  inputs:
-    codeCoverageTool: Cobertura 
-    summaryFileLocation: $(System.DefaultWorkingDirectory)/**/coverage.xml
-    reportDirectory: $(System.DefaultWorkingDirectory)/**/coverage
+    command: 'test'
+    arguments: '-v'
+    workingDirectory: '$(modulePath)'
