@@ -276,6 +276,80 @@ func (converter *MyConverter) Convert(record Record) Record {
 var Log = logger.Create("myapp", &logger.StdoutStream{Converter: &MyConverter{}})
 ```
 
+## Obfuscation
+
+There might be some situation where some parts of the logged messages have to be obfuscated. Typical usage could be:  
+- Hiding passwords  
+- Hiding personal information to comply to regulations such as HIPAA, PCI-DSS
+
+To achieve this, the logger can obfuscate automatically or manually. Manually, the easiest of all, is when the obfuscation is called from the source code directly:  
+
+```go
+func Authenticate(user, password string) bool {
+  Log.Debugf("Authenticating User: %s with Password: %s", user, logger.Obfuscate(password))
+  if user == "admin" && password == "SuperS3cr3t" {
+    Log.Infof("User %s is authenticated via super complex authentication", user)
+    return true
+  }
+  Log.Warnf("Invalid Credentials for user %s", user)
+  return false
+}
+```
+
+The advantage of this method is the total control what is to be obfuscated. Its disadvantage is obvious, we need to add knowledge in the code...
+
+The automated way is configured by adding regular expressions to the `Obfuscator`:  
+
+```go
+func main() {
+  Log := logger.Create("MYAPP", logger.ObfuscateRule{`4[0-9]{12}(?:[0-9]{3})?`}) // Obfuscate VISA card number
+  Log.ObfuscateRule('3[47][0-9]{13}') // Obfuscate also AMEX card numbers
+  // . . .
+  Log.Debugf("Credit card entered: %s", visacard)
+}
+```
+
+As seen in this code, obfuscation rules can be added at the logger's creation time or later in the code.
+
+It is also possible to instruct the Obfuscator to process some properties of struct types:
+
+```go
+type Stuff struct {
+  ID     string
+  Secret string `logger:"obfuscate"`
+}
+
+func main() {
+  Log := logger.Create()
+  stuff := Stuff{}
+  // . . .
+  Log.Infof("Found stuff: %v", stuff)
+}
+```
+
+To obfuscate, a random SHA-256/AES?!? key is created at the beginning on the application and is used to hash the target data.
+
+If you need reversible obfuscation, create an SSL key pair, and provide the logger with the public key via the environment variable `LOG_OBFUSCATION_KEY`.
+
+To decode the obfuscated data, you will need to manually use the private key with tools like `openssl` or `gpg`.
+
+Food for thoughts:  
+
+- symetric key/password
+```console
+encrypted=$(echo "Hello" | openssl enc -aes-256-cbc -pbkdf2 -a -iter 20000 -k yummy)
+echo $encrypted| base64 -d | openssl enc -d -aes-256-cbc -pbkdf2 -iter 20000 -k yummy
+```
+
+- public/private key
+```console
+openssl genrsa -out ~/.ssh/logkey
+openssl rsa -in ~/.ssh/logkey -out ~/.ssl/logkey.pub -pubout # Default format is PEM
+encrypted=$(echo "Hello" | openssl rsautl -encrypt -inkey tmp/mykey.pub -pubin | base64)
+
+echo $encrypted | base64 -d | openssl rsautl -decrypt -inkey tmp/mykey
+```
+
 ## Standard Log Compatibility
 
 To use a `Logger` with the standard go `log` library, you can simply call the `Writer()` method.  
