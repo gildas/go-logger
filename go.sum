@@ -50,8 +50,6 @@ github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymF
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1mIlRU8Am5FuJP05cCM98=
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
-github.com/gildas/go-core v0.4.3 h1:cNoJHjGkUg/0gpEvX0HkkyEFY7Qnm+Ro0Ydx6IMKBjM=
-github.com/gildas/go-core v0.4.3/go.mod h1:+OB8rruJogwuwQ4k/OvL+aWRMCi/nP078q8/vvqGqdM=
 github.com/gildas/go-core v0.4.4 h1:Xh8KBPUOlNprqaWQi21Wyg2gz5c/Wi9mbSou42fgRqE=
 github.com/gildas/go-core v0.4.4/go.mod h1:+OB8rruJogwuwQ4k/OvL+aWRMCi/nP078q8/vvqGqdM=
 github.com/gildas/go-errors v0.1.0 h1:CGAyeIXr5QcwQCOq1n8fFDuehotkdovZY3ovQTpzZto=
