@@ -45,4 +45,4 @@ steps:
   inputs:
     command: 'test'
     arguments: '-v'
-    workingDirectory: '$(modulePath)'
+    workingDirectory: '$(system.defaultworkingdirectory)'
