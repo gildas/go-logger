@@ -5,14 +5,12 @@
 [![License](https://img.shields.io/github/license/gildas/go-logger)](https://github.com/gildas/go-logger/blob/master/LICENSE) 
 [![Report](https://goreportcard.com/badge/github.com/gildas/go-logger)](https://goreportcard.com/report/github.com/gildas/go-logger)  
 
+![Test (master)](https://github.com/gildas/test-actions/workflows/Test/badge.svg?branch=dev)
+![Test (dev)](https://github.com/gildas/test-actions/workflows/Test/badge.svg?branch=dev)
+
 go-logger is a logging library based on [node-bunyan](https://github.com/trentm/node-bunyan).
 
 The output is compatible with the `bunyan` log reader application from that `node` package.
-
-|  |   |   |   |
----|---|---|---|
-master | [![Build Status](https://dev.azure.com/keltiek/gildas/_apis/build/status/gildas.go-logger?branchName=master)](https://dev.azure.com/keltiek/gildas/_build/latest?definitionId=1&branchName=master) | [![Tests](https://img.shields.io/azure-devops/tests/keltiek/gildas/1/master)](https://dev.azure.com/keltiek/gildas/_build/latest?definitionId=1&branchName=master) | [![coverage](https://img.shields.io/azure-devops/coverage/keltiek/gildas/1/master)](https://dev.azure.com/keltiek/gildas/_build/latest?definitionId=1&branchName=master&view=codecoverage-tab)  
-dev | [![Build Status](https://dev.azure.com/keltiek/gildas/_apis/build/status/gildas.go-logger?branchName=dev)](https://dev.azure.com/keltiek/gildas/_build/latest?definitionId=1&branchName=dev) | [![Tests](https://img.shields.io/azure-devops/tests/keltiek/gildas/1/dev)](https://dev.azure.com/keltiek/gildas/_build/latest?definitionId=1&branchName=dev) | [![coverage](https://img.shields.io/azure-devops/coverage/keltiek/gildas/1/dev)](https://dev.azure.com/keltiek/gildas/_build/latest?definitionId=1&branchName=dev&view=codecoverage-tab)  
 
 ## Usage
 
