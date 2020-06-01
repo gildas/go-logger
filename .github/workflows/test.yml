@@ -24,7 +24,7 @@ jobs:
           GOOGLE_CLOUD_KEY: ${{ secrets.GOOGLE_CLOUD_KEY }}
       - name: Test package
         run: |
-          go test -v ./...
+          go test -v -coverprofile=coverage.out -covermode=count ./...
         env:
           GOOGLE_PROJECT_ID: ${{ secrets.GOOGLE_PROJECT_ID }}
           GOOGLE_APPLICATION_CREDENTIALS: "${{ github.workspace }}/gcloud-key.json"
