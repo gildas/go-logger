@@ -1,3 +1,5 @@
+# Thanks to:
+# https://github.com/mvdan/github-actions-golang
 on: [push, pull_request]
 name: Test
 jobs:
