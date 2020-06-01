@@ -1,0 +1,34 @@
+# Thanks to:
+# https://github.com/mvdan/github-actions-golang
+on: [push, pull_request]
+name: Test
+jobs:
+  test:
+    strategy:
+      matrix:
+        go-version: [1.13.x, 1.14.x]
+        platform: [ubuntu-latest, macos-latest]
+        #platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Checkout package
+        uses: actions/checkout@v2
+      - name: Download credentials
+        run: |
+          echo "$GOOGLE_CLOUD_KEY" > gcloud-key.json
+        env:
+          GOOGLE_CLOUD_KEY: ${{ secrets.GOOGLE_CLOUD_KEY }}
+      - name: Test package
+        run: |
+          go test -v -coverprofile=coverage.out -covermode=count ./...
+        env:
+          GOOGLE_PROJECT_ID: ${{ secrets.GOOGLE_PROJECT_ID }}
+          GOOGLE_APPLICATION_CREDENTIALS: "${{ github.workspace }}/gcloud-key.json"
+      - name: Upload Coverage Report
+        uses: codecov/codecov-action@v1
+        with:
+          file: ./coverage.out

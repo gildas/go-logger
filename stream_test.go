@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -363,7 +364,12 @@ func (suite *StreamSuite) TestFailsWritingToFileStreamWithForbiddenPath() {
 	streamFile := &logger.FileStream{Path: "/x/test.log"}
 	err := streamFile.Write(logger.NewRecord().Set("key", "value"))
 	suite.Require().NotNil(err, "Should have failed writing to stream")
-	suite.Assert().Contains(err.Error(), "permission denied")
+	switch runtime.GOOS {
+	case "linux", "freebsd":
+		suite.Assert().Contains(err.Error(), "permission denied")
+	case "darwin":
+		suite.Assert().Contains(err.Error(), "read-only file system")
+	}
 	var details *os.PathError
 	suite.Require().True(errors.As(err, &details), "Error should have been a os.PathError")
 	suite.Assert().Equal("mkdir", details.Op)
