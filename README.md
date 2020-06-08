@@ -5,8 +5,8 @@
 [![License](https://img.shields.io/github/license/gildas/go-logger)](https://github.com/gildas/go-logger/blob/master/LICENSE) 
 [![Report](https://goreportcard.com/badge/github.com/gildas/go-logger)](https://goreportcard.com/report/github.com/gildas/go-logger)  
 
-![Test (master)](https://github.com/gildas/test-actions/workflows/Test/badge.svg?branch=dev)
-![Test (dev)](https://github.com/gildas/test-actions/workflows/Test/badge.svg?branch=dev)
+![Test (master)](https://github.com/gildas/go-logger/workflows/Test/badge.svg?branch=master)
+![Test (dev)](https://github.com/gildas/go-logger/workflows/Test/badge.svg?branch=dev)
 
 go-logger is a logging library based on [node-bunyan](https://github.com/trentm/node-bunyan).
 
