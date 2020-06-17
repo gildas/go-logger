@@ -84,10 +84,7 @@ func CreateWithStream(name string, streams ...Streamer) *Logger {
 		Set("v", 0)
 
 	if len(streams) == 0 {
-		if value, ok := os.LookupEnv("DEBUG"); ok && value == "1" {
-			return &Logger{&StdoutStream{Unbuffered: true}, record}
-		}
-		return &Logger{&StdoutStream{}, record}
+		return &Logger{CreateStreamWithDestination(), record}
 	} else if len(streams) == 1 {
 		return &Logger{streams[0], record}
 	}
