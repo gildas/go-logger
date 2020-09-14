@@ -13,6 +13,7 @@ func (log *Logger) Writer(level ...Level) io.Writer {
 	return &loggerWriter{logger: log, level: level[0]}
 }
 
+// AsStandardLog gets a standard GO logger
 func (log *Logger) AsStandardLog(level ...Level) *stdlog.Logger {
 	return stdlog.New(log.Writer(level...), "", 0)
 }
