@@ -117,9 +117,11 @@ func (log *Logger) Recordf(key, value string, args ...interface{}) *Logger {
 }
 
 // Records adds key, value pairs as Record objects
-// E.g.: log.Records("key1", value1, "key2", value2)
-//   The key should be castable to a string
+//
+//   The key should be castable to a string.
 //   If the last value is missing, its key is ignored
+//
+// E.g.: log.Records("key1", value1, "key2", value2)
 func (log *Logger) Records(params ...interface{}) *Logger {
 	if len(params) == 0 {
 		return log
@@ -172,6 +174,7 @@ func (log *Logger) GetRecord(key string) interface{} {
 }
 
 // String gets a string version
+//
 //   implements the fmt.Stringer interface
 func (log Logger) String() string {
 	return fmt.Sprintf("Logger(%s)", log.stream)
@@ -190,6 +193,7 @@ func (log *Logger) Infof(msg string, args ...interface{}) { log.send(INFO, msg, 
 func (log *Logger) Warnf(msg string, args ...interface{}) { log.send(WARN, msg, args...) }
 
 // Errorf traces a message at the ERROR Level
+//
 // If the last argument is an error, a Record is added and the error string is added to the message
 func (log *Logger) Errorf(msg string, args ...interface{}) {
 	logWithErr := log
@@ -198,7 +202,7 @@ func (log *Logger) Errorf(msg string, args ...interface{}) {
 		errorInterface := reflect.TypeOf((*error)(nil)).Elem()
 		last := args[len(args)-1]
 
-		if reflect.TypeOf(last).Implements(errorInterface) {
+		if last != nil && reflect.TypeOf(last).Implements(errorInterface) {
 			logWithErr = log.Record("err", last)
 			msg = msg + ", Error: %+v"
 		}
@@ -207,6 +211,7 @@ func (log *Logger) Errorf(msg string, args ...interface{}) {
 }
 
 // Fatalf traces a message at the FATAL Level
+//
 // If the last argument is an error, a Record is added and the error string is added to the message
 func (log *Logger) Fatalf(msg string, args ...interface{}) {
 	logWithErr := log
