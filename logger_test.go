@@ -316,3 +316,14 @@ func (suite *LoggerSuite) TestCanUseWithStandardLogWithLevel() {
 	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":40,"msg":"This is a Standard Log message\\n","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
 	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
 }
+
+func (suite *LoggerSuite) TestCanLogAtErrorWithNilError() {
+	log, teardown := CreateLogger(suite.T(), "test.log", true)
+	defer func() {
+		suite.Assert().Nil(recover(), "logger.Errorf did panic")
+		teardown()
+	}()
+	suite.Require().NotNil(log, "cannot create a logger.Logger")
+
+	log.Errorf("Houston, we have a problem", nil)
+}
