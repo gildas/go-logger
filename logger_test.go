@@ -327,3 +327,50 @@ func (suite *LoggerSuite) TestCanLogAtErrorWithNilError() {
 
 	log.Errorf("Houston, we have a problem", nil)
 }
+
+func (suite *LoggerSuite) TestCanLogAtFatalWithNilError() {
+	log, teardown := CreateLogger(suite.T(), "test.log", true)
+	defer func() {
+		suite.Assert().Nil(recover(), "logger.Fatalf did panic")
+		teardown()
+	}()
+	suite.Require().NotNil(log, "cannot create a logger.Logger")
+
+	log.Fatalf("Houston, we have a problem", nil)
+}
+
+func (suite *LoggerSuite) TestCanLogMemory() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, FilterLevel: logger.TRACE})
+		log.Memory()
+	})
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":10,"msg":"Heap\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), Stack\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), NumGC = [0-9]+","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+}
+
+func (suite *LoggerSuite) TestCanLogMemoryWithLevel() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, FilterLevel: logger.TRACE})
+		log.Memoryl(logger.INFO)
+	})
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"Heap\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), Stack\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), NumGC = [0-9]+","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+}
+
+func (suite *LoggerSuite) TestCanLogMemoryWithMessage() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, FilterLevel: logger.TRACE})
+		log.Memoryf("Text %d:", 2)
+	})
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":10,"msg":"Text 2: Heap\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), Stack\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), NumGC = [0-9]+","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+}
+
+func (suite *LoggerSuite) TestCanLogMemoryWithMessageWithLevelAndMessage() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, FilterLevel: logger.TRACE})
+		log.Memorylf(logger.INFO, "Text %d:", 2)
+	})
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"Text 2: Heap\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), Stack\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), NumGC = [0-9]+","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+}
