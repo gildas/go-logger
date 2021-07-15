@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"runtime"
 	"time"
 )
 
@@ -234,6 +235,49 @@ func (log *Logger) Fatalf(msg string, args ...interface{}) {
 	logWithErr.send(FATAL, msg, args...)
 }
 
+// Memf traces memory usage
+func (log *Logger) Memorylf(level Level, msg string, args ...interface{}) {
+	var mem runtime.MemStats
+
+	runtime.ReadMemStats(&mem)
+	if len(msg) > 0 {
+		msg = msg + " Heap(Alloc = %s, System = %s), Stack(Alloc = %s, System = %s), NumGC = %d"
+		args = append(
+			args,
+			bytesToString(mem.HeapAlloc),
+			bytesToString(mem.Sys),
+			bytesToString(mem.StackInuse),
+			bytesToString(mem.StackSys),
+			mem.NumGC,
+		)
+	} else {
+		msg = "Heap(Alloc = %s, System = %s), Stack(Alloc = %s, System = %s), NumGC = %d"
+		args = []interface{}{
+			bytesToString(mem.HeapAlloc),
+			bytesToString(mem.Sys),
+			bytesToString(mem.StackInuse),
+			bytesToString(mem.StackSys),
+			mem.NumGC,
+		}
+	}
+	log.send(level, msg, args...)
+}
+
+// Memf traces memory usage
+func (log *Logger) Memoryf(msg string, args ...interface{}) {
+	log.Memorylf(TRACE, msg, args...)
+}
+
+// Memf traces memory usage
+func (log *Logger) Memoryl(level Level) {
+	log.Memorylf(level, "")
+}
+
+// Memf traces memory usage
+func (log *Logger) Memory() {
+	log.Memorylf(TRACE, "")
+}
+
 // send writes a message to the Sink
 func (log *Logger) send(level Level, msg string, args ...interface{}) {
 	if log.ShouldWrite(level) {
@@ -245,4 +289,17 @@ func (log *Logger) send(level Level, msg string, args ...interface{}) {
 			fmt.Fprintf(os.Stderr, "Logger error: %s\n", err)
 		}
 	}
+}
+
+func bytesToString(bytes uint64) string {
+	if bytes >= 1024 * 1024 * 1024 {
+		return fmt.Sprintf("%.2fGiB", float64(bytes) / 1024.0 / 1024.0 / 1024.0)
+	}
+	if bytes >= 1024 * 1024 {
+		return fmt.Sprintf("%.2fMiB", float64(bytes) / 1024.0 / 1024.0)
+	}
+	if bytes >= 1024 {
+		return fmt.Sprintf("%.2fKiB", float64(bytes) / 1024.0)
+	}
+	return fmt.Sprintf("%dB", bytes)
 }
