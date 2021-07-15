@@ -178,6 +178,13 @@ func (suite *InternalLoggerSuite) TestCanSmartCreateWithMix() {
 	suite.Assert().Equal("value", log.GetRecord("key").(string))
 }
 
+func(suite *InternalLoggerSuite) TestCanConvertBytesToString() {
+	suite.Assert().Equal("12B", bytesToString(uint64(12)))
+	suite.Assert().Equal("12.00KiB", bytesToString(uint64(12 * 1024)))
+	suite.Assert().Equal("12.00MiB", bytesToString(uint64(12 * 1024 * 1024)))
+	suite.Assert().Equal("12.00GiB", bytesToString(uint64(12 * 1024 * 1024 * 1024)))
+}
+
 func captureStdout(f func()) string {
 	reader, writer, err := os.Pipe()
 	if err != nil {
