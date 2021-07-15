@@ -202,7 +202,10 @@ func (log *Logger) Errorf(msg string, args ...interface{}) {
 		errorInterface := reflect.TypeOf((*error)(nil)).Elem()
 		last := args[len(args)-1]
 
-		if last != nil && reflect.TypeOf(last).Implements(errorInterface) {
+		if last == nil {
+			logWithErr.send(ERROR, msg, args[:len(args)-1]...)
+			return
+		} else if reflect.TypeOf(last).Implements(errorInterface) {
 			logWithErr = log.Record("err", last)
 			msg = msg + ", Error: %+v"
 		}
@@ -220,7 +223,10 @@ func (log *Logger) Fatalf(msg string, args ...interface{}) {
 		errorInterface := reflect.TypeOf((*error)(nil)).Elem()
 		last := args[len(args)-1]
 
-		if reflect.TypeOf(last).Implements(errorInterface) {
+		if last == nil {
+			logWithErr.send(FATAL, msg, args[:len(args)-1]...)
+			return
+		} else if reflect.TypeOf(last).Implements(errorInterface) {
 			logWithErr = log.Record("err", last)
 			msg = msg + ", Error: %+v"
 		}
