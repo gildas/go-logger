@@ -5,8 +5,13 @@
 [![License](https://img.shields.io/github/license/gildas/go-logger)](https://github.com/gildas/go-logger/blob/master/LICENSE) 
 [![Report](https://goreportcard.com/badge/github.com/gildas/go-logger)](https://goreportcard.com/report/github.com/gildas/go-logger)  
 
-![Test (master)](https://github.com/gildas/go-logger/workflows/Test/badge.svg?branch=master)
-![Test (dev)](https://github.com/gildas/go-logger/workflows/Test/badge.svg?branch=dev)
+![master](https://img.shields.io/badge/branch-master-informational)
+[![Test (master)](https://github.com/gildas/go-logger/workflows/Test/badge.svg?branch=master)](https://github.com/gildas/go-logger/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/gildas/go-logger/branch/master/graph/badge.svg?token=gFCzS9b7Mu)](https://codecov.io/gh/gildas/go-logger)
+
+![dev](https://img.shields.io/badge/branch-dev-informational)
+[![Test (dev)](https://github.com/gildas/go-logger/workflows/Test/badge.svg?branch=dev)](https://github.com/gildas/go-logger/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/gildas/go-logger/branch/dev/graph/badge.svg?token=gFCzS9b7Mu)](https://codecov.io/gh/gildas/go-logger)
 
 go-logger is a logging library based on [node-bunyan](https://github.com/trentm/node-bunyan).
 
