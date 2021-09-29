@@ -31,6 +31,16 @@ func (stream *StdoutStream) SetFilterLevel(level Level) Streamer {
 	return stream
 }
 
+// SetFilterLevelIfUnset sets the filter level if not set already
+func (stream *StdoutStream) SetFilterLevelIfUnset(level Level) Streamer {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	if stream.FilterLevel == UNSET {
+		stream.FilterLevel = level
+	}
+	return stream
+}
+
 // Write writes the given Record
 func (stream *StdoutStream) Write(record Record) error {
 	// implements logger.Stream

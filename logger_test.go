@@ -318,6 +318,7 @@ func (suite *LoggerSuite) TestCanLogMemory() {
 		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, FilterLevel: logger.TRACE})
 		log.Memory()
 	})
+	suite.Require().NotEmpty(output, "There was no output")
 	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":10,"msg":"Heap\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), Stack\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), NumGC = [0-9]+","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
 	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
 }
@@ -327,6 +328,7 @@ func (suite *LoggerSuite) TestCanLogMemoryWithLevel() {
 		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, FilterLevel: logger.TRACE})
 		log.Memoryl(logger.INFO)
 	})
+	suite.Require().NotEmpty(output, "There was no output")
 	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"Heap\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), Stack\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), NumGC = [0-9]+","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
 	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
 }
@@ -336,6 +338,7 @@ func (suite *LoggerSuite) TestCanLogMemoryWithMessage() {
 		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, FilterLevel: logger.TRACE})
 		log.Memoryf("Text %d:", 2)
 	})
+	suite.Require().NotEmpty(output, "There was no output")
 	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":10,"msg":"Text 2: Heap\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), Stack\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), NumGC = [0-9]+","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
 	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
 }

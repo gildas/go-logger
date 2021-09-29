@@ -13,6 +13,12 @@ func (log *Logger) SetFilterLevel(level Level) Streamer {
 	return log.stream
 }
 
+// SetFilterLevelIfUnset sets the filter level if not set already
+func (log *Logger) SetFilterLevelIfUnset(level Level) Streamer {
+	log.stream.SetFilterLevelIfUnset(level)
+	return log.stream
+}
+
 // ShouldWrite tells if the given level should be written to this stream
 func (log *Logger) ShouldWrite(level Level) bool {
 	// implements logger.Stream

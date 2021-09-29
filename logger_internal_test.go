@@ -20,14 +20,10 @@ func TestInternalLoggerSuite(t *testing.T) {
 }
 
 func (suite *InternalLoggerSuite) TestCanCreate() {
-	log := CreateWithStream("test")
+	log := Create("test")
 	suite.Require().NotNil(log, "Failed to create a Logger with default options")
 	suite.Assert().IsType(&StdoutStream{}, log.stream)
 	suite.Assert().Equal(false, log.stream.(*StdoutStream).Unbuffered, "stream should be buffered")
-	suite.Assert().Equal(UNSET, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be UNSET")
-	_ = captureStdout(func() {
-		log.Infof("writing something")
-	})
 	suite.Assert().Equal(INFO, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be INFO")
 }
 
@@ -67,25 +63,23 @@ func (suite *InternalLoggerSuite) TestCanCreateWithFilterLevel() {
 func (suite *InternalLoggerSuite) TestCanCreateWithEnvironmentDEBUG() {
 	os.Setenv("DEBUG", "1")
 	defer os.Unsetenv("DEBUG")
-	log := CreateWithStream("test")
+	log := Create("test")
 	suite.Require().NotNil(log, "Failed to create a Logger with stdout stream")
 	suite.Assert().IsType(&StdoutStream{}, log.stream)
 	suite.Assert().Equal(true, log.stream.(*StdoutStream).Unbuffered, "In DEBUG mode, stdout should be unbuffered")
-	suite.Assert().Equal(UNSET, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be UNSET")
-	_ = captureStdout(func() {
-		log.Infof("writing something")
-	})
 	suite.Assert().Equal(DEBUG, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be DEBUG")
 }
 
 func (suite *InternalLoggerSuite) TestCanCreateWithEnvironmentFLUSHFREQUENCY() {
 	os.Setenv("LOG_FLUSHFREQUENCY", "10ms")
 	defer os.Unsetenv("LOG_FLUSHFREQUENCY")
-	log := CreateWithStream("test", &StdoutStream{})
+	log := Create("test")
 	suite.Require().NotNil(log, "Failed to create a Logger with stdout stream")
 	suite.Assert().IsType(&StdoutStream{}, log.stream)
+	suite.Assert().Equal(false, log.stream.(*StdoutStream).Unbuffered, "stream should be buffered")
+	suite.Assert().Equal(INFO, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be INFO")
 	_ = captureStdout(func() {
-		log.Tracef("writing something")
+		log.Infof("writing something")
 	})
 	suite.Assert().Equal(10*time.Millisecond, log.stream.(*StdoutStream).flushFrequency, "this stream should flush every 10 milliseconds")
 }
@@ -227,8 +221,10 @@ func (suite *InternalLoggerSuite) TestCanSetFilterLevel() {
 	log := Create("test")
 	suite.Require().NotNil(log, "cannot create a Logger")
 	suite.Assert().IsType(&StdoutStream{}, log.stream)
-	suite.Assert().Equal(UNSET, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be UNSET")
+	suite.Assert().Equal(INFO, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be INFO")
 	log.SetFilterLevel(WARN)
+	suite.Assert().Equal(WARN, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be WARN")
+	log.SetFilterLevelIfUnset(ERROR)
 	suite.Assert().Equal(WARN, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be WARN")
 }
 

@@ -54,9 +54,10 @@ func Create(name string, parameters ...interface{}) *Logger {
 		// we should use it for the Topic, Scope
 	}
 	for _, destination := range destinations {
-		streams = append(streams, CreateStreamWithDestination(destination).SetFilterLevel(filterLevel))
+		streams = append(streams, CreateStreamWithDestination(destination))
 	}
 	logger := CreateWithStream(name, streams...)
+	logger.stream.SetFilterLevelIfUnset(filterLevel)
 	if len(records) > 0 {
 		for _, record := range records {
 			for key, value := range record {

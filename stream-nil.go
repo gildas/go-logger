@@ -9,6 +9,11 @@ func (stream *NilStream) SetFilterLevel(level Level) Streamer {
 	return stream
 }
 
+// SetFilterLevelIfUnset sets the filter level if not set already
+func (stream *NilStream) SetFilterLevelIfUnset(level Level) Streamer {
+	return stream
+}
+
 // Write writes the given Record
 func (stream *NilStream) Write(record Record) error {
 	// implements logger.Stream

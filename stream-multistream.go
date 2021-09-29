@@ -15,6 +15,14 @@ func (stream *MultiStream) SetFilterLevel(level Level) Streamer {
 	return stream
 }
 
+// SetFilterLevelIfUnset sets the filter level if not set already
+func (stream *MultiStream) SetFilterLevelIfUnset(level Level) Streamer {
+	for _, s := range stream.streams {
+		s.SetFilterLevelIfUnset(level)
+	}
+	return stream
+}
+
 // Write writes the given Record
 func (stream *MultiStream) Write(record Record) error {
 	// implements logger.Stream
