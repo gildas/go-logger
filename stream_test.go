@@ -113,11 +113,11 @@ func (suite *StreamSuite) TestCanCreateStreamFromDestination() {
 
 func (suite *StreamSuite) TestCanCreateStreamFromEnvironment() {
 	os.Setenv("LOG_DESTINATION", "/var/log/test.log")
+	defer os.Unsetenv("LOG_DESTINATION")
 	stream := logger.CreateStreamWithDestination()
 	suite.Require().NotNil(stream, "Failed to create a file stream")
 	suite.Assert().IsType(&logger.FileStream{}, stream)
 	suite.Assert().Equal("/var/log/test.log", stream.(*logger.FileStream).Path, "File Stream Path should be /var/log/test.log")
-	os.Unsetenv("LOG_DESTINATION")
 }
 
 func (suite *StreamSuite) TestCanCreateStdoutStream() {

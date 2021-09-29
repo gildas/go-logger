@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"regexp"
 	"testing"
@@ -63,31 +62,6 @@ func (suite *LoggerSuite) TestCanCreateWithNil() {
 	suite.Require().NotNil(log, "cannot create a logger.Logger")
 	log2 := logger.CreateIfNil(log, "test")
 	suite.Require().NotNil(log2, "cannot create a logger.Logger")
-}
-
-func (suite *LoggerSuite) TestCanCreateWithFileStream() {
-	logger := logger.Create("test", &logger.FileStream{Path: "/var/log/test.log"})
-	suite.Assert().Equal("Logger(Stream to /var/log/test.log)", logger.String())
-}
-
-func (suite *LoggerSuite) TestCanCreateWithFileStreamFromEnvironment() {
-	os.Setenv("LOG_DESTINATION", "/var/log/test.log")
-	logger := logger.Create("test")
-	suite.Assert().Equal("Logger(Stream to /var/log/test.log)", logger.String())
-	os.Unsetenv("LOG_DESTINATION")
-}
-
-func (suite *LoggerSuite) TestCanCreateWithUnbufferedStdoutStreamInDEBUG() {
-	os.Setenv("DEBUG", "1")
-	logger := logger.Create("test")
-	suite.Assert().Equal("Logger(Unbuffered Stream to stdout)", logger.String())
-	os.Unsetenv("DEBUG")
-}
-
-func (suite *LoggerSuite) TestCanSetFilterLevel() {
-	log := logger.Create("test", logger.INFO)
-	suite.Require().NotNil(log, "cannot create a logger.Logger")
-	log.SetFilterLevel(logger.WARN)
 }
 
 func (suite *LoggerSuite) TestCanLoadAndSaveWithContext() {

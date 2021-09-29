@@ -19,40 +19,85 @@ func TestInternalLoggerSuite(t *testing.T) {
 	suite.Run(t, new(InternalLoggerSuite))
 }
 
-func (suite *InternalLoggerSuite) TestCanCreateWithStreams() {
-	var log *Logger
-
-	log = CreateWithStream("test")
-	suite.Require().NotNil(log, "Failed to create a Logger with no stream")
+func (suite *InternalLoggerSuite) TestCanCreate() {
+	log := CreateWithStream("test")
+	suite.Require().NotNil(log, "Failed to create a Logger with default options")
 	suite.Assert().IsType(&StdoutStream{}, log.stream)
+	suite.Assert().Equal(false, log.stream.(*StdoutStream).Unbuffered, "stream should be buffered")
+	suite.Assert().Equal(UNSET, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be UNSET")
+	_ = captureStdout(func() {
+		log.Infof("writing something")
+	})
+	suite.Assert().Equal(INFO, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be INFO")
+}
 
-	log = CreateWithStream("test", &NilStream{})
+func (suite *InternalLoggerSuite) TestCanCreateWithStream() {
+
+}
+
+func (suite *InternalLoggerSuite) TestCanCreateWithStreamPointer() {
+	log := CreateWithStream("test", &NilStream{})
 	suite.Require().NotNil(log, "Failed to create a Logger with a nil stream")
 	suite.Assert().IsType(&NilStream{}, log.stream)
+}
 
-	log = CreateWithStream("test", &StdoutStream{}, &StackDriverStream{})
+func (suite *InternalLoggerSuite) TestCanCreateWithFileStream() {
+	log := Create("test", &FileStream{Path: "/var/log/test.log"})
+	suite.Assert().IsType(&FileStream{}, log.stream)
+	suite.Assert().Equal("/var/log/test.log", log.stream.(*FileStream).Path)
+	suite.Assert().Equal(false, log.stream.(*FileStream).Unbuffered, "FileStream should be buffered")
+}
+
+func (suite *InternalLoggerSuite) TestCanCreateWithMultipleStreams() {
+	log := CreateWithStream("test", &StdoutStream{}, &StackDriverStream{})
 	suite.Require().NotNil(log, "Failed to create a Logger with 2 streams")
 	suite.Assert().IsType(&MultiStream{}, log.stream)
 	suite.Require().Len(log.stream.(*MultiStream).streams, 2)
 	suite.Assert().IsType(&StdoutStream{}, log.stream.(*MultiStream).streams[0])
 	suite.Assert().IsType(&StackDriverStream{}, log.stream.(*MultiStream).streams[1])
+}
 
+func (suite *InternalLoggerSuite) TestCanCreateWithFilterLevel() {
+	log := Create("test", TRACE)
+	suite.Require().NotNil(log, "Failed to create a Logger")
+	suite.Assert().IsType(&StdoutStream{}, log.stream)
+	suite.Assert().Equal(TRACE, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be TRACE")
+}
+
+func (suite *InternalLoggerSuite) TestCanCreateWithEnvironmentDEBUG() {
 	os.Setenv("DEBUG", "1")
-	log = CreateWithStream("test")
+	defer os.Unsetenv("DEBUG")
+	log := CreateWithStream("test")
 	suite.Require().NotNil(log, "Failed to create a Logger with stdout stream")
 	suite.Assert().IsType(&StdoutStream{}, log.stream)
 	suite.Assert().Equal(true, log.stream.(*StdoutStream).Unbuffered, "In DEBUG mode, stdout should be unbuffered")
-	os.Unsetenv("DEBUG")
+	suite.Assert().Equal(UNSET, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be UNSET")
+	_ = captureStdout(func() {
+		log.Infof("writing something")
+	})
+	suite.Assert().Equal(DEBUG, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be DEBUG")
+}
 
+func (suite *InternalLoggerSuite) TestCanCreateWithEnvironmentFLUSHFREQUENCY() {
 	os.Setenv("LOG_FLUSHFREQUENCY", "10ms")
-	log = CreateWithStream("test", &StdoutStream{})
+	defer os.Unsetenv("LOG_FLUSHFREQUENCY")
+	log := CreateWithStream("test", &StdoutStream{})
 	suite.Require().NotNil(log, "Failed to create a Logger with stdout stream")
 	suite.Assert().IsType(&StdoutStream{}, log.stream)
 	_ = captureStdout(func() {
 		log.Tracef("writing something")
 	})
 	suite.Assert().Equal(10*time.Millisecond, log.stream.(*StdoutStream).flushFrequency, "this stream should flush every 10 milliseconds")
-	os.Unsetenv("LOG_FLUSHFREQUENCY")
+}
+
+func (suite *InternalLoggerSuite) TestCanCreateWithEnvironmentDESTINATION() {
+	os.Setenv("LOG_DESTINATION", "/var/log/test.log")
+	defer os.Unsetenv("LOG_DESTINATION")
+	log := Create("test")
+	suite.Require().NotNil(log, "Failed to create a Logger with file stream")
+	suite.Assert().IsType(&FileStream{}, log.stream)
+	suite.Assert().Equal("/var/log/test.log", log.stream.(*FileStream).Path)
+	suite.Assert().Equal(false, log.stream.(*FileStream).Unbuffered, "FileStream should be buffered")
 }
 
 func (suite *InternalLoggerSuite) TestCanCreateWithDestination() {
@@ -176,6 +221,15 @@ func (suite *InternalLoggerSuite) TestCanSmartCreateWithMix() {
 	suite.Assert().Equal("/var/log/test.log", log.stream.(*MultiStream).streams[1].(*FileStream).Path)
 	suite.Require().NotNil(log.GetRecord("key"), "there is no Record \"key\" in Logger")
 	suite.Assert().Equal("value", log.GetRecord("key").(string))
+}
+
+func (suite *InternalLoggerSuite) TestCanSetFilterLevel() {
+	log := Create("test")
+	suite.Require().NotNil(log, "cannot create a Logger")
+	suite.Assert().IsType(&StdoutStream{}, log.stream)
+	suite.Assert().Equal(UNSET, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be UNSET")
+	log.SetFilterLevel(WARN)
+	suite.Assert().Equal(WARN, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be WARN")
 }
 
 func(suite *InternalLoggerSuite) TestCanConvertBytesToString() {
