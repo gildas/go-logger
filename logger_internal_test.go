@@ -28,11 +28,7 @@ func (suite *InternalLoggerSuite) TestCanCreate() {
 }
 
 func (suite *InternalLoggerSuite) TestCanCreateWithStream() {
-
-}
-
-func (suite *InternalLoggerSuite) TestCanCreateWithStreamPointer() {
-	log := CreateWithStream("test", &NilStream{})
+	log := Create("test", &NilStream{})
 	suite.Require().NotNil(log, "Failed to create a Logger with a nil stream")
 	suite.Assert().IsType(&NilStream{}, log.stream)
 }

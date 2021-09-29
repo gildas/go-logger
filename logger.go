@@ -43,12 +43,10 @@ func Create(name string, parameters ...interface{}) *Logger {
 			destinations = append(destinations, parameter)
 		case Level:
 			filterLevel = parameter
-		default:
-			if streamer, ok := parameter.(Streamer); ok {
-				streams = append(streams, streamer)
-			} else if record, ok := parameter.(Record); ok {
-				records = append(records, record)
-			}
+		case Streamer:
+			streams = append(streams, parameter)
+		case Record:
+			records = append(records, parameter)
 		}
 		// if param is a struct or pointer to struct, or interface
 		// we should use it for the Topic, Scope
