@@ -16,6 +16,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/gildas/go-core"
 	"github.com/gildas/go-errors"
 	"github.com/gildas/go-logger"
 )
@@ -367,5 +368,18 @@ func (suite *LoggerSuite) TestCanRedactSensitiveStruct() {
 		log.Record("customer", customer).Infof("message")
 	})
 	pattern := regexp.MustCompile(`{"customer":{"id":"12345678","name":"REDACTED"},"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"message","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+}
+
+func (suite *LoggerSuite) TestCanRedactMessage() {
+	output := CaptureStdout(func() {
+		log := logger.Create(
+			"test",
+			&logger.StdoutStream{Unbuffered: true},
+			core.Must(logger.NewRedactor(`\+[0-9]{11}`)).(*logger.Redactor),
+		)
+		log.Infof("message with sensitive (+13178723000) data")
+	})
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"message with sensitive \(REDACTED\) data","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
 	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
 }
