@@ -250,6 +250,49 @@ var Log = logger.Must(logger.FromContext(context))
 `FromContext` can be used to retrieve a `Logger` from a GO context. (This is used in the paragraph about HTTP Usage)  
 `log.ToContext` will store the `Logger` to the given GO context.
 
+## Redacting
+
+The `Logger` can redact records as needed by simply implementing the `logger.Redactable` interface in the data that is logged.
+
+For example:
+```go
+type Customer {
+  ID   uuid.UUID `json:"id"`
+  Name string    `json:"name"`
+}
+
+// implements logger.Redactable
+func (customer Customer) Redact() interface{} {
+  return Customer{customer.ID, "REDACTED"}
+}
+
+main() {
+  // ...
+  customer := Customer{uuid, "John Doe"}
+
+  log.Record("customer", customer).Infof("Got a customer")
+}
+```
+
+You can also redact the log messages by providing regular expressions, called redactors. Whenever a redactor matches, its matched content is replaced with "REDACTED".
+
+You can assign several redactors to a single logger:
+
+```go
+r1, err := logger.NewRedactor("[0-9]{10}")
+r2 := (logger.Redactor)(myregexp)
+log := logger.Create("test", r1, r2)
+```
+
+You can also add redactors to a child logger (without modifying the parent logger):
+
+```go
+r3 := logger.NewRedactor("[a-z]{8}")
+log := parent.Child("topic", "scope", "record1", "value1", r3)
+```
+
+**Note:** Adding redactors to a logger **WILL** have a performance impact on your application as each regular expression will be matched against every single message produced by the logger. We advise you to use as few redactors as possible and contain them in child logger, so they have a minmal impact.
+
 ## Converters
 
 The `Converter` object is responsible for converting the `Record`, given to the `Stream` to write, to match other log viewers.

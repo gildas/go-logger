@@ -10,8 +10,9 @@ import (
 
 // Logger is a Logger that creates Bunyan's compatible logs (see: https://github.com/trentm/node-bunyan)
 type Logger struct {
-	stream Streamer
-	record Record
+	stream    Streamer
+	record    Record
+	redactors []Redactor
 }
 
 // Must returns the given logger or panics if there is an error or if the Logger is nil
@@ -30,6 +31,7 @@ func Create(name string, parameters ...interface{}) *Logger {
 		destinations = []string{}
 		streams      = []Streamer{}
 		records      = []Record{}
+		redactors    = []Redactor{}
 		filterLevel  = GetLevelFromEnvironment()
 	)
 
@@ -43,27 +45,29 @@ func Create(name string, parameters ...interface{}) *Logger {
 			destinations = append(destinations, parameter)
 		case Level:
 			filterLevel = parameter
-		default:
-			if streamer, ok := parameter.(Streamer); ok {
-				streams = append(streams, streamer)
-			} else if record, ok := parameter.(Record); ok {
-				records = append(records, record)
-			}
+		case Streamer:
+			streams = append(streams, parameter)
+		case Record:
+			records = append(records, parameter)
+		case Redactor:
+			redactors = append(redactors, parameter)
+		case *Redactor:
+			redactors = append(redactors, *parameter)
 		}
 		// if param is a struct or pointer to struct, or interface
 		// we should use it for the Topic, Scope
 	}
 	for _, destination := range destinations {
-		streams = append(streams, CreateStreamWithDestination(destination).SetFilterLevel(filterLevel))
+		streams = append(streams, CreateStreamWithDestination(destination))
 	}
 	logger := CreateWithStream(name, streams...)
-	if len(records) > 0 {
-		for _, record := range records {
-			for key, value := range record {
-				logger.record.Set(key, value)
-			}
+	logger.stream.SetFilterLevelIfUnset(filterLevel)
+	for _, record := range records {
+		for key, value := range record {
+			logger.record.Set(key, value)
 		}
 	}
+	logger.redactors = append(logger.redactors, redactors...)
 	return logger
 }
 
@@ -85,11 +89,11 @@ func CreateWithStream(name string, streams ...Streamer) *Logger {
 		Set("v", 0)
 
 	if len(streams) == 0 {
-		return &Logger{CreateStreamWithDestination(), record}
+		return &Logger{CreateStreamWithDestination(), record, []Redactor{}}
 	} else if len(streams) == 1 {
-		return &Logger{streams[0], record}
+		return &Logger{streams[0], record, []Redactor{}}
 	}
-	return &Logger{&MultiStream{streams: streams}, record}
+	return &Logger{&MultiStream{streams: streams}, record, []Redactor{}}
 }
 
 // CreateIfNil creates a new Logger if the given Logger is nil, otherwise return the said Logger
@@ -109,7 +113,7 @@ func (log *Logger) Close() {
 func (log *Logger) Record(key string, value interface{}) *Logger {
 	// This func requires Logger to be a Stream
 	//   that allows us to nest Loggers
-	return &Logger{log, NewRecord().Set(key, value)}
+	return &Logger{log, NewRecord().Set(key, value), log.redactors}
 }
 
 // Recordf adds the given Record with formatted arguments
@@ -136,7 +140,7 @@ func (log *Logger) Records(params ...interface{}) *Logger {
 			record.Set(key, param)
 		}
 	}
-	return &Logger{log, record}
+	return &Logger{log, record, log.redactors}
 }
 
 // Topic sets the Topic of this Logger
@@ -153,14 +157,26 @@ func (log *Logger) Scope(value interface{}) *Logger {
 func (log *Logger) Child(topic, scope interface{}, params ...interface{}) *Logger {
 	var key string
 	record := NewRecord().Set("topic", topic).Set("scope", scope)
-	for i, param := range params {
-		if i%2 == 0 {
-			key = param.(string)
-		} else if len(key) > 0 {
-			record.Set(key, param)
+	newlog := &Logger{log, record, log.redactors}
+	for _, param := range params {
+		switch actual := param.(type) {
+		case *Redactor:
+			newlog.redactors = append(log.redactors, *actual)
+		case Redactor:
+			newlog.redactors = append(log.redactors, actual)
+		case string:
+			if len(key) == 0 {
+				key = actual
+			} else {
+				record.Set(key, actual)
+			}
+		default:
+			if len(key) > 0 {
+				record.Set(key, actual)
+			}
 		}
 	}
-	return &Logger{log, record}
+	return newlog
 }
 
 // GetRecord returns the Record field value for a given key
@@ -284,7 +300,14 @@ func (log *Logger) send(level Level, msg string, args ...interface{}) {
 		record := NewRecord()
 		record["time"] = time.Now().UTC()
 		record["level"] = level
-		record["msg"] = fmt.Sprintf(msg, args...)
+		message := fmt.Sprintf(msg, args...)
+		for _, redactor := range log.redactors {
+			if msg, redacted := redactor.Redact(message); redacted {
+				message = msg
+				break
+			}
+		}
+		record["msg"] = message
 		if err := log.Write(record); err != nil {
 			fmt.Fprintf(os.Stderr, "Logger error: %s\n", err)
 		}

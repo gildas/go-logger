@@ -13,6 +13,7 @@ type Streamer interface {
 	Write(record Record) error
 	ShouldWrite(level Level) bool
 	SetFilterLevel(level Level) Streamer
+	SetFilterLevelIfUnset(level Level) Streamer
 	Flush()
 	Close()
 }

@@ -22,6 +22,11 @@ func (stream *BogusStream) SetFilterLevel(level logger.Level) logger.Streamer {
 	return stream
 }
 
+// SetFilterLevelIfUnset sets the filter level if not set already
+func (stream *BogusStream) SetFilterLevelIfUnset(level logger.Level) logger.Streamer {
+	return stream
+}
+
 func (stream *BogusStream) Write(record logger.Record) error {
 	return fmt.Errorf("This Stream is Bogus")
 }

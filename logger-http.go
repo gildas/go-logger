@@ -33,6 +33,7 @@ func (l *Logger) HttpHandler() func(http.Handler) http.Handler {
 				Infof("request start: %s %s", r.Method, html.EscapeString(r.URL.Path))
 
 			// Adding reqid and reqLogger to r.Context and serving the request
+			//nolint:staticcheck
 			next.ServeHTTP(w, r.WithContext(reqLogger.ToContext(context.WithValue(r.Context(), "reqid", reqid))))
 
 			// Logging the duration of the request handling

@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"regexp"
 	"testing"
@@ -17,6 +16,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/gildas/go-core"
 	"github.com/gildas/go-errors"
 	"github.com/gildas/go-logger"
 )
@@ -63,31 +63,6 @@ func (suite *LoggerSuite) TestCanCreateWithNil() {
 	suite.Require().NotNil(log, "cannot create a logger.Logger")
 	log2 := logger.CreateIfNil(log, "test")
 	suite.Require().NotNil(log2, "cannot create a logger.Logger")
-}
-
-func (suite *LoggerSuite) TestCanCreateWithFileStream() {
-	logger := logger.Create("test", &logger.FileStream{Path: "/var/log/test.log"})
-	suite.Assert().Equal("Logger(Stream to /var/log/test.log)", logger.String())
-}
-
-func (suite *LoggerSuite) TestCanCreateWithFileStreamFromEnvironment() {
-	os.Setenv("LOG_DESTINATION", "/var/log/test.log")
-	logger := logger.Create("test")
-	suite.Assert().Equal("Logger(Stream to /var/log/test.log)", logger.String())
-	os.Unsetenv("LOG_DESTINATION")
-}
-
-func (suite *LoggerSuite) TestCanCreateWithUnbufferedStdoutStreamInDEBUG() {
-	os.Setenv("DEBUG", "1")
-	logger := logger.Create("test")
-	suite.Assert().Equal("Logger(Unbuffered Stream to stdout)", logger.String())
-	os.Unsetenv("DEBUG")
-}
-
-func (suite *LoggerSuite) TestCanSetFilterLevel() {
-	log := logger.Create("test", logger.INFO)
-	suite.Require().NotNil(log, "cannot create a logger.Logger")
-	log.SetFilterLevel(logger.WARN)
 }
 
 func (suite *LoggerSuite) TestCanLoadAndSaveWithContext() {
@@ -344,6 +319,7 @@ func (suite *LoggerSuite) TestCanLogMemory() {
 		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, FilterLevel: logger.TRACE})
 		log.Memory()
 	})
+	suite.Require().NotEmpty(output, "There was no output")
 	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":10,"msg":"Heap\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), Stack\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), NumGC = [0-9]+","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
 	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
 }
@@ -353,6 +329,7 @@ func (suite *LoggerSuite) TestCanLogMemoryWithLevel() {
 		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, FilterLevel: logger.TRACE})
 		log.Memoryl(logger.INFO)
 	})
+	suite.Require().NotEmpty(output, "There was no output")
 	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"Heap\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), Stack\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), NumGC = [0-9]+","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
 	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
 }
@@ -362,6 +339,7 @@ func (suite *LoggerSuite) TestCanLogMemoryWithMessage() {
 		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, FilterLevel: logger.TRACE})
 		log.Memoryf("Text %d:", 2)
 	})
+	suite.Require().NotEmpty(output, "There was no output")
 	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":10,"msg":"Text 2: Heap\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), Stack\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), NumGC = [0-9]+","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
 	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
 }
@@ -372,5 +350,36 @@ func (suite *LoggerSuite) TestCanLogMemoryWithMessageWithLevelAndMessage() {
 		log.Memorylf(logger.INFO, "Text %d:", 2)
 	})
 	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"Text 2: Heap\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), Stack\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), NumGC = [0-9]+","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+}
+
+type Customer struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+func (customer Customer) Redact() interface{} {
+	return Customer{customer.ID, "REDACTED"}
+}
+
+func (suite *LoggerSuite) TestCanRedactSensitiveStruct() {
+	customer := Customer{"12345678", "John Doe"}
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.Record("customer", customer).Infof("message")
+	})
+	pattern := regexp.MustCompile(`{"customer":{"id":"12345678","name":"REDACTED"},"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"message","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+}
+
+func (suite *LoggerSuite) TestCanRedactMessage() {
+	output := CaptureStdout(func() {
+		log := logger.Create(
+			"test",
+			&logger.StdoutStream{Unbuffered: true},
+			core.Must(logger.NewRedactor(`\+[0-9]{11}`)).(*logger.Redactor),
+		)
+		log.Infof("message with sensitive (+13178723000) data")
+	})
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"message with sensitive \(REDACTED\) data","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
 	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
 }
