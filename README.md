@@ -250,6 +250,30 @@ var Log = logger.Must(logger.FromContext(context))
 `FromContext` can be used to retrieve a `Logger` from a GO context. (This is used in the paragraph about HTTP Usage)  
 `log.ToContext` will store the `Logger` to the given GO context.
 
+## Redacting
+
+The `Logger` can redact records as needed by simply implementing the `logger.Redactable` interface in the data that is logged.
+
+For example:
+```go
+type Customer {
+  ID   uuid.UUID `json:"id"`
+  Name string    `json:"name"`
+}
+
+// implements logger.Redactable
+func (customer Customer) Redact() interface{} {
+  return Customer{customer.ID, "REDACTED"}
+}
+
+main() {
+  // ...
+  customer := Customer{uuid, "John Doe"}
+
+  log.Record("customer", customer).Infof("Got a customer")
+}
+```
+
 ## Converters
 
 The `Converter` object is responsible for converting the `Record`, given to the `Stream` to write, to match other log viewers.

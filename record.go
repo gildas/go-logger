@@ -47,6 +47,8 @@ func (record Record) MarshalJSON() ([]byte, error) {
 		switch v := v.(type) {
 		case func() interface{}:
 			buffer[k] = v()
+		case Redactable:
+			buffer[k] = v.Redact()
 		default:
 			buffer[k] = v
 		}
