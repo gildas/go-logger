@@ -26,7 +26,7 @@ func (l *Logger) HttpHandler() func(http.Handler) http.Handler {
 			w.Header().Set("X-Request-Id", reqid)
 
 			// Get a new Child logger tailored to the request
-			reqLogger := l.Record("topic", "route").Record("scope", r.URL.Path).Record("reqid", reqid)
+			reqLogger := l.Child(nil, nil, "topic", "route", "scope", r.URL.Path, "reqid", reqid)
 			reqLogger.
 				Record("remote", r.RemoteAddr).
 				Record("UserAgent", r.UserAgent()).
