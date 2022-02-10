@@ -169,10 +169,12 @@ func (log *Logger) Child(topic, scope interface{}, params ...interface{}) *Logge
 				key = actual
 			} else {
 				record.Set(key, actual)
+				key=""
 			}
 		default:
 			if len(key) > 0 {
 				record.Set(key, actual)
+				key=""
 			}
 		}
 	}

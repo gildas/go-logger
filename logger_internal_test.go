@@ -2,8 +2,10 @@ package logger
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -230,6 +232,53 @@ func (suite *InternalLoggerSuite) TestCanSmartCreateWithRecord() {
 	suite.Assert().Equal("value1", log.GetRecord("key1").(string))
 	suite.Require().NotNil(log.GetRecord("key2"), "there is no Record \"key2\" in Logger")
 	suite.Assert().Equal("value2", log.GetRecord("key2").(string))
+}
+
+func (suite *InternalLoggerSuite) TestCanCreateChildWithRecords() {
+	var output string
+	log := Create("test", &StdoutStream{Unbuffered: true})
+	suite.Require().NotNil(log, "Failed to create a Parent Logger")
+	suite.Assert().IsType(&StdoutStream{}, log.stream)
+	output = captureStdout(func() {
+		log.Infof("Message on the Parent Logger")
+
+		child := log.Child("childtopic", "childscope", "key1", "value1", "key2", "value2", "key1", "shouldnotsee")
+		suite.Require().NotNil(child, "Failed to create a child Logger with a Record")
+		child.Infof("Message on the Child Logger")
+
+		suite.Require().NotNil(child.GetRecord("key1"), "there is no Record \"key1\" in Child Logger")
+		suite.Assert().Equal("value1", child.GetRecord("key1").(string))
+		suite.Require().NotNil(child.GetRecord("key2"), "there is no Record \"key2\" in Child Logger")
+		suite.Assert().Equal("value2", child.GetRecord("key2").(string))
+
+		grandchild := child.Child("grandchildtopic", "grandchildscope", "key2", "newvalue")
+		suite.Require().NotNil(grandchild, "Failed to create a Grandchild Logger with a Record")
+		grandchild.Infof("Message on the Grandchild Logger")
+		suite.Require().NotNil(grandchild.GetRecord("key2"), "there is no Record \"key2\" in Grandchild Logger")
+		suite.Assert().Equal("newvalue", grandchild.GetRecord("key2").(string))
+
+		suite.Require().NotNil(child.GetRecord("key2"), "there is no Record \"key2\" in Child Logger")
+		suite.Assert().Equal("value2", child.GetRecord("key2").(string), "Key2's value should not be changed")
+	})
+	suite.Assert().Nil(log.GetRecord("key1"), "there shoud not be any Record \"key1\" in Parent Logger")
+	suite.Assert().Nil(log.GetRecord("key2"), "there shoud not be any Record \"key2\" in Parent Logger")
+	lines := strings.Split(output, "\n")
+	suite.Assert().Len(lines, 4, "Output should have 4 lines") // The 4th line is an empty line
+	var content map[string]interface{}
+	err := json.Unmarshal([]byte(lines[1]), &content)
+	suite.Require().Nil(err, "Failed to parse JSON from the second line (child's output)")
+	suite.Assert().Equal("childtopic", content["topic"], "Topic should be childtopic")
+	suite.Assert().Equal("childscope", content["scope"], "Scope should be childscope")
+	suite.Assert().Equal("value1", content["key1"], "key1 should contain value1")
+	suite.Assert().Equal("value2", content["key2"], "key2 should contain value2")
+
+	content = map[string]interface{}{}
+	err = json.Unmarshal([]byte(lines[2]), &content)
+	suite.Require().Nil(err, "Failed to parse JSON from the third (grandchild's output)")
+	suite.Assert().Equal("grandchildtopic", content["topic"], "Topic should be grandchildtopic")
+	suite.Assert().Equal("grandchildscope", content["scope"], "Scope should be grandchildscope")
+	suite.Assert().Equal("value1", content["key1"], "key1 should contain value1")
+	suite.Assert().Equal("newvalue", content["key2"], "key2 should contain newvalue")
 }
 
 func (suite *InternalLoggerSuite) TestCanSmartCreateWithMix() {
