@@ -38,6 +38,14 @@ type FilterSetter interface {
 	SetFilterLevelIfUnset(level Level)
 }
 
+type FilterModifier interface {
+	// FilterMore tells the stream to filter more
+	FilterMore()
+
+	// FilterLess tells the stream to filter less
+	FilterLess()
+}
+
 // ParseLevel converts a string into a Level
 func ParseLevel(value string) Level {
 	if level, ok := map[string]Level{
@@ -75,6 +83,30 @@ func GetLevelFromEnvironment() Level {
 		return DEBUG
 	}
 	return INFO
+}
+
+// Next returns the Level that follows the current one
+//
+// If level is ALWAYS, it will return ALWAYS
+//
+// Example: TRACE.Next() will return DEBUG
+func (level Level) Next() Level {
+	if level == ALWAYS {
+		return ALWAYS
+	}
+	return level + 10
+}
+
+// Previous returns the Level that precedes the current one
+//
+// If level is NEVER, it will return NEVER
+//
+// Example: DEBUG.Previous() will return TRACE
+func (level Level) Previous() Level {
+	if level == NEVER {
+		return NEVER
+	}
+	return level - 10
 }
 
 // ShouldWrite tells if the current level is writeable when compared to the given filter level

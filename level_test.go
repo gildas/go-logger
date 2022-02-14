@@ -75,3 +75,17 @@ func TestCanCompareLevels(t *testing.T) {
 		assert.Truef(t, level.ShouldWrite(filter), "%s should be writable with %s filter", level, filter)
 	}
 }
+
+func TestCanGetNextLevel(t *testing.T) {
+	level := logger.DEBUG
+	assert.Equal(t, logger.INFO, level.Next())
+	level = logger.ALWAYS
+	assert.Equal(t, logger.ALWAYS, level.Next())
+}
+
+func TestCanGetPreviousLevel(t *testing.T) {
+	level := logger.DEBUG
+	assert.Equal(t, logger.TRACE, level.Previous())
+	level = logger.NEVER
+	assert.Equal(t, logger.NEVER, level.Previous())
+}

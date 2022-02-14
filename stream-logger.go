@@ -31,6 +31,34 @@ func (log *Logger) SetFilterLevelIfUnset(level Level) {
 	}
 }
 
+// FilterMore tells the stream to filter more
+//
+// The stream will filter more if it is not already at the highest level.
+// Which means less log messages will be written to the stream
+//
+// Example: if the stream is at DEBUG, it will be filtering at INFO
+//
+// implements logger.FilterModifier
+func (log *Logger) FilterMore() {
+	if modifier, ok := log.stream.(FilterModifier); ok {
+		modifier.FilterMore()
+	}
+}
+
+// FilterLess tells the stream to filter less
+//
+// The stream will filter less if it is not already at the lowest level.
+// Which means more log messages will be written to the stream
+//
+// Example: if the stream is at INFO, it will be filtering at DEBUG
+//
+// implements logger.FilterModifier
+func (log *Logger) FilterLess() {
+	if modifier, ok := log.stream.(FilterModifier); ok {
+		modifier.FilterLess()
+	}
+}
+
 // ShouldWrite tells if the given level should be written to this stream
 //
 // implements logger.Streamer

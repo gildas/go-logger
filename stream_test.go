@@ -417,6 +417,68 @@ func (suite *StreamSuite) TestFailsWritingWithBogusRecordValue() {
 	suite.Assert().Contains(err.Error(), "Failed to Marshal BogusValue")
 }
 
+func (suite *StreamSuite) TestCanFilterMore() {
+	log := logger.Create("TEST")
+	log.FilterMore()
+
+	streamFile := &logger.FileStream{FilterLevel: logger.INFO}
+	streamFile.FilterMore()
+	suite.Assert().Equal(logger.WARN, streamFile.FilterLevel)
+
+	streamNil := &logger.NilStream{}
+	streamNil.FilterMore()
+
+	streamStackDriver := &logger.StackDriverStream{FilterLevel: logger.INFO}
+	streamStackDriver.FilterMore()
+	suite.Assert().Equal(logger.WARN, streamStackDriver.FilterLevel)
+
+	streamStderr := &logger.StderrStream{FilterLevel: logger.INFO}
+	streamStderr.FilterMore()
+	suite.Assert().Equal(logger.WARN, streamStderr.FilterLevel)
+
+	streamStdout := &logger.StdoutStream{FilterLevel: logger.INFO}
+	streamStdout.FilterMore()
+	suite.Assert().Equal(logger.WARN, streamStdout.FilterLevel)
+
+	streamMulti := logger.CreateMultiStream(streamStderr, streamStdout)
+	modifier, ok := streamMulti.(logger.FilterModifier)
+	suite.Require().True(ok, "MultiStream should implement FilterModifier")
+	modifier.FilterMore()
+	suite.Assert().Equal(logger.ERROR, streamStderr.FilterLevel)
+	suite.Assert().Equal(logger.ERROR, streamStdout.FilterLevel)
+}
+
+func (suite *StreamSuite) TestCanFilterLess() {
+	log := logger.Create("TEST")
+	log.FilterLess()
+
+	streamFile := &logger.FileStream{FilterLevel: logger.INFO}
+	streamFile.FilterLess()
+	suite.Assert().Equal(logger.DEBUG, streamFile.FilterLevel)
+
+	streamNil := &logger.NilStream{}
+	streamNil.FilterLess()
+
+	streamStackDriver := &logger.StackDriverStream{FilterLevel: logger.INFO}
+	streamStackDriver.FilterLess()
+	suite.Assert().Equal(logger.DEBUG, streamStackDriver.FilterLevel)
+
+	streamStderr := &logger.StderrStream{FilterLevel: logger.INFO}
+	streamStderr.FilterLess()
+	suite.Assert().Equal(logger.DEBUG, streamStderr.FilterLevel)
+
+	streamStdout := &logger.StdoutStream{FilterLevel: logger.INFO}
+	streamStdout.FilterLess()
+	suite.Assert().Equal(logger.DEBUG, streamStdout.FilterLevel)
+
+	streamMulti := logger.CreateMultiStream(streamStderr, streamStdout)
+	modifier, ok := streamMulti.(logger.FilterModifier)
+	suite.Require().True(ok, "MultiStream should implement FilterModifier")
+	modifier.FilterLess()
+	suite.Assert().Equal(logger.TRACE, streamStderr.FilterLevel)
+	suite.Assert().Equal(logger.TRACE, streamStdout.FilterLevel)
+}
+
 func (suite *StreamSuite) SetupSuite() {
 	suite.Name = strings.TrimSuffix(reflect.TypeOf(*suite).Name(), "Suite")
 }
