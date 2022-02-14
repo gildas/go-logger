@@ -242,6 +242,9 @@ func ExampleNilStream() {
 }
 
 func (suite *StreamSuite) TestCanStreamToStackDriver() {
+	if _, ok := os.LookupEnv("GOOGLE_PROJECT_ID"); !ok {
+		suite.T().Skip("There is no way to test this without a Google Project ID")
+	}
 	stream := &logger.StackDriverStream{LogID: "test"}
 	defer stream.Close()
 	suite.Assert().Equal("Stream to Google StackDriver", stream.String())
@@ -256,6 +259,9 @@ func (suite *StreamSuite) TestCanStreamToStackDriver() {
 }
 
 func (suite *StreamSuite) TestCanStreamToStackDriverWithKeyFilename() {
+	if _, ok := os.LookupEnv("GOOGLE_PROJECT_ID"); !ok {
+		suite.T().Skip("There is no way to test this without a Google Project ID")
+	}
 	if current, ok := os.LookupEnv("GOOGLE_APPLICATION_CREDENTIALS"); ok {
 		os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
 		defer os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", current)
@@ -270,6 +276,9 @@ func (suite *StreamSuite) TestCanStreamToStackDriverWithKeyFilename() {
 }
 
 func (suite *StreamSuite) TestCanStreamToStackDriverWithKey() {
+	if _, ok := os.LookupEnv("GOOGLE_PROJECT_ID"); !ok {
+		suite.T().Skip("There is no way to test this without a Google Project ID")
+	}
 	if current, ok := os.LookupEnv("GOOGLE_APPLICATION_CREDENTIALS"); ok {
 		os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
 		defer os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", current)
@@ -327,6 +336,9 @@ func (suite *StreamSuite) TestFailsWritingToStackDriverWithNoParent() {
 }
 
 func (suite *StreamSuite) TestFailsWritingToStackDriverWithNoCredentials() {
+	if _, ok := os.LookupEnv("GOOGLE_PROJECT_ID"); !ok {
+		suite.T().Skip("There is no way to test this without a Google Project ID")
+	}
 	if current, ok := os.LookupEnv("GOOGLE_APPLICATION_CREDENTIALS"); ok {
 		os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
 		defer os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", current)
@@ -338,6 +350,9 @@ func (suite *StreamSuite) TestFailsWritingToStackDriverWithNoCredentials() {
 }
 
 func (suite *StreamSuite) TestFailsWritingToStackDriverWithInvalidKey() {
+	if _, ok := os.LookupEnv("GOOGLE_PROJECT_ID"); !ok {
+		suite.T().Skip("There is no way to test this without a Google Project ID")
+	}
 	if current, ok := os.LookupEnv("GOOGLE_APPLICATION_CREDENTIALS"); ok {
 		os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
 		defer os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", current)
