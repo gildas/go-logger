@@ -18,24 +18,22 @@ type StderrStream struct {
 
 // SetFilterLevel sets the filter level
 //
-// implements logger.Streamer
-func (stream *StderrStream) SetFilterLevel(level Level) Streamer {
+// implements logger.FilterSetter
+func (stream *StderrStream) SetFilterLevel(level Level) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	stream.FilterLevel = level
-	return stream
 }
 
 // SetFilterLevelIfUnset sets the filter level if not set already
 //
-// implements logger.Streamer
-func (stream *StderrStream) SetFilterLevelIfUnset(level Level) Streamer {
+// implements logger.FilterSetter
+func (stream *StderrStream) SetFilterLevelIfUnset(level Level) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.FilterLevel == UNSET {
 		stream.FilterLevel = level
 	}
-	return stream
 }
 
 // Write writes the given Record

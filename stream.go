@@ -16,12 +16,6 @@ type Streamer interface {
 	// ShouldWrite tells if the given level should be written to this stream
 	ShouldWrite(level Level) bool
 
-	// SetFilterLevel sets the filter level
-	SetFilterLevel(level Level) Streamer
-
-	// SetFilterLevelIfUnset sets the filter level if not set already
-	SetFilterLevelIfUnset(level Level) Streamer
-
 	// Flush flushes the stream (makes sure records are actually written)
 	Flush()
 

@@ -61,7 +61,7 @@ func Create(name string, parameters ...interface{}) *Logger {
 		streams = append(streams, CreateStreamWithDestination(destination))
 	}
 	logger := CreateWithStream(name, streams...)
-	logger.stream.SetFilterLevelIfUnset(filterLevel)
+	logger.SetFilterLevelIfUnset(filterLevel)
 	for _, record := range records {
 		for key, value := range record {
 			logger.record.Set(key, value)

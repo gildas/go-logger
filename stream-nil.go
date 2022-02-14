@@ -6,16 +6,14 @@ type NilStream struct {
 
 // SetFilterLevel sets the filter level of all streams
 //
-// implements logger.Streamer
-func (stream *NilStream) SetFilterLevel(level Level) Streamer {
-	return stream
+// implements logger.FilterSetter
+func (stream *NilStream) SetFilterLevel(level Level) {
 }
 
 // SetFilterLevelIfUnset sets the filter level if not set already
 //
-// implements logger.Streamer
-func (stream *NilStream) SetFilterLevelIfUnset(level Level) Streamer {
-	return stream
+// implements logger.FilterSetter
+func (stream *NilStream) SetFilterLevelIfUnset(level Level) {
 }
 
 // Write writes the given Record

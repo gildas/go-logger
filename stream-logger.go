@@ -15,18 +15,20 @@ func (log *Logger) Write(record Record) error {
 
 // SetFilterLevel sets the filter level of the streamer
 //
-// implements logger.Streamer
-func (log *Logger) SetFilterLevel(level Level) Streamer {
-	log.stream.SetFilterLevel(level)
-	return log.stream
+// implements logger.FilterSetter
+func (log *Logger) SetFilterLevel(level Level) {
+	if setter, ok := log.stream.(FilterSetter); ok {
+		setter.SetFilterLevel(level)
+	}
 }
 
 // SetFilterLevelIfUnset sets the filter level if not set already
 //
-// implements logger.Streamer
-func (log *Logger) SetFilterLevelIfUnset(level Level) Streamer {
-	log.stream.SetFilterLevelIfUnset(level)
-	return log.stream
+// implements logger.FilterSetter
+func (log *Logger) SetFilterLevelIfUnset(level Level) {
+	if setter, ok := log.stream.(FilterSetter); ok {
+		setter.SetFilterLevelIfUnset(level)
+	}
 }
 
 // ShouldWrite tells if the given level should be written to this stream

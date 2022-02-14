@@ -30,6 +30,14 @@ const (
 	NEVER Level = 1
 )
 
+type FilterSetter interface {
+	// SetFilterLevel sets the filter level
+	SetFilterLevel(level Level)
+
+	// SetFilterLevelIfUnset sets the filter level if not set already
+	SetFilterLevelIfUnset(level Level)
+}
+
 // ParseLevel converts a string into a Level
 func ParseLevel(value string) Level {
 	if level, ok := map[string]Level{

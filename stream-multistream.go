@@ -9,22 +9,24 @@ type MultiStream struct {
 
 // SetFilterLevel sets the filter level of all streams
 //
-// implements logger.Streamer
-func (stream *MultiStream) SetFilterLevel(level Level) Streamer {
+// implements logger.FilterSetter
+func (stream *MultiStream) SetFilterLevel(level Level) {
 	for _, s := range stream.streams {
-		s.SetFilterLevel(level)
+		if setter, ok := s.(FilterSetter); ok {
+			setter.SetFilterLevel(level)
+		}
 	}
-	return stream
 }
 
 // SetFilterLevelIfUnset sets the filter level if not set already
 //
-// implements logger.Streamer
-func (stream *MultiStream) SetFilterLevelIfUnset(level Level) Streamer {
+// implements logger.FilterSetter
+func (stream *MultiStream) SetFilterLevelIfUnset(level Level) {
 	for _, s := range stream.streams {
-		s.SetFilterLevelIfUnset(level)
+		if setter, ok := s.(FilterSetter); ok {
+			setter.SetFilterLevelIfUnset(level)
+		}
 	}
-	return stream
 }
 
 // Write writes the given Record
