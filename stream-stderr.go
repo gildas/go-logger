@@ -8,7 +8,7 @@ import (
 	"github.com/gildas/go-errors"
 )
 
-// StderrStream is the Stream that writes to the standard output
+// StderrStream is the Stream that writes to the standard error
 type StderrStream struct {
 	*json.Encoder
 	Converter   Converter
@@ -17,6 +17,8 @@ type StderrStream struct {
 }
 
 // SetFilterLevel sets the filter level
+//
+// implements logger.Streamer
 func (stream *StderrStream) SetFilterLevel(level Level) Streamer {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
@@ -25,6 +27,8 @@ func (stream *StderrStream) SetFilterLevel(level Level) Streamer {
 }
 
 // SetFilterLevelIfUnset sets the filter level if not set already
+//
+// implements logger.Streamer
 func (stream *StderrStream) SetFilterLevelIfUnset(level Level) Streamer {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
@@ -35,8 +39,9 @@ func (stream *StderrStream) SetFilterLevelIfUnset(level Level) Streamer {
 }
 
 // Write writes the given Record
+//
+// implements logger.Streamer
 func (stream *StderrStream) Write(record Record) error {
-	// implements logger.Stream
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.Encoder == nil {
@@ -55,22 +60,27 @@ func (stream *StderrStream) Write(record Record) error {
 }
 
 // ShouldWrite tells if the given level should be written to this stream
+//
+// implements logger.Streamer
 func (stream *StderrStream) ShouldWrite(level Level) bool {
-	// implements logger.Stream
 	return level.ShouldWrite(stream.FilterLevel)
 }
 
 // Flush flushes the stream (makes sure records are actually written)
+//
+// implements logger.Streamer
 func (stream *StderrStream) Flush() {
-	// implements logger.Stream
 }
 
 // Close closes the stream
+//
+// implements logger.Streamer
 func (stream *StderrStream) Close() {
 }
 
 // String gets a string version
+//
+// implements fmt.Stringer
 func (stream *StderrStream) String() string {
-	// implements the fmt.Stringer interface
 	return "Stream to stderr"
 }

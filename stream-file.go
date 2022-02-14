@@ -28,6 +28,8 @@ type FileStream struct {
 }
 
 // SetFilterLevel sets the filter level
+//
+// implements logger.Streamer
 func (stream *FileStream) SetFilterLevel(level Level) Streamer {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
@@ -36,6 +38,8 @@ func (stream *FileStream) SetFilterLevel(level Level) Streamer {
 }
 
 // SetFilterLevelIfUnset sets the filter level if not set already
+//
+// implements logger.Streamer
 func (stream *FileStream) SetFilterLevelIfUnset(level Level) Streamer {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
@@ -46,7 +50,8 @@ func (stream *FileStream) SetFilterLevelIfUnset(level Level) Streamer {
 }
 
 // Write writes the given Record
-//   implements logger.Stream
+//
+// implements logger.Streamer
 func (stream *FileStream) Write(record Record) (err error) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
@@ -86,14 +91,16 @@ func (stream *FileStream) Write(record Record) (err error) {
 }
 
 // ShouldWrite tells if the given level should be written to this stream
+//
+// implements logger.Streamer
 func (stream *FileStream) ShouldWrite(level Level) bool {
-	// implements logger.Stream
 	return level.ShouldWrite(stream.FilterLevel)
 }
 
 // Flush flushes the stream (makes sure records are actually written)
+//
+// implements logger.Streamer
 func (stream *FileStream) Flush() {
-	// implements logger.Stream
 	if stream.output != nil {
 		stream.mutex.Lock()
 		defer stream.mutex.Unlock()
@@ -102,6 +109,8 @@ func (stream *FileStream) Flush() {
 }
 
 // Close closes the stream
+//
+// implements logger.Streamer
 func (stream *FileStream) Close() {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
@@ -114,8 +123,9 @@ func (stream *FileStream) Close() {
 }
 
 // String gets a string version
+//
+// implements fmt.Stringer
 func (stream *FileStream) String() string {
-	// implements the fmt.Stringer interface
 	var format strings.Builder
 
 	if stream.Unbuffered {

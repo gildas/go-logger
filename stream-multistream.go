@@ -8,6 +8,8 @@ type MultiStream struct {
 }
 
 // SetFilterLevel sets the filter level of all streams
+//
+// implements logger.Streamer
 func (stream *MultiStream) SetFilterLevel(level Level) Streamer {
 	for _, s := range stream.streams {
 		s.SetFilterLevel(level)
@@ -16,6 +18,8 @@ func (stream *MultiStream) SetFilterLevel(level Level) Streamer {
 }
 
 // SetFilterLevelIfUnset sets the filter level if not set already
+//
+// implements logger.Streamer
 func (stream *MultiStream) SetFilterLevelIfUnset(level Level) Streamer {
 	for _, s := range stream.streams {
 		s.SetFilterLevelIfUnset(level)
@@ -24,8 +28,9 @@ func (stream *MultiStream) SetFilterLevelIfUnset(level Level) Streamer {
 }
 
 // Write writes the given Record
+//
+// implements logger.Streamer
 func (stream *MultiStream) Write(record Record) error {
-	// implements logger.Stream
 	errs := errors.MultiError{}
 	for _, s := range stream.streams {
 		if err := s.Write(record); err != nil {
@@ -36,20 +41,24 @@ func (stream *MultiStream) Write(record Record) error {
 }
 
 // ShouldWrite tells if the given level should be written to this stream
+//
+// implements logger.Streamer
 func (stream *MultiStream) ShouldWrite(level Level) bool {
-	// implements logger.Stream
 	return true
 }
 
 // Flush flushes the stream (makes sure records are actually written)
+//
+// implements logger.Streamer
 func (stream *MultiStream) Flush() {
-	// implements logger.Stream
 	for _, s := range stream.streams {
 		s.Flush()
 	}
 }
 
 // Close closes the stream
+//
+// implements logger.Streamer
 func (stream *MultiStream) Close() {
 	for _, s := range stream.streams {
 		s.Close()
@@ -57,8 +66,9 @@ func (stream *MultiStream) Close() {
 }
 
 // String gets a string version
+//
+// implements fmt.Stringer
 func (stream MultiStream) String() string {
-	// implements the fmt.Stringer interface
 	return "MultiStream"
 }
 

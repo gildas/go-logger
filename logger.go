@@ -104,11 +104,6 @@ func CreateIfNil(logger *Logger, name string) *Logger {
 	return CreateWithStream(name, &NilStream{})
 }
 
-// Close closes the logger's stream
-func (log *Logger) Close() {
-	log.stream.Close()
-}
-
 // Record adds the given Record to the Log
 func (log *Logger) Record(key string, value interface{}) *Logger {
 	// This func requires Logger to be a Stream
@@ -190,13 +185,6 @@ func (log *Logger) GetRecord(key string) interface{} {
 	}
 	// TODO: find a way to traverse the parent Stream/Logger objects
 	return nil
-}
-
-// String gets a string version
-//
-//   implements the fmt.Stringer interface
-func (log Logger) String() string {
-	return fmt.Sprintf("Logger(%s)", log.stream)
 }
 
 // Tracef traces a message at the TRACE Level

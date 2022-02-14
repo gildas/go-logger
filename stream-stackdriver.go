@@ -13,6 +13,8 @@ import (
 )
 
 // StackDriverStream is the Stream that writes to the standard output
+//
+// implements logger.Streamer
 type StackDriverStream struct {
 	LogID       string
 	Parent      string
@@ -26,6 +28,8 @@ type StackDriverStream struct {
 }
 
 // SetFilterLevel sets the filter level
+//
+// implements logger.Streamer
 func (stream *StackDriverStream) SetFilterLevel(level Level) Streamer {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
@@ -34,6 +38,8 @@ func (stream *StackDriverStream) SetFilterLevel(level Level) Streamer {
 }
 
 // SetFilterLevelIfUnset sets the filter level if not set already
+//
+// implements logger.Streamer
 func (stream *StackDriverStream) SetFilterLevelIfUnset(level Level) Streamer {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
@@ -44,8 +50,9 @@ func (stream *StackDriverStream) SetFilterLevelIfUnset(level Level) Streamer {
 }
 
 // Write writes the given Record
+//
+// implements logger.Streamer
 func (stream *StackDriverStream) Write(record Record) (err error) {
-	// implements logger.Stream
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.client == nil {
@@ -92,14 +99,16 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 }
 
 // ShouldWrite tells if the given level should be written to this stream
+//
+// implements logger.Streamer
 func (stream *StackDriverStream) ShouldWrite(level Level) bool {
-	// implements logger.Stream
 	return level.ShouldWrite(stream.FilterLevel)
 }
 
 // Flush flushes the stream (makes sure records are actually written)
+//
+// implements logger.Streamer
 func (stream *StackDriverStream) Flush() {
-	// implements logger.Stream
 	if stream.target != nil {
 		stream.mutex.Lock()
 		defer stream.mutex.Unlock()
@@ -108,6 +117,8 @@ func (stream *StackDriverStream) Flush() {
 }
 
 // Close closes the stream
+//
+// implements logger.Streamer
 func (stream *StackDriverStream) Close() {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
@@ -120,7 +131,8 @@ func (stream *StackDriverStream) Close() {
 }
 
 // String gets a string version
+//
+// implements fmt.Stringer
 func (stream *StackDriverStream) String() string {
-	// implements the fmt.Stringer interface
 	return "Stream to Google StackDriver"
 }
