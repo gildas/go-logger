@@ -112,16 +112,51 @@ func (suite *LoggerSuite) TestCanSetTopic() {
 	log := logger.Create("test")
 	suite.Require().NotNil(log, "cannot create a logger.Logger")
 	log = log.Topic("topic_test")
-	suite.Require().NotNil(log.GetRecord("topic"), "Failed to set a Topic")
-	suite.Assert().Equal("topic_test", log.GetRecord("topic").(string), "Failed to set a Topic")
+	suite.Require().NotNil(log.GetTopic(), "Failed to set a Topic")
+	suite.Assert().Equal("topic_test", log.GetTopic(), "Failed to set a Topic")
+}
+
+func (suite *LoggerSuite) TestCanSetTopicWithNilValue() {
+	log := logger.Create("test")
+	suite.Require().NotNil(log, "cannot create a logger.Logger")
+	log = log.Topic(nil)
+	suite.Require().NotNil(log.GetTopic(), "Failed to set a Topic")
+	suite.Assert().Equal("main", log.GetTopic(), "Failed to set a Topic")
 }
 
 func (suite *LoggerSuite) TestCanSetScope() {
 	log := logger.Create("test")
 	suite.Require().NotNil(log, "cannot create a logger.Logger")
 	log = log.Scope("scope_test")
-	suite.Require().NotNil(log.GetRecord("scope"), "Failed to set a Scope")
-	suite.Assert().Equal("scope_test", log.GetRecord("scope").(string), "Failed to set a Scope")
+	suite.Require().NotNil(log.GetScope(), "Failed to set a Scope")
+	suite.Assert().Equal("scope_test", log.GetScope(), "Failed to set a Scope")
+}
+
+func (suite *LoggerSuite) TestCanSetScopeWithNilValue() {
+	log := logger.Create("test")
+	suite.Require().NotNil(log, "cannot create a logger.Logger")
+	log = log.Scope(nil)
+	suite.Require().NotNil(log.GetScope(), "Failed to set a Scope")
+	suite.Assert().Equal("main", log.GetScope(), "Failed to set a Scope")
+}
+
+func (suite *LoggerSuite) TestCanGetTopic() {
+	log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+	suite.Assert().Equal("main", log.GetTopic())
+}
+
+func (suite *LoggerSuite) TestCanGetTopicFromChild() {
+	log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+	suite.Assert().Equal("main", log.GetTopic())
+	log = log.Child("child", "scope")
+	suite.Assert().Equal("child", log.GetTopic())
+}
+
+func (suite *LoggerSuite) TestCanGetTopicInheritedByChild() {
+	log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+	suite.Assert().Equal("main", log.GetTopic())
+	log = log.Child(nil, "scope")
+	suite.Assert().Equal("main", log.GetTopic())
 }
 
 func (suite *LoggerSuite) TestCanSetLevelPerTopic() {

@@ -140,18 +140,30 @@ func (log *Logger) Records(params ...interface{}) *Logger {
 }
 
 // Topic sets the Topic of this Logger
-func (log *Logger) Topic(value interface{}) *Logger {
-	return log.Record("topic", value)
+func (log *Logger) Topic(topic interface{}) *Logger {
+	if topic == nil {
+		topic = log.record["topic"]
+	}
+	return log.Record("topic", topic)
 }
 
 // Scope sets the Scope if this Logger
-func (log *Logger) Scope(value interface{}) *Logger {
-	return log.Record("scope", value)
+func (log *Logger) Scope(scope interface{}) *Logger {
+	if scope == nil {
+		scope = log.record["scope"]
+	}
+	return log.Record("scope", scope)
 }
 
 // Child creates a child Logger with a topic, a scope, and records
 func (log *Logger) Child(topic, scope interface{}, params ...interface{}) *Logger {
 	var key string
+	if topic == nil {
+		topic = log.record["topic"]
+	}
+	if scope == nil {
+		scope = log.record["scope"]
+	}
 	record := NewRecord().Set("topic", topic).Set("scope", scope)
 	newlog := &Logger{log, record, log.redactors}
 	for _, param := range params {
@@ -186,6 +198,16 @@ func (log *Logger) GetRecord(key string) interface{} {
 	}
 	// TODO: find a way to traverse the parent Stream/Logger objects
 	return nil
+}
+
+// GetTopic returns the Record topic
+func (log *Logger) GetTopic() string {
+	return log.GetRecord("topic").(string)
+}
+
+// GetScope returns the Record scope
+func (log *Logger) GetScope() string {
+	return log.GetRecord("scope").(string)
 }
 
 // Tracef traces a message at the TRACE Level
