@@ -191,12 +191,12 @@ func (log *Logger) Child(topic, scope interface{}, params ...interface{}) *Logge
 
 // GetRecord returns the Record field value for a given key
 func (log *Logger) GetRecord(key string) interface{} {
-	value := log.record[key]
-
-	if value != nil {
+	if value, found := log.record[key]; found {
 		return value
 	}
-	// TODO: find a way to traverse the parent Stream/Logger objects
+	if parent, ok := log.stream.(*Logger); ok {
+		return parent.GetRecord(key)
+	}
 	return nil
 }
 

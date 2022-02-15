@@ -152,6 +152,15 @@ func (suite *LoggerSuite) TestCanGetTopicFromChild() {
 	suite.Assert().Equal("child", log.GetTopic())
 }
 
+func (suite *LoggerSuite) TestCanGetTopicFromChildWithAddedRecord() {
+	log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+	suite.Assert().Equal("main", log.GetTopic())
+	log = log.Child("child", "scope")
+	suite.Assert().Equal("child", log.GetTopic())
+	log = log.Record("data", "data")
+	suite.Assert().Equal("child", log.GetTopic())
+}
+
 func (suite *LoggerSuite) TestCanGetTopicInheritedByChild() {
 	log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
 	suite.Assert().Equal("main", log.GetTopic())
