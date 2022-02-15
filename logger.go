@@ -133,6 +133,7 @@ func (log *Logger) Records(params ...interface{}) *Logger {
 			key = param.(string)
 		} else if len(key) > 0 {
 			record.Set(key, param)
+			key=""
 		}
 	}
 	return &Logger{log, record, log.redactors}
