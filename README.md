@@ -250,6 +250,8 @@ var Log = logger.Must(logger.FromContext(context))
 `FromContext` can be used to retrieve a `Logger` from a GO context. (This is used in the paragraph about HTTP Usage)  
 `log.ToContext` will store the `Logger` to the given GO context.
 
+It is also possible to change the FilterLevel by calling `FilterMore()`and `FilterLess()` methods on the `Logger` or any of its `Streamer` member. The former will log less data and the latter will log more data. We provide an example of how to use these in the [examples](examples/set-level-with-signal/) folder using Unix signals.
+
 ## Redacting
 
 The `Logger` can redact records as needed by simply implementing the `logger.Redactable` interface in the data that is logged.
