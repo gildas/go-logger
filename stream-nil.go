@@ -16,6 +16,18 @@ func (stream *NilStream) SetFilterLevel(level Level) {
 func (stream *NilStream) SetFilterLevelIfUnset(level Level) {
 }
 
+// SetFilterLevelForTopic sets the filter level for a given topic
+//
+// implements logger.FilterSetter
+func (stream *NilStream) SetFilterLevelForTopic(level Level, topic string) {
+}
+
+// SetFilterLevelForTopicAndScope sets the filter level for a given topic
+//
+// implements logger.FilterSetter
+func (stream *NilStream) SetFilterLevelForTopicAndScope(level Level, topic, scope string) {
+}
+
 // FilterMore tells the stream to filter more
 //
 // The stream will filter more if it is not already at the highest level.
@@ -50,6 +62,20 @@ func (stream *NilStream) Write(record Record) error {
 //
 // implements logger.Streamer
 func (stream *NilStream) ShouldWrite(level Level) bool {
+	return false
+}
+
+// ShouldWriteWithTopic tells if the given level should be written to this stream
+//
+// implements logger.Streamer
+func (stream *NilStream) ShouldWriteWithTopic(level Level, topic string) bool {
+	return false
+}
+
+// ShouldWriteWithTopicAndScope tells if the given level should be written to this stream
+//
+// implements logger.Streamer
+func (stream *NilStream) ShouldWriteWithTopicAndScope(level Level, topic, scope string) bool {
 	return false
 }
 

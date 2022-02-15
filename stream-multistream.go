@@ -29,6 +29,28 @@ func (stream *MultiStream) SetFilterLevelIfUnset(level Level) {
 	}
 }
 
+// SetFilterLevelForTopic sets the filter level for a given topic
+//
+// implements logger.FilterSetter
+func (stream *MultiStream) SetFilterLevelForTopic(level Level, topic string) {
+	for _, s := range stream.streams {
+		if setter, ok := s.(FilterSetter); ok {
+			setter.SetFilterLevelForTopic(level, topic)
+		}
+	}
+}
+
+// SetFilterLevelForTopicAndScope sets the filter level for a given topic
+//
+// implements logger.FilterSetter
+func (stream *MultiStream) SetFilterLevelForTopicAndScope(level Level, topic, scope string) {
+	for _, s := range stream.streams {
+		if setter, ok := s.(FilterSetter); ok {
+			setter.SetFilterLevelForTopicAndScope(level, topic, scope)
+		}
+	}
+}
+
 // FilterMore tells the stream to filter more
 //
 // The stream will filter more if it is not already at the highest level.
@@ -78,6 +100,20 @@ func (stream *MultiStream) Write(record Record) error {
 //
 // implements logger.Streamer
 func (stream *MultiStream) ShouldWrite(level Level) bool {
+	return true
+}
+
+// ShouldWriteWithTopic tells if the given level should be written to this stream
+//
+// implements logger.Streamer
+func (stream *MultiStream) ShouldWriteWithTopic(level Level, topic string) bool {
+	return true
+}
+
+// ShouldWriteWithTopicAndScope tells if the given level should be written to this stream
+//
+// implements logger.Streamer
+func (stream *MultiStream) ShouldWriteWithTopicAndScope(level Level, topic, scope string) bool {
 	return true
 }
 

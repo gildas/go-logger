@@ -34,6 +34,12 @@ type FilterSetter interface {
 	// SetFilterLevel sets the filter level
 	SetFilterLevel(level Level)
 
+	// SetFilterLevelForTopic sets the filter level for a given topic
+	SetFilterLevelForTopic(level Level, topic string)
+
+	// SetFilterLevelForTopicAndScope sets the filter level for a given topic
+	SetFilterLevelForTopicAndScope(level Level, topic, scope string)
+
 	// SetFilterLevelIfUnset sets the filter level if not set already
 	SetFilterLevelIfUnset(level Level)
 }

@@ -479,6 +479,41 @@ func (suite *StreamSuite) TestCanFilterLess() {
 	suite.Assert().Equal(logger.TRACE, streamStdout.FilterLevel)
 }
 
+func (suite *StreamSuite) TestCanSetLevelPerTopicAndScope() {
+	streams := []logger.Streamer{
+		&logger.FileStream{FilterLevel: logger.INFO},
+		&logger.StackDriverStream{FilterLevel: logger.INFO},
+		&logger.StderrStream{FilterLevel: logger.INFO},
+		&logger.StdoutStream{FilterLevel: logger.INFO},
+	}
+
+	for _, strm := range streams {
+		setter, ok := strm.(logger.FilterSetter)
+		suite.Require().Truef(ok, "Streamer %s should implement FilterSetter", reflect.TypeOf(strm))
+
+		suite.Assert().Truef(strm.ShouldWriteWithTopic(logger.INFO, "main"), "Stream %s should write INFO messages for main topic before it is configured", reflect.TypeOf(strm))
+		suite.Assert().Falsef(strm.ShouldWriteWithTopic(logger.DEBUG, "main"), "Stream %s should not write DEBUG messages for main topic before it is configured", reflect.TypeOf(strm))
+		suite.Assert().Truef(strm.ShouldWriteWithTopicAndScope(logger.INFO, "main", "any"), "Stream %s should write INFO messages for main topic and any scope before it is configured", reflect.TypeOf(strm))
+		suite.Assert().Falsef(strm.ShouldWriteWithTopicAndScope(logger.DEBUG, "main", "any"), "Stream %s should not write DEBUG messages for main topic and any scope before it is configured", reflect.TypeOf(strm))
+
+		setter.SetFilterLevelForTopic(logger.DEBUG, "main")
+		setter.SetFilterLevelForTopicAndScope(logger.TRACE, "main", "specific")
+
+		suite.Assert().Truef(strm.ShouldWrite(logger.WARN), "Stream %s should write WARN messages", reflect.TypeOf(strm))
+		suite.Assert().Falsef(strm.ShouldWrite(logger.DEBUG), "Stream %s should not write DEBUG messages", reflect.TypeOf(strm))
+
+		suite.Assert().Truef(strm.ShouldWriteWithTopic(logger.DEBUG, "main"), "Stream %s should write DEBUG messages for main topic", reflect.TypeOf(strm))
+		suite.Assert().Falsef(strm.ShouldWriteWithTopic(logger.TRACE, "main"), "Stream %s should not write TRACE messages for main topic", reflect.TypeOf(strm))
+		suite.Assert().Truef(strm.ShouldWriteWithTopicAndScope(logger.DEBUG, "main", "any"), "Stream %s should write DEBUG messages for main topic and any scope", reflect.TypeOf(strm))
+		suite.Assert().Truef(strm.ShouldWriteWithTopicAndScope(logger.TRACE, "main", "specific"), "Stream %s should write TRACE messages for main topic and specific scope", reflect.TypeOf(strm))
+		suite.Assert().Falsef(strm.ShouldWriteWithTopicAndScope(logger.TRACE, "main", "any"), "Stream %s should not write TRACE messages for main topic and any scope", reflect.TypeOf(strm))
+
+		suite.Assert().Truef(strm.ShouldWriteWithTopic(logger.INFO, "another_topic"), "Stream %s should write INFO messages for another_topic topic", reflect.TypeOf(strm))
+		suite.Assert().Falsef(strm.ShouldWriteWithTopic(logger.DEBUG, "another_topic"), "Stream %s should not write DEBUG messages for another_topic topic", reflect.TypeOf(strm))
+		suite.Assert().Falsef(strm.ShouldWriteWithTopicAndScope(logger.DEBUG, "another_topic", "any"), "Stream %s should not write DEBUG messages for another_topic topic and any scope", reflect.TypeOf(strm))
+	}
+}
+
 func (suite *StreamSuite) SetupSuite() {
 	suite.Name = strings.TrimSuffix(reflect.TypeOf(*suite).Name(), "Suite")
 }

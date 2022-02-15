@@ -31,6 +31,24 @@ func (log *Logger) SetFilterLevelIfUnset(level Level) {
 	}
 }
 
+// SetFilterLevelForTopic sets the filter level for a given topic
+//
+// implements logger.FilterSetter
+func (log *Logger) SetFilterLevelForTopic(level Level, topic string) {
+	if setter, ok := log.stream.(FilterSetter); ok {
+		setter.SetFilterLevelForTopic(level, topic)
+	}
+}
+
+// SetFilterLevelForTopicAndScope sets the filter level for a given topic
+//
+// implements logger.FilterSetter
+func (log *Logger) SetFilterLevelForTopicAndScope(level Level, topic, scope string) {
+	if setter, ok := log.stream.(FilterSetter); ok {
+		setter.SetFilterLevelForTopicAndScope(level, topic, scope)
+	}
+}
+
 // FilterMore tells the stream to filter more
 //
 // The stream will filter more if it is not already at the highest level.
@@ -64,6 +82,20 @@ func (log *Logger) FilterLess() {
 // implements logger.Streamer
 func (log *Logger) ShouldWrite(level Level) bool {
 	return log.stream.ShouldWrite(level)
+}
+
+// ShouldWriteWithTopic tells if the given level should be written to this stream
+//
+// implements logger.Streamer
+func (log *Logger) ShouldWriteWithTopic(level Level, topic string) bool {
+	return log.stream.ShouldWriteWithTopic(level, topic)
+}
+
+// ShouldWriteWithTopicAndScope tells if the given level should be written to this stream
+//
+// implements logger.Streamer
+func (log *Logger) ShouldWriteWithTopicAndScope(level Level, topic, scope string) bool {
+	return log.stream.ShouldWriteWithTopicAndScope(level, topic, scope)
 }
 
 // Flush flushes the stream (makes sure records are actually written)

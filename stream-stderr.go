@@ -11,9 +11,10 @@ import (
 // StderrStream is the Stream that writes to the standard error
 type StderrStream struct {
 	*json.Encoder
-	Converter   Converter
-	FilterLevel Level
-	mutex       sync.Mutex
+	Converter    Converter
+	FilterLevel  Level
+	FilterLevels map[string]Level
+	mutex        sync.Mutex
 }
 
 // SetFilterLevel sets the filter level
@@ -34,6 +35,30 @@ func (stream *StderrStream) SetFilterLevelIfUnset(level Level) {
 	if stream.FilterLevel == UNSET {
 		stream.FilterLevel = level
 	}
+}
+
+// SetFilterLevelForTopic sets the filter level for a given topic
+//
+// implements logger.FilterSetter
+func (stream *StderrStream) SetFilterLevelForTopic(level Level, topic string) {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	if stream.FilterLevels == nil {
+		stream.FilterLevels = make(map[string]Level)
+	}
+	stream.FilterLevels[topic] = level
+}
+
+// SetFilterLevelForTopicAndScope sets the filter level for a given topic
+//
+// implements logger.FilterSetter
+func (stream *StderrStream) SetFilterLevelForTopicAndScope(level Level, topic, scope string) {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	if stream.FilterLevels == nil {
+		stream.FilterLevels = make(map[string]Level)
+	}
+	stream.FilterLevels[topic + "|" + scope] = level
 }
 
 // FilterMore tells the stream to filter more
@@ -89,6 +114,29 @@ func (stream *StderrStream) Write(record Record) error {
 //
 // implements logger.Streamer
 func (stream *StderrStream) ShouldWrite(level Level) bool {
+	return level.ShouldWrite(stream.FilterLevel)
+}
+
+// ShouldWriteWithTopic tells if the given level should be written to this stream
+//
+// implements logger.Streamer
+func (stream *StderrStream) ShouldWriteWithTopic(level Level, topic string) bool {
+	if _level, found := stream.FilterLevels[topic]; found {
+		return level.ShouldWrite(_level)
+	}
+	return level.ShouldWrite(stream.FilterLevel)
+}
+
+// ShouldWriteWithTopicAndScope tells if the given level should be written to this stream
+//
+// implements logger.Streamer
+func (stream *StderrStream) ShouldWriteWithTopicAndScope(level Level, topic, scope string) bool {
+	if _level, found := stream.FilterLevels[topic + "|" + scope]; found {
+		return level.ShouldWrite(_level)
+	}
+	if _level, found := stream.FilterLevels[topic]; found {
+		return level.ShouldWrite(_level)
+	}
 	return level.ShouldWrite(stream.FilterLevel)
 }
 

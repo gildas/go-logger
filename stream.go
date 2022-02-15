@@ -16,6 +16,12 @@ type Streamer interface {
 	// ShouldWrite tells if the given level should be written to this stream
 	ShouldWrite(level Level) bool
 
+	// ShouldWriteWithTopic tells if the given level should be written to this stream
+	ShouldWriteWithTopic(level Level, topic string) bool
+
+	// ShouldWriteWithTopicAndScope tells if the given level should be written to this stream
+	ShouldWriteWithTopicAndScope(level Level, topic, scope string) bool
+
 	// Flush flushes the stream (makes sure records are actually written)
 	Flush()
 
