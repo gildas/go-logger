@@ -309,7 +309,19 @@ func (log *Logger) Memory() {
 
 // send writes a message to the Sink
 func (log *Logger) send(level Level, msg string, args ...interface{}) {
-	if log.ShouldWrite(level) {
+	shouldWrite := false
+	topic := log.GetTopic()
+	scope := log.GetScope()
+
+	if len(topic) > 0 && len(scope) > 0 {
+		shouldWrite = log.ShouldWriteWithTopicAndScope(level, topic, scope)
+	} else if len(topic) > 0 {
+		shouldWrite = log.ShouldWriteWithTopic(level, topic)
+	} else {
+		shouldWrite = log.ShouldWrite(level)
+	}
+
+	if shouldWrite {
 		record := NewRecord()
 		record["time"] = time.Now().UTC()
 		record["level"] = level

@@ -483,3 +483,61 @@ func (suite *LoggerSuite) TestCanFilterLess() {
 	// We cannot do this unfortunately:
 	// suite.Assert().Equal(logger.DEBUG, log.FilterLevel)
 }
+
+func (suite *LoggerSuite) TestCanLogAtDifferentLevelsPerTopic() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.SetFilterLevelForTopic(logger.DEBUG, "child")
+		log = log.Child("child", nil)
+		log.Debugf("message")
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":20,"msg":"message","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"child","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+}
+
+func (suite *LoggerSuite) TestCanLogAtDifferentLevelsPerTopicAndEmptyScope() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.SetFilterLevelForTopic(logger.DEBUG, "child")
+		log = log.Child("child", "")
+		log.Debugf("message")
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":20,"msg":"message","name":"test","pid":[0-9]+,"scope":"","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"child","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+}
+
+func (suite *LoggerSuite) TestCannotLogAtDifferentLevelsWithEmptyTopicAndEmptyScope() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.SetFilterLevelForTopic(logger.DEBUG, "child")
+		log = log.Child("", "")
+		log.Debugf("message")
+	})
+	suite.Assert().Empty(output, "There was an output")
+}
+
+func (suite *LoggerSuite) TestCanLogWithEmptyTopicAndEmptyScope() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.SetFilterLevelForTopic(logger.DEBUG, "child")
+		log = log.Child("", "")
+		log.Infof("message")
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"message","name":"test","pid":[0-9]+,"scope":"","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+}
+
+func (suite *LoggerSuite) TestCanLogAtDifferentLevelsPerTopicAndScope() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.SetFilterLevelForTopicAndScope(logger.DEBUG, "child", "scope")
+		log = log.Child("child", "scope")
+		log.Debugf("message")
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":20,"msg":"message","name":"test","pid":[0-9]+,"scope":"scope","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"child","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+}
