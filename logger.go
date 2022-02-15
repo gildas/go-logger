@@ -241,7 +241,7 @@ func (log *Logger) Fatalf(msg string, args ...interface{}) {
 	logWithErr.send(FATAL, msg, args...)
 }
 
-// Memf traces memory usage
+// Memorylf traces memory usage at the given level and with the given message
 func (log *Logger) Memorylf(level Level, msg string, args ...interface{}) {
 	var mem runtime.MemStats
 
@@ -269,17 +269,17 @@ func (log *Logger) Memorylf(level Level, msg string, args ...interface{}) {
 	log.send(level, msg, args...)
 }
 
-// Memf traces memory usage
+// Memoryf traces memory usage at the TRACE level with a given message
 func (log *Logger) Memoryf(msg string, args ...interface{}) {
 	log.Memorylf(TRACE, msg, args...)
 }
 
-// Memf traces memory usage
+// Memoryl traces memory usage at the given level
 func (log *Logger) Memoryl(level Level) {
 	log.Memorylf(level, "")
 }
 
-// Memf traces memory usage
+// Memory traces memory usage at the TRACE Level
 func (log *Logger) Memory() {
 	log.Memorylf(TRACE, "")
 }
