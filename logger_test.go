@@ -392,3 +392,13 @@ func (suite *LoggerSuite) TestCanRedactMessage() {
 	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"message with sensitive \(REDACTED\) data","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
 	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
 }
+
+func (suite *LoggerSuite) TestCanSetLevelPerTopic() {
+	log := logger.Create("TEST")
+	log.SetFilterLevelForTopic(logger.DEBUG, "main")
+}
+
+func (suite *LoggerSuite) TestCanSetLevelPerTopicAndScope() {
+	log := logger.Create("TEST")
+	log.SetFilterLevelForTopicAndScope(logger.TRACE, "main", "specific")
+}
