@@ -393,6 +393,20 @@ func (suite *LoggerSuite) TestCanRedactMessage() {
 	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
 }
 
+func (suite *LoggerSuite) TestCanFilterMore() {
+	log := logger.Create("TEST")
+	log.FilterMore()
+	// We cannot do this unfortunately:
+	// suite.Assert().Equal(logger.WARN, log.FilterLevel)
+}
+
+func (suite *LoggerSuite) TestCanFilterLess() {
+	log := logger.Create("TEST")
+	log.FilterLess()
+	// We cannot do this unfortunately:
+	// suite.Assert().Equal(logger.DEBUG, log.FilterLevel)
+}
+
 func (suite *LoggerSuite) TestCanSetLevelPerTopic() {
 	log := logger.Create("TEST")
 	log.SetFilterLevelForTopic(logger.DEBUG, "main")

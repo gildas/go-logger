@@ -418,9 +418,6 @@ func (suite *StreamSuite) TestFailsWritingWithBogusRecordValue() {
 }
 
 func (suite *StreamSuite) TestCanFilterMore() {
-	log := logger.Create("TEST")
-	log.FilterMore()
-
 	streamFile := &logger.FileStream{FilterLevel: logger.INFO}
 	streamFile.FilterMore()
 	suite.Assert().Equal(logger.WARN, streamFile.FilterLevel)
@@ -449,9 +446,6 @@ func (suite *StreamSuite) TestCanFilterMore() {
 }
 
 func (suite *StreamSuite) TestCanFilterLess() {
-	log := logger.Create("TEST")
-	log.FilterLess()
-
 	streamFile := &logger.FileStream{FilterLevel: logger.INFO}
 	streamFile.FilterLess()
 	suite.Assert().Equal(logger.DEBUG, streamFile.FilterLevel)
