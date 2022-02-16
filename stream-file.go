@@ -20,7 +20,7 @@ type FileStream struct {
 	Path           string
 	Converter      Converter
 	FilterLevel    Level
-	FilterLevels   map[string]Level
+	FilterLevels   TopicScopeLevels
 	Unbuffered     bool
 	file           *os.File
 	output         *bufio.Writer
@@ -54,10 +54,7 @@ func (stream *FileStream) SetFilterLevelIfUnset(level Level) {
 func (stream *FileStream) SetFilterLevelForTopic(level Level, topic string) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
-	if stream.FilterLevels == nil {
-		stream.FilterLevels = make(map[string]Level)
-	}
-	stream.FilterLevels[topic] = level
+	stream.FilterLevels.Set(topic, "", level)
 }
 
 // SetFilterLevelForTopicAndScope sets the filter level for a given topic
@@ -66,10 +63,7 @@ func (stream *FileStream) SetFilterLevelForTopic(level Level, topic string) {
 func (stream *FileStream) SetFilterLevelForTopicAndScope(level Level, topic, scope string) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
-	if stream.FilterLevels == nil {
-		stream.FilterLevels = make(map[string]Level)
-	}
-	stream.FilterLevels[topic + "|" + scope] = level
+	stream.FilterLevels.Set(topic, scope, level)
 }
 
 // FilterMore tells the stream to filter more
@@ -152,7 +146,7 @@ func (stream *FileStream) ShouldWrite(level Level) bool {
 //
 // implements logger.Streamer
 func (stream *FileStream) ShouldWriteWithTopic(level Level, topic string) bool {
-	if _level, found := stream.FilterLevels[topic]; found {
+	if _level, found := stream.FilterLevels.Get(topic, ""); found {
 		return level.ShouldWrite(_level)
 	}
 	return level.ShouldWrite(stream.FilterLevel)
@@ -162,10 +156,7 @@ func (stream *FileStream) ShouldWriteWithTopic(level Level, topic string) bool {
 //
 // implements logger.Streamer
 func (stream *FileStream) ShouldWriteWithTopicAndScope(level Level, topic, scope string) bool {
-	if _level, found := stream.FilterLevels[topic + "|" + scope]; found {
-		return level.ShouldWrite(_level)
-	}
-	if _level, found := stream.FilterLevels[topic]; found {
+	if _level, found := stream.FilterLevels.Get(topic, scope); found {
 		return level.ShouldWrite(_level)
 	}
 	return level.ShouldWrite(stream.FilterLevel)

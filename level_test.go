@@ -45,6 +45,30 @@ func (suite *LevelSuite) TestCanGetLevelFromEnvironment() {
 	os.Unsetenv("DEBUG")
 }
 
+func (suite *LevelSuite) TestCanSetTopicScopeLevel() {
+	var levels logger.TopicScopeLevels
+	suite.Require().Nil(levels) // Just to show that it is not created
+
+	_, found := levels.Get("any", "any")
+	suite.Assert().False(found, "The level for any:any should not be found in a nil TopicScopeLevels")
+
+	levels.Set("topic1", "scope1", logger.DEBUG)
+	suite.Require().NotNil(levels, "Levels should not be nil after setting a level")
+	levels.Set("topic1", "", logger.DEBUG)
+
+	level, found := levels.Get("topic1", "scope1")
+	suite.Assert().True(found, "The level for topic1:scope1 should be found")
+	suite.Assert().Equal(logger.DEBUG, level, "The level for topic1:scope1 should be DEBUG")
+
+	level, found = levels.Get("topic1", "any")
+	suite.Assert().True(found, "The level for topic1:any should be found")
+	suite.Assert().Equal(logger.DEBUG, level, "The level for topic1:any should be DEBUG")
+
+	level, found = levels.Get("topic1", "")
+	suite.Assert().True(found, "The level for topic1 should be found")
+	suite.Assert().Equal(logger.DEBUG, level, "The level for topic1 should be DEBUG")
+}
+
 func (suite *LevelSuite) TestCanStringLevel() {
 	suite.Assert().Equal("INFO", logger.INFO.String())
 	suite.Assert().Equal("ERROR", logger.ERROR.String())
