@@ -18,20 +18,18 @@ type BogusStream struct {
 }
 
 // SetFilterLevel sets the filter level
-func (stream *BogusStream) SetFilterLevel(level logger.Level) logger.Streamer {
-	return stream
+func (stream *BogusStream) SetFilterLevel(level logger.Level) {
 }
 
 // SetFilterLevelIfUnset sets the filter level if not set already
-func (stream *BogusStream) SetFilterLevelIfUnset(level logger.Level) logger.Streamer {
-	return stream
+func (stream *BogusStream) SetFilterLevelIfUnset(level logger.Level) {
 }
 
 func (stream *BogusStream) Write(record logger.Record) error {
 	return fmt.Errorf("This Stream is Bogus")
 }
 
-func (stream *BogusStream) ShouldWrite(level logger.Level) bool {
+func (stream *BogusStream) ShouldWrite(level logger.Level, topic, scope string) bool {
 	return true
 }
 

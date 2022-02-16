@@ -13,39 +13,91 @@ import (
 )
 
 // StackDriverStream is the Stream that writes to the standard output
+//
+// implements logger.Streamer
 type StackDriverStream struct {
-	LogID       string
-	Parent      string
-	KeyFilename string
-	Key         interface{}
-	Converter   Converter
-	FilterLevel Level
-	mutex       sync.Mutex
-	client      *logging.Client
-	target      *logging.Logger
+	LogID        string
+	Parent       string
+	KeyFilename  string
+	Key          interface{}
+	Converter    Converter
+	FilterLevel  Level
+	FilterLevels TopicScopeLevels
+	mutex        sync.Mutex
+	client       *logging.Client
+	target       *logging.Logger
 }
 
 // SetFilterLevel sets the filter level
-func (stream *StackDriverStream) SetFilterLevel(level Level) Streamer {
+//
+// implements logger.FilterSetter
+func (stream *StackDriverStream) SetFilterLevel(level Level) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	stream.FilterLevel = level
-	return stream
 }
 
 // SetFilterLevelIfUnset sets the filter level if not set already
-func (stream *StackDriverStream) SetFilterLevelIfUnset(level Level) Streamer {
+//
+// implements logger.FilterSetter
+func (stream *StackDriverStream) SetFilterLevelIfUnset(level Level) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.FilterLevel == UNSET {
 		stream.FilterLevel = level
 	}
-	return stream
+}
+
+// SetFilterLevelForTopic sets the filter level for a given topic
+//
+// implements logger.FilterSetter
+func (stream *StackDriverStream) SetFilterLevelForTopic(level Level, topic string) {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevels.Set(topic, "", level)
+}
+
+// SetFilterLevelForTopicAndScope sets the filter level for a given topic
+//
+// implements logger.FilterSetter
+func (stream *StackDriverStream) SetFilterLevelForTopicAndScope(level Level, topic, scope string) {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevels.Set(topic, scope, level)
+}
+
+// FilterMore tells the stream to filter more
+//
+// The stream will filter more if it is not already at the highest level.
+// Which means less log messages will be written to the stream
+//
+// Example: if the stream is at DEBUG, it will be filtering at INFO
+//
+// implements logger.FilterModifier
+func (stream *StackDriverStream) FilterMore() {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevel = stream.FilterLevel.Next()
+}
+
+// FilterLess tells the stream to filter less
+//
+// The stream will filter less if it is not already at the lowest level.
+// Which means more log messages will be written to the stream
+//
+// Example: if the stream is at INFO, it will be filtering at DEBUG
+//
+// implements logger.FilterModifier
+func (stream *StackDriverStream) FilterLess() {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevel = stream.FilterLevel.Previous()
 }
 
 // Write writes the given Record
+//
+// implements logger.Streamer
 func (stream *StackDriverStream) Write(record Record) (err error) {
-	// implements logger.Stream
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.client == nil {
@@ -92,14 +144,19 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 }
 
 // ShouldWrite tells if the given level should be written to this stream
-func (stream *StackDriverStream) ShouldWrite(level Level) bool {
-	// implements logger.Stream
+//
+// implements logger.Streamer
+func (stream *StackDriverStream) ShouldWrite(level Level, topic, scope string) bool {
+	if _level, found := stream.FilterLevels.Get(topic, scope); found {
+		return level.ShouldWrite(_level)
+	}
 	return level.ShouldWrite(stream.FilterLevel)
 }
 
 // Flush flushes the stream (makes sure records are actually written)
+//
+// implements logger.Streamer
 func (stream *StackDriverStream) Flush() {
-	// implements logger.Stream
 	if stream.target != nil {
 		stream.mutex.Lock()
 		defer stream.mutex.Unlock()
@@ -108,6 +165,8 @@ func (stream *StackDriverStream) Flush() {
 }
 
 // Close closes the stream
+//
+// implements logger.Streamer
 func (stream *StackDriverStream) Close() {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
@@ -120,7 +179,8 @@ func (stream *StackDriverStream) Close() {
 }
 
 // String gets a string version
+//
+// implements fmt.Stringer
 func (stream *StackDriverStream) String() string {
-	// implements the fmt.Stringer interface
 	return "Stream to Google StackDriver"
 }

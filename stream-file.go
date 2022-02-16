@@ -20,6 +20,7 @@ type FileStream struct {
 	Path           string
 	Converter      Converter
 	FilterLevel    Level
+	FilterLevels   TopicScopeLevels
 	Unbuffered     bool
 	file           *os.File
 	output         *bufio.Writer
@@ -28,25 +29,74 @@ type FileStream struct {
 }
 
 // SetFilterLevel sets the filter level
-func (stream *FileStream) SetFilterLevel(level Level) Streamer {
+//
+// implements logger.FilterSetter
+func (stream *FileStream) SetFilterLevel(level Level) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	stream.FilterLevel = level
-	return stream
 }
 
 // SetFilterLevelIfUnset sets the filter level if not set already
-func (stream *FileStream) SetFilterLevelIfUnset(level Level) Streamer {
+//
+// implements logger.FilterSetter
+func (stream *FileStream) SetFilterLevelIfUnset(level Level) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.FilterLevel == UNSET {
 		stream.FilterLevel = level
 	}
-	return stream
+}
+
+// SetFilterLevelForTopic sets the filter level for a given topic
+//
+// implements logger.FilterSetter
+func (stream *FileStream) SetFilterLevelForTopic(level Level, topic string) {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevels.Set(topic, "", level)
+}
+
+// SetFilterLevelForTopicAndScope sets the filter level for a given topic
+//
+// implements logger.FilterSetter
+func (stream *FileStream) SetFilterLevelForTopicAndScope(level Level, topic, scope string) {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevels.Set(topic, scope, level)
+}
+
+// FilterMore tells the stream to filter more
+//
+// The stream will filter more if it is not already at the highest level.
+// Which means less log messages will be written to the stream
+//
+// Example: if the stream is at DEBUG, it will be filtering at INFO
+//
+// implements logger.FilterModifier
+func (stream *FileStream) FilterMore() {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevel = stream.FilterLevel.Next()
+}
+
+// FilterLess tells the stream to filter less
+//
+// The stream will filter less if it is not already at the lowest level.
+// Which means more log messages will be written to the stream
+//
+// Example: if the stream is at INFO, it will be filtering at DEBUG
+//
+// implements logger.FilterModifier
+func (stream *FileStream) FilterLess() {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevel = stream.FilterLevel.Previous()
 }
 
 // Write writes the given Record
-//   implements logger.Stream
+//
+// implements logger.Streamer
 func (stream *FileStream) Write(record Record) (err error) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
@@ -86,14 +136,19 @@ func (stream *FileStream) Write(record Record) (err error) {
 }
 
 // ShouldWrite tells if the given level should be written to this stream
-func (stream *FileStream) ShouldWrite(level Level) bool {
-	// implements logger.Stream
+//
+// implements logger.Streamer
+func (stream *FileStream) ShouldWrite(level Level, topic, scope string) bool {
+	if _level, found := stream.FilterLevels.Get(topic, scope); found {
+		return level.ShouldWrite(_level)
+	}
 	return level.ShouldWrite(stream.FilterLevel)
 }
 
 // Flush flushes the stream (makes sure records are actually written)
+//
+// implements logger.Streamer
 func (stream *FileStream) Flush() {
-	// implements logger.Stream
 	if stream.output != nil {
 		stream.mutex.Lock()
 		defer stream.mutex.Unlock()
@@ -102,6 +157,8 @@ func (stream *FileStream) Flush() {
 }
 
 // Close closes the stream
+//
+// implements logger.Streamer
 func (stream *FileStream) Close() {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
@@ -114,8 +171,9 @@ func (stream *FileStream) Close() {
 }
 
 // String gets a string version
+//
+// implements fmt.Stringer
 func (stream *FileStream) String() string {
-	// implements the fmt.Stringer interface
 	var format strings.Builder
 
 	if stream.Unbuffered {

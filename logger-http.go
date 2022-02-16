@@ -26,10 +26,10 @@ func (l *Logger) HttpHandler() func(http.Handler) http.Handler {
 			w.Header().Set("X-Request-Id", reqid)
 
 			// Get a new Child logger tailored to the request
-			reqLogger := l.Child(nil, nil, "topic", "route", "scope", r.URL.Path, "reqid", reqid)
+			reqLogger := l.Child("route", r.URL.Path, "reqid", reqid, "req.path", r.URL.Path, "req.remote", r.RemoteAddr)
 			reqLogger.
-				Record("remote", r.RemoteAddr).
-				Record("UserAgent", r.UserAgent()).
+				Record("req.UserAgent", r.UserAgent()).
+				Record("req.verb", r.Method).
 				Infof("request start: %s %s", r.Method, html.EscapeString(r.URL.Path))
 
 			// Adding reqid and reqLogger to r.Context and serving the request
@@ -37,9 +37,10 @@ func (l *Logger) HttpHandler() func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(reqLogger.ToContext(context.WithValue(r.Context(), "reqid", reqid))))
 
 			// Logging the duration of the request handling
+			duration := time.Since(start)
 			reqLogger.
-				Record("duration", time.Since(start).Seconds()).
-				Infof("request finish: %s %s", r.Method, html.EscapeString(r.URL.Path))
+				Record("req.duration", duration.Seconds()).
+				Infof("request finish: %s %s in %s", r.Method, html.EscapeString(r.URL.Path), duration)
 		})
 	}
 }

@@ -10,11 +10,16 @@ import (
 
 // Streamer is the interface a Logger writes to
 type Streamer interface {
+	// Write writes the given Record
 	Write(record Record) error
-	ShouldWrite(level Level) bool
-	SetFilterLevel(level Level) Streamer
-	SetFilterLevelIfUnset(level Level) Streamer
+
+	// ShouldWrite tells if the given level should be written to this stream
+	ShouldWrite(level Level, topic, scope string) bool
+
+	// Flush flushes the stream (makes sure records are actually written)
 	Flush()
+
+	// Close closes the stream
 	Close()
 }
 

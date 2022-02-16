@@ -18,6 +18,8 @@ func GetConverterFromEnvironment() Converter {
 		return &BunyanConverter{}
 	case "stackdriver", "google", "gcp":
 		return &StackDriverConverter{}
+	case "aws", "cloudwatch":
+		return &CloudWatchConverter{}
 	default:
 		return &BunyanConverter{}
 	}

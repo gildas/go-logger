@@ -8,35 +8,85 @@ import (
 	"github.com/gildas/go-errors"
 )
 
-// StderrStream is the Stream that writes to the standard output
+// StderrStream is the Stream that writes to the standard error
 type StderrStream struct {
 	*json.Encoder
-	Converter   Converter
-	FilterLevel Level
-	mutex       sync.Mutex
+	Converter    Converter
+	FilterLevel  Level
+	FilterLevels TopicScopeLevels
+	mutex        sync.Mutex
 }
 
 // SetFilterLevel sets the filter level
-func (stream *StderrStream) SetFilterLevel(level Level) Streamer {
+//
+// implements logger.FilterSetter
+func (stream *StderrStream) SetFilterLevel(level Level) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	stream.FilterLevel = level
-	return stream
 }
 
 // SetFilterLevelIfUnset sets the filter level if not set already
-func (stream *StderrStream) SetFilterLevelIfUnset(level Level) Streamer {
+//
+// implements logger.FilterSetter
+func (stream *StderrStream) SetFilterLevelIfUnset(level Level) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.FilterLevel == UNSET {
 		stream.FilterLevel = level
 	}
-	return stream
+}
+
+// SetFilterLevelForTopic sets the filter level for a given topic
+//
+// implements logger.FilterSetter
+func (stream *StderrStream) SetFilterLevelForTopic(level Level, topic string) {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevels.Set(topic, "", level)
+}
+
+// SetFilterLevelForTopicAndScope sets the filter level for a given topic
+//
+// implements logger.FilterSetter
+func (stream *StderrStream) SetFilterLevelForTopicAndScope(level Level, topic, scope string) {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevels.Set(topic, scope, level)
+}
+
+// FilterMore tells the stream to filter more
+//
+// The stream will filter more if it is not already at the highest level.
+// Which means less log messages will be written to the stream
+//
+// Example: if the stream is at DEBUG, it will be filtering at INFO
+//
+// implements logger.FilterModifier
+func (stream *StderrStream) FilterMore() {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevel = stream.FilterLevel.Next()
+}
+
+// FilterLess tells the stream to filter less
+//
+// The stream will filter less if it is not already at the lowest level.
+// Which means more log messages will be written to the stream
+//
+// Example: if the stream is at INFO, it will be filtering at DEBUG
+//
+// implements logger.FilterModifier
+func (stream *StderrStream) FilterLess() {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevel = stream.FilterLevel.Previous()
 }
 
 // Write writes the given Record
+//
+// implements logger.Streamer
 func (stream *StderrStream) Write(record Record) error {
-	// implements logger.Stream
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.Encoder == nil {
@@ -55,22 +105,30 @@ func (stream *StderrStream) Write(record Record) error {
 }
 
 // ShouldWrite tells if the given level should be written to this stream
-func (stream *StderrStream) ShouldWrite(level Level) bool {
-	// implements logger.Stream
+//
+// implements logger.Streamer
+func (stream *StderrStream) ShouldWrite(level Level, topic, scope string) bool {
+	if _level, found := stream.FilterLevels.Get(topic, scope); found {
+		return level.ShouldWrite(_level)
+	}
 	return level.ShouldWrite(stream.FilterLevel)
 }
 
 // Flush flushes the stream (makes sure records are actually written)
+//
+// implements logger.Streamer
 func (stream *StderrStream) Flush() {
-	// implements logger.Stream
 }
 
 // Close closes the stream
+//
+// implements logger.Streamer
 func (stream *StderrStream) Close() {
 }
 
 // String gets a string version
+//
+// implements fmt.Stringer
 func (stream *StderrStream) String() string {
-	// implements the fmt.Stringer interface
 	return "Stream to stderr"
 }

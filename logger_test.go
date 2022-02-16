@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"reflect"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -37,6 +39,10 @@ func (e *ErrorForTest) Error() string {
 
 func TestLoggerSuite(t *testing.T) {
 	suite.Run(t, new(LoggerSuite))
+}
+
+func (suite *LoggerSuite) SetupSuite() {
+	suite.Name = strings.TrimSuffix(reflect.TypeOf(*suite).Name(), "Suite")
 }
 
 func (suite *LoggerSuite) TestShouldPanicWithNoLogger() {
@@ -112,18 +118,95 @@ func (suite *LoggerSuite) TestCanSetTopic() {
 	log := logger.Create("test")
 	suite.Require().NotNil(log, "cannot create a logger.Logger")
 	log = log.Topic("topic_test")
-	suite.Require().NotNil(log.GetRecord("topic"), "Failed to set a Topic")
-	suite.Assert().Equal("topic_test", log.GetRecord("topic").(string), "Failed to set a Topic")
+	suite.Require().NotNil(log.GetTopic(), "Failed to set a Topic")
+	suite.Assert().Equal("topic_test", log.GetTopic(), "Failed to set a Topic")
+}
+
+func (suite *LoggerSuite) TestCanSetTopicWithNilValue() {
+	log := logger.Create("test")
+	suite.Require().NotNil(log, "cannot create a logger.Logger")
+	log = log.Topic(nil)
+	suite.Require().NotNil(log.GetTopic(), "Failed to set a Topic")
+	suite.Assert().Equal("main", log.GetTopic(), "Failed to set a Topic")
 }
 
 func (suite *LoggerSuite) TestCanSetScope() {
 	log := logger.Create("test")
 	suite.Require().NotNil(log, "cannot create a logger.Logger")
 	log = log.Scope("scope_test")
-	suite.Require().NotNil(log.GetRecord("scope"), "Failed to set a Scope")
-	suite.Assert().Equal("scope_test", log.GetRecord("scope").(string), "Failed to set a Scope")
+	suite.Require().NotNil(log.GetScope(), "Failed to set a Scope")
+	suite.Assert().Equal("scope_test", log.GetScope(), "Failed to set a Scope")
 }
 
+func (suite *LoggerSuite) TestCanSetScopeWithNilValue() {
+	log := logger.Create("test")
+	suite.Require().NotNil(log, "cannot create a logger.Logger")
+	log = log.Scope(nil)
+	suite.Require().NotNil(log.GetScope(), "Failed to set a Scope")
+	suite.Assert().Equal("main", log.GetScope(), "Failed to set a Scope")
+}
+
+func (suite *LoggerSuite) TestCanGetTopic() {
+	log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+	suite.Assert().Equal("main", log.GetTopic())
+}
+
+func (suite *LoggerSuite) TestCanGetTopicFromChild() {
+	log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+	suite.Assert().Equal("main", log.GetTopic())
+	log = log.Child("child", "scope")
+	suite.Assert().Equal("child", log.GetTopic())
+}
+
+func (suite *LoggerSuite) TestCanGetTopicFromChildWithAddedRecord() {
+	log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+	suite.Assert().Equal("main", log.GetTopic())
+	log = log.Child("child", "scope")
+	suite.Assert().Equal("child", log.GetTopic())
+	log = log.Record("data", "data")
+	suite.Assert().Equal("child", log.GetTopic())
+}
+
+func (suite *LoggerSuite) TestCanGetTopicInheritedByChild() {
+	log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+	suite.Assert().Equal("main", log.GetTopic())
+	log = log.Child(nil, "scope")
+	suite.Assert().Equal("main", log.GetTopic())
+}
+
+func (suite *LoggerSuite) TestCanSetLevelPerTopic() {
+	log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+
+	suite.Assert().Truef(log.ShouldWrite(logger.INFO, "main", ""), "Logger should write INFO messages for main topic before it is configured")
+	suite.Assert().Falsef(log.ShouldWrite(logger.DEBUG, "main", ""), "Logger should not write DEBUG messages for main topic before it is configured")
+
+	log.SetFilterLevelForTopic(logger.DEBUG, "main")
+
+	suite.Assert().Truef(log.ShouldWrite(logger.WARN, "", ""), "Logger should write WARN messages")
+	suite.Assert().Falsef(log.ShouldWrite(logger.DEBUG, "", ""), "Logger should not write DEBUG messages")
+
+	suite.Assert().Truef(log.ShouldWrite(logger.DEBUG, "main", ""), "Logger should write DEBUG messages for main topic")
+	suite.Assert().Falsef(log.ShouldWrite(logger.TRACE, "main", ""), "Logger should not write TRACE messages for main topic")
+
+	suite.Assert().Truef(log.ShouldWrite(logger.INFO, "another_topic", ""), "Logger should write INFO messages for another_topic topic")
+	suite.Assert().Falsef(log.ShouldWrite(logger.DEBUG, "another_topic", ""), "Logger should not write DEBUG messages for another_topic topic")
+}
+
+func (suite *LoggerSuite) TestCanSetLevelPerTopicAndScope() {
+	log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+
+	suite.Assert().Truef(log.ShouldWrite(logger.INFO, "main", "any"), "Logger should write INFO messages for main topic and any scope before it is configured")
+	suite.Assert().Falsef(log.ShouldWrite(logger.DEBUG, "main", "any"), "Logger should not write DEBUG messages for main topic and any scope before it is configured")
+
+	log.SetFilterLevelForTopicAndScope(logger.TRACE, "main", "specific")
+	log.SetFilterLevelForTopic(logger.DEBUG, "main")
+
+	suite.Assert().Truef(log.ShouldWrite(logger.DEBUG, "main", "any"), "Logger should write DEBUG messages for main topic and any scope")
+	suite.Assert().Truef(log.ShouldWrite(logger.TRACE, "main", "specific"), "Logger should write TRACE messages for main topic and specific scope")
+	suite.Assert().Falsef(log.ShouldWrite(logger.TRACE, "main", "any"), "Logger should not write TRACE messages for main topic and any scope")
+
+	suite.Assert().Falsef(log.ShouldWrite(logger.DEBUG, "another_topic", "any"), "Logger should not write DEBUG messages for another_topic topic and any scope")
+}
 func (suite *LoggerSuite) TestCanLogAtTrace() {
 	log, teardown := CreateLogger(suite.T(), "test.log", true)
 	defer teardown()
@@ -390,5 +473,77 @@ func (suite *LoggerSuite) TestCanRedactMessage() {
 		log.Infof("message with sensitive (+13178723000) data")
 	})
 	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"message with sensitive \(REDACTED\) data","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+}
+
+func (suite *LoggerSuite) TestCanFilterMore() {
+	log := logger.Create("TEST")
+	log.FilterMore()
+	// We cannot do this unfortunately:
+	// suite.Assert().Equal(logger.WARN, log.FilterLevel)
+}
+
+func (suite *LoggerSuite) TestCanFilterLess() {
+	log := logger.Create("TEST")
+	log.FilterLess()
+	// We cannot do this unfortunately:
+	// suite.Assert().Equal(logger.DEBUG, log.FilterLevel)
+}
+
+func (suite *LoggerSuite) TestCanLogAtDifferentLevelsPerTopic() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.SetFilterLevelForTopic(logger.DEBUG, "child")
+		log = log.Child("child", nil)
+		log.Debugf("message")
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":20,"msg":"message","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"child","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+}
+
+func (suite *LoggerSuite) TestCanLogAtDifferentLevelsPerTopicAndEmptyScope() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.SetFilterLevelForTopic(logger.DEBUG, "child")
+		log = log.Child("child", "")
+		log.Debugf("message")
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":20,"msg":"message","name":"test","pid":[0-9]+,"scope":"","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"child","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+}
+
+func (suite *LoggerSuite) TestCannotLogAtDifferentLevelsWithEmptyTopicAndEmptyScope() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.SetFilterLevelForTopic(logger.DEBUG, "child")
+		log = log.Child("", "")
+		log.Debugf("message")
+	})
+	suite.Assert().Empty(output, "There was an output")
+}
+
+func (suite *LoggerSuite) TestCanLogWithEmptyTopicAndEmptyScope() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.SetFilterLevelForTopic(logger.DEBUG, "child")
+		log = log.Child("", "")
+		log.Infof("message")
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"message","name":"test","pid":[0-9]+,"scope":"","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+}
+
+func (suite *LoggerSuite) TestCanLogAtDifferentLevelsPerTopicAndScope() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.SetFilterLevelForTopicAndScope(logger.DEBUG, "child", "scope")
+		log = log.Child("child", "scope")
+		log.Debugf("message")
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":20,"msg":"message","name":"test","pid":[0-9]+,"scope":"scope","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"child","v":0}`)
 	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
 }

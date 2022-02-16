@@ -61,7 +61,7 @@ func Create(name string, parameters ...interface{}) *Logger {
 		streams = append(streams, CreateStreamWithDestination(destination))
 	}
 	logger := CreateWithStream(name, streams...)
-	logger.stream.SetFilterLevelIfUnset(filterLevel)
+	logger.SetFilterLevelIfUnset(filterLevel)
 	for _, record := range records {
 		for key, value := range record {
 			logger.record.Set(key, value)
@@ -104,11 +104,6 @@ func CreateIfNil(logger *Logger, name string) *Logger {
 	return CreateWithStream(name, &NilStream{})
 }
 
-// Close closes the logger's stream
-func (log *Logger) Close() {
-	log.stream.Close()
-}
-
 // Record adds the given Record to the Log
 func (log *Logger) Record(key string, value interface{}) *Logger {
 	// This func requires Logger to be a Stream
@@ -138,24 +133,37 @@ func (log *Logger) Records(params ...interface{}) *Logger {
 			key = param.(string)
 		} else if len(key) > 0 {
 			record.Set(key, param)
+			key=""
 		}
 	}
 	return &Logger{log, record, log.redactors}
 }
 
 // Topic sets the Topic of this Logger
-func (log *Logger) Topic(value interface{}) *Logger {
-	return log.Record("topic", value)
+func (log *Logger) Topic(topic interface{}) *Logger {
+	if topic == nil {
+		topic = log.record["topic"]
+	}
+	return log.Record("topic", topic)
 }
 
 // Scope sets the Scope if this Logger
-func (log *Logger) Scope(value interface{}) *Logger {
-	return log.Record("scope", value)
+func (log *Logger) Scope(scope interface{}) *Logger {
+	if scope == nil {
+		scope = log.record["scope"]
+	}
+	return log.Record("scope", scope)
 }
 
 // Child creates a child Logger with a topic, a scope, and records
 func (log *Logger) Child(topic, scope interface{}, params ...interface{}) *Logger {
 	var key string
+	if topic == nil {
+		topic = log.record["topic"]
+	}
+	if scope == nil {
+		scope = log.record["scope"]
+	}
 	record := NewRecord().Set("topic", topic).Set("scope", scope)
 	newlog := &Logger{log, record, log.redactors}
 	for _, param := range params {
@@ -169,10 +177,12 @@ func (log *Logger) Child(topic, scope interface{}, params ...interface{}) *Logge
 				key = actual
 			} else {
 				record.Set(key, actual)
+				key=""
 			}
 		default:
 			if len(key) > 0 {
 				record.Set(key, actual)
+				key=""
 			}
 		}
 	}
@@ -181,20 +191,23 @@ func (log *Logger) Child(topic, scope interface{}, params ...interface{}) *Logge
 
 // GetRecord returns the Record field value for a given key
 func (log *Logger) GetRecord(key string) interface{} {
-	value := log.record[key]
-
-	if value != nil {
+	if value, found := log.record[key]; found {
 		return value
 	}
-	// TODO: find a way to traverse the parent Stream/Logger objects
+	if parent, ok := log.stream.(*Logger); ok {
+		return parent.GetRecord(key)
+	}
 	return nil
 }
 
-// String gets a string version
-//
-//   implements the fmt.Stringer interface
-func (log Logger) String() string {
-	return fmt.Sprintf("Logger(%s)", log.stream)
+// GetTopic returns the Record topic
+func (log *Logger) GetTopic() string {
+	return log.GetRecord("topic").(string)
+}
+
+// GetScope returns the Record scope
+func (log *Logger) GetScope() string {
+	return log.GetRecord("scope").(string)
 }
 
 // Tracef traces a message at the TRACE Level
@@ -251,7 +264,7 @@ func (log *Logger) Fatalf(msg string, args ...interface{}) {
 	logWithErr.send(FATAL, msg, args...)
 }
 
-// Memf traces memory usage
+// Memorylf traces memory usage at the given level and with the given message
 func (log *Logger) Memorylf(level Level, msg string, args ...interface{}) {
 	var mem runtime.MemStats
 
@@ -279,24 +292,24 @@ func (log *Logger) Memorylf(level Level, msg string, args ...interface{}) {
 	log.send(level, msg, args...)
 }
 
-// Memf traces memory usage
+// Memoryf traces memory usage at the TRACE level with a given message
 func (log *Logger) Memoryf(msg string, args ...interface{}) {
 	log.Memorylf(TRACE, msg, args...)
 }
 
-// Memf traces memory usage
+// Memoryl traces memory usage at the given level
 func (log *Logger) Memoryl(level Level) {
 	log.Memorylf(level, "")
 }
 
-// Memf traces memory usage
+// Memory traces memory usage at the TRACE Level
 func (log *Logger) Memory() {
 	log.Memorylf(TRACE, "")
 }
 
 // send writes a message to the Sink
 func (log *Logger) send(level Level, msg string, args ...interface{}) {
-	if log.ShouldWrite(level) {
+	if log.ShouldWrite(level, log.GetTopic(), log.GetScope()) {
 		record := NewRecord()
 		record["time"] = time.Now().UTC()
 		record["level"] = level
