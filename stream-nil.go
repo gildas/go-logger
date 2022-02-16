@@ -61,21 +61,7 @@ func (stream *NilStream) Write(record Record) error {
 // ShouldWrite tells if the given level should be written to this stream
 //
 // implements logger.Streamer
-func (stream *NilStream) ShouldWrite(level Level) bool {
-	return false
-}
-
-// ShouldWriteWithTopic tells if the given level should be written to this stream
-//
-// implements logger.Streamer
-func (stream *NilStream) ShouldWriteWithTopic(level Level, topic string) bool {
-	return false
-}
-
-// ShouldWriteWithTopicAndScope tells if the given level should be written to this stream
-//
-// implements logger.Streamer
-func (stream *NilStream) ShouldWriteWithTopicAndScope(level Level, topic, scope string) bool {
+func (stream *NilStream) ShouldWrite(level Level, topic, scope string) bool {
 	return false
 }
 

@@ -29,15 +29,7 @@ func (stream *BogusStream) Write(record logger.Record) error {
 	return fmt.Errorf("This Stream is Bogus")
 }
 
-func (stream *BogusStream) ShouldWrite(level logger.Level) bool {
-	return true
-}
-
-func (stream *BogusStream) ShouldWriteWithTopic(level logger.Level, topic string) bool {
-	return true
-}
-
-func (stream *BogusStream) ShouldWriteWithTopicAndScope(level logger.Level, topic, scope string) bool {
+func (stream *BogusStream) ShouldWrite(level logger.Level, topic, scope string) bool {
 	return true
 }
 

@@ -146,24 +146,7 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 // ShouldWrite tells if the given level should be written to this stream
 //
 // implements logger.Streamer
-func (stream *StackDriverStream) ShouldWrite(level Level) bool {
-	return level.ShouldWrite(stream.FilterLevel)
-}
-
-// ShouldWriteWithTopic tells if the given level should be written to this stream
-//
-// implements logger.Streamer
-func (stream *StackDriverStream) ShouldWriteWithTopic(level Level, topic string) bool {
-	if _level, found := stream.FilterLevels.Get(topic, ""); found {
-		return level.ShouldWrite(_level)
-	}
-	return level.ShouldWrite(stream.FilterLevel)
-}
-
-// ShouldWriteWithTopicAndScope tells if the given level should be written to this stream
-//
-// implements logger.Streamer
-func (stream *StackDriverStream) ShouldWriteWithTopicAndScope(level Level, topic, scope string) bool {
+func (stream *StackDriverStream) ShouldWrite(level Level, topic, scope string) bool {
 	if _level, found := stream.FilterLevels.Get(topic, scope); found {
 		return level.ShouldWrite(_level)
 	}

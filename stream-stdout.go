@@ -125,24 +125,7 @@ func (stream *StdoutStream) Write(record Record) error {
 // ShouldWrite tells if the given level should be written to this stream
 //
 // implements logger.Streamer
-func (stream *StdoutStream) ShouldWrite(level Level) bool {
-	return level.ShouldWrite(stream.FilterLevel)
-}
-
-// ShouldWriteWithTopic tells if the given level should be written to this stream
-//
-// implements logger.Streamer
-func (stream *StdoutStream) ShouldWriteWithTopic(level Level, topic string) bool {
-	if _level, found := stream.FilterLevels.Get(topic, ""); found {
-		return level.ShouldWrite(_level)
-	}
-	return level.ShouldWrite(stream.FilterLevel)
-}
-
-// ShouldWriteWithTopicAndScope tells if the given level should be written to this stream
-//
-// implements logger.Streamer
-func (stream *StdoutStream) ShouldWriteWithTopicAndScope(level Level, topic, scope string) bool {
+func (stream *StdoutStream) ShouldWrite(level Level, topic, scope string) bool {
 	if _level, found := stream.FilterLevels.Get(topic, scope); found {
 		return level.ShouldWrite(_level)
 	}

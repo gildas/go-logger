@@ -168,6 +168,8 @@ func (level Level) Previous() Level {
 }
 
 // ShouldWrite tells if the current level is writeable when compared to the given filter level
+//
+// To be writeable, the current level must be higher than the filter level
 func (level Level) ShouldWrite(filter Level) bool {
 	if level == NEVER || level == UNSET {
 		return false

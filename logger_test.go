@@ -177,35 +177,35 @@ func (suite *LoggerSuite) TestCanGetTopicInheritedByChild() {
 func (suite *LoggerSuite) TestCanSetLevelPerTopic() {
 	log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
 
-	suite.Assert().Truef(log.ShouldWriteWithTopic(logger.INFO, "main"), "Logger should write INFO messages for main topic before it is configured")
-	suite.Assert().Falsef(log.ShouldWriteWithTopic(logger.DEBUG, "main"), "Logger should not write DEBUG messages for main topic before it is configured")
+	suite.Assert().Truef(log.ShouldWrite(logger.INFO, "main", ""), "Logger should write INFO messages for main topic before it is configured")
+	suite.Assert().Falsef(log.ShouldWrite(logger.DEBUG, "main", ""), "Logger should not write DEBUG messages for main topic before it is configured")
 
 	log.SetFilterLevelForTopic(logger.DEBUG, "main")
 
-	suite.Assert().Truef(log.ShouldWrite(logger.WARN), "Logger should write WARN messages")
-	suite.Assert().Falsef(log.ShouldWrite(logger.DEBUG), "Logger should not write DEBUG messages")
+	suite.Assert().Truef(log.ShouldWrite(logger.WARN, "", ""), "Logger should write WARN messages")
+	suite.Assert().Falsef(log.ShouldWrite(logger.DEBUG, "", ""), "Logger should not write DEBUG messages")
 
-	suite.Assert().Truef(log.ShouldWriteWithTopic(logger.DEBUG, "main"), "Logger should write DEBUG messages for main topic")
-	suite.Assert().Falsef(log.ShouldWriteWithTopic(logger.TRACE, "main"), "Logger should not write TRACE messages for main topic")
+	suite.Assert().Truef(log.ShouldWrite(logger.DEBUG, "main", ""), "Logger should write DEBUG messages for main topic")
+	suite.Assert().Falsef(log.ShouldWrite(logger.TRACE, "main", ""), "Logger should not write TRACE messages for main topic")
 
-	suite.Assert().Truef(log.ShouldWriteWithTopic(logger.INFO, "another_topic"), "Logger should write INFO messages for another_topic topic")
-	suite.Assert().Falsef(log.ShouldWriteWithTopic(logger.DEBUG, "another_topic"), "Logger should not write DEBUG messages for another_topic topic")
+	suite.Assert().Truef(log.ShouldWrite(logger.INFO, "another_topic", ""), "Logger should write INFO messages for another_topic topic")
+	suite.Assert().Falsef(log.ShouldWrite(logger.DEBUG, "another_topic", ""), "Logger should not write DEBUG messages for another_topic topic")
 }
 
 func (suite *LoggerSuite) TestCanSetLevelPerTopicAndScope() {
 	log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
 
-	suite.Assert().Truef(log.ShouldWriteWithTopicAndScope(logger.INFO, "main", "any"), "Logger should write INFO messages for main topic and any scope before it is configured")
-	suite.Assert().Falsef(log.ShouldWriteWithTopicAndScope(logger.DEBUG, "main", "any"), "Logger should not write DEBUG messages for main topic and any scope before it is configured")
+	suite.Assert().Truef(log.ShouldWrite(logger.INFO, "main", "any"), "Logger should write INFO messages for main topic and any scope before it is configured")
+	suite.Assert().Falsef(log.ShouldWrite(logger.DEBUG, "main", "any"), "Logger should not write DEBUG messages for main topic and any scope before it is configured")
 
 	log.SetFilterLevelForTopicAndScope(logger.TRACE, "main", "specific")
 	log.SetFilterLevelForTopic(logger.DEBUG, "main")
 
-	suite.Assert().Truef(log.ShouldWriteWithTopicAndScope(logger.DEBUG, "main", "any"), "Logger should write DEBUG messages for main topic and any scope")
-	suite.Assert().Truef(log.ShouldWriteWithTopicAndScope(logger.TRACE, "main", "specific"), "Logger should write TRACE messages for main topic and specific scope")
-	suite.Assert().Falsef(log.ShouldWriteWithTopicAndScope(logger.TRACE, "main", "any"), "Logger should not write TRACE messages for main topic and any scope")
+	suite.Assert().Truef(log.ShouldWrite(logger.DEBUG, "main", "any"), "Logger should write DEBUG messages for main topic and any scope")
+	suite.Assert().Truef(log.ShouldWrite(logger.TRACE, "main", "specific"), "Logger should write TRACE messages for main topic and specific scope")
+	suite.Assert().Falsef(log.ShouldWrite(logger.TRACE, "main", "any"), "Logger should not write TRACE messages for main topic and any scope")
 
-	suite.Assert().Falsef(log.ShouldWriteWithTopicAndScope(logger.DEBUG, "another_topic", "any"), "Logger should not write DEBUG messages for another_topic topic and any scope")
+	suite.Assert().Falsef(log.ShouldWrite(logger.DEBUG, "another_topic", "any"), "Logger should not write DEBUG messages for another_topic topic and any scope")
 }
 func (suite *LoggerSuite) TestCanLogAtTrace() {
 	log, teardown := CreateLogger(suite.T(), "test.log", true)

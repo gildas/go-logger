@@ -98,23 +98,16 @@ func (stream *MultiStream) Write(record Record) error {
 
 // ShouldWrite tells if the given level should be written to this stream
 //
-// implements logger.Streamer
-func (stream *MultiStream) ShouldWrite(level Level) bool {
-	return true
-}
-
-// ShouldWriteWithTopic tells if the given level should be written to this stream
+// If at least one stream returns true, the stream should write the record
 //
 // implements logger.Streamer
-func (stream *MultiStream) ShouldWriteWithTopic(level Level, topic string) bool {
-	return true
-}
-
-// ShouldWriteWithTopicAndScope tells if the given level should be written to this stream
-//
-// implements logger.Streamer
-func (stream *MultiStream) ShouldWriteWithTopicAndScope(level Level, topic, scope string) bool {
-	return true
+func (stream *MultiStream) ShouldWrite(level Level, topic, scope string) bool {
+	for _, s := range stream.streams {
+		if s.ShouldWrite(level, topic, scope) {
+			return true
+		}
+	}
+	return false
 }
 
 // Flush flushes the stream (makes sure records are actually written)

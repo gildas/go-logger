@@ -19,7 +19,7 @@ func (levels *TopicScopeLevels) Set(topic, scope string, level Level) {
 //
 // If the scope is empty, it will return the level for the topic, if found
 func (levels TopicScopeLevels) Get(topic, scope string) (level Level, found bool) {
-	if levels == nil {
+	if levels == nil || len(topic) == 0 {
 		return UNSET, false
 	}
 	if len(scope) > 0 {

@@ -190,7 +190,7 @@ func ExampleStdoutStream() {
 	if err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "Me")); err != nil {
 		os.Stdout.WriteString(err.Error() + "\n")
 	}
-	if stream.ShouldWrite(logger.TRACE) {
+	if stream.ShouldWrite(logger.TRACE, "", "") {
 		os.Stdout.WriteString("This should not be seen, stream Filter: " + stream.FilterLevel.String() + "\n")
 	}
 	if err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.ERROR)); err != nil {
@@ -210,7 +210,7 @@ func ExampleStdoutStream_Unbuffered() {
 	if err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "Me")); err != nil {
 		os.Stdout.WriteString(err.Error() + "\n")
 	}
-	if stream.ShouldWrite(logger.TRACE) {
+	if stream.ShouldWrite(logger.TRACE, "", "") {
 		os.Stdout.WriteString("This should not be seen, stream Filter: " + stream.FilterLevel.String() + "\n")
 	}
 	// Output: {"bello":"banana","だれ":"Me"}
@@ -223,7 +223,7 @@ func ExampleStderrStream() {
 		if err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "Me")); err != nil {
 			os.Stderr.WriteString(err.Error() + "\n")
 		}
-		if stream.ShouldWrite(logger.TRACE) {
+		if stream.ShouldWrite(logger.TRACE, "", "") {
 			os.Stderr.WriteString("This should not be seen, stream Filter: " + stream.FilterLevel.String() + "\n")
 		}
 		stream.Flush()
@@ -238,7 +238,7 @@ func ExampleNilStream() {
 	if err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "Me")); err != nil {
 		os.Stdout.WriteString(err.Error() + "\n")
 	}
-	if stream.ShouldWrite(logger.ALWAYS) {
+	if stream.ShouldWrite(logger.ALWAYS, "", "") {
 		os.Stdout.WriteString("This should not be seen\n")
 	}
 	stream.Flush()
@@ -252,7 +252,7 @@ func (suite *StreamSuite) TestCanStreamToStackDriver() {
 	stream := &logger.StackDriverStream{LogID: "test"}
 	defer stream.Close()
 	suite.Assert().Equal("Stream to Google StackDriver", stream.String())
-	suite.Assert().Truef(stream.ShouldWrite(logger.WARN), "It should be possible to write to a %s", stream)
+	suite.Assert().Truef(stream.ShouldWrite(logger.WARN, "", ""), "It should be possible to write to a %s", stream)
 	if _, ok := os.LookupEnv("GOOGLE_APPLICATION_CREDENTIALS"); ok {
 		err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.WARN).Set("time", time.Now()).Set("msg", "Hello 01"))
 		suite.Assert().Nil(err, "Failed to write to stream")
@@ -273,7 +273,7 @@ func (suite *StreamSuite) TestCanStreamToStackDriverWithKeyFilename() {
 	stream := &logger.StackDriverStream{LogID: "test", KeyFilename: "gcloud-key.json"}
 	defer stream.Close()
 	suite.Assert().Equal("Stream to Google StackDriver", stream.String())
-	suite.Assert().Truef(stream.ShouldWrite(logger.WARN), "It should be possible to write to a %s", stream)
+	suite.Assert().Truef(stream.ShouldWrite(logger.WARN, "", ""), "It should be possible to write to a %s", stream)
 	err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.WARN).Set("time", time.Now()).Set("msg", "Hello with key filename"))
 	suite.Require().Nil(err, "Failed to write to stream")
 	stream.Flush()
@@ -293,7 +293,7 @@ func (suite *StreamSuite) TestCanStreamToStackDriverWithKey() {
 	stream := &logger.StackDriverStream{LogID: "test", Key: key}
 	defer stream.Close()
 	suite.Assert().Equal("Stream to Google StackDriver", stream.String())
-	suite.Assert().Truef(stream.ShouldWrite(logger.WARN), "It should be possible to write to a %s", stream)
+	suite.Assert().Truef(stream.ShouldWrite(logger.WARN, "", ""), "It should be possible to write to a %s", stream)
 	err = stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.WARN).Set("time", time.Now()).Set("msg", "Hello with key filename"))
 	suite.Require().Nil(err, "Failed to write to stream")
 	stream.Flush()
@@ -304,7 +304,7 @@ func (suite *StreamSuite) TestCanStreamToMultiStream() {
 		stream := logger.CreateStreamWithDestination("stdout", "nil")
 		suite.Assert().IsType(&logger.MultiStream{}, stream)
 		suite.Assert().Equal("MultiStream", fmt.Sprintf("%s", stream))
-		suite.Assert().Truef(stream.ShouldWrite(logger.WARN), "It should be possible to write to a %s", stream)
+		suite.Assert().Truef(stream.ShouldWrite(logger.WARN, "", ""), "It should be possible to write to a %s", stream)
 		err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.ERROR))
 		suite.Assert().Nil(err, "Failed to write to stream")
 		stream.Flush()
@@ -489,32 +489,33 @@ func (suite *StreamSuite) TestCanSetLevelPerTopic() {
 		setter, ok := strm.(logger.FilterSetter)
 		suite.Require().Truef(ok, "Streamer %s should implement FilterSetter", reflect.TypeOf(strm))
 
-		suite.Assert().Truef(strm.ShouldWriteWithTopic(logger.INFO, "main"), "Stream %s should write INFO messages for main topic before it is configured", reflect.TypeOf(strm))
-		suite.Assert().Falsef(strm.ShouldWriteWithTopic(logger.DEBUG, "main"), "Stream %s should not write DEBUG messages for main topic before it is configured", reflect.TypeOf(strm))
+		suite.Assert().Truef(strm.ShouldWrite(logger.INFO, "main", ""), "Stream %s should write INFO messages for main topic before it is configured", reflect.TypeOf(strm))
+		suite.Assert().Falsef(strm.ShouldWrite(logger.DEBUG, "main", ""), "Stream %s should not write DEBUG messages for main topic before it is configured", reflect.TypeOf(strm))
 
 		setter.SetFilterLevelForTopic(logger.DEBUG, "main")
 
-		suite.Assert().Truef(strm.ShouldWrite(logger.WARN), "Stream %s should write WARN messages", reflect.TypeOf(strm))
-		suite.Assert().Falsef(strm.ShouldWrite(logger.DEBUG), "Stream %s should not write DEBUG messages", reflect.TypeOf(strm))
+		suite.Assert().Truef(strm.ShouldWrite(logger.WARN, "", ""), "Stream %s should write WARN messages", reflect.TypeOf(strm))
+		suite.Assert().Falsef(strm.ShouldWrite(logger.DEBUG, "", ""), "Stream %s should not write DEBUG messages", reflect.TypeOf(strm))
 
-		suite.Assert().Truef(strm.ShouldWriteWithTopic(logger.DEBUG, "main"), "Stream %s should write DEBUG messages for main topic", reflect.TypeOf(strm))
-		suite.Assert().Falsef(strm.ShouldWriteWithTopic(logger.TRACE, "main"), "Stream %s should not write TRACE messages for main topic", reflect.TypeOf(strm))
+		suite.Assert().Truef(strm.ShouldWrite(logger.DEBUG, "main", ""), "Stream %s should write DEBUG messages for main topic", reflect.TypeOf(strm))
+		suite.Assert().Falsef(strm.ShouldWrite(logger.TRACE, "main", ""), "Stream %s should not write TRACE messages for main topic", reflect.TypeOf(strm))
 
-		suite.Assert().Truef(strm.ShouldWriteWithTopic(logger.INFO, "another_topic"), "Stream %s should write INFO messages for another_topic topic", reflect.TypeOf(strm))
-		suite.Assert().Falsef(strm.ShouldWriteWithTopic(logger.DEBUG, "another_topic"), "Stream %s should not write DEBUG messages for another_topic topic", reflect.TypeOf(strm))
+		suite.Assert().Truef(strm.ShouldWrite(logger.INFO, "another_topic", ""), "Stream %s should write INFO messages for another_topic topic", reflect.TypeOf(strm))
+		suite.Assert().Falsef(strm.ShouldWrite(logger.DEBUG, "another_topic", ""), "Stream %s should not write DEBUG messages for another_topic topic", reflect.TypeOf(strm))
 	}
 
 	streamNil := &logger.NilStream{}
 	streamNil.SetFilterLevelForTopic(logger.DEBUG, "main")
-	suite.Assert().Falsef(streamNil.ShouldWrite(logger.DEBUG), "Stream %s should not write DEBUG messages", reflect.TypeOf(streamNil))
-	suite.Assert().Falsef(streamNil.ShouldWriteWithTopic(logger.DEBUG, "main"), "Stream %s should not write DEBUG messages for main topic", reflect.TypeOf(streamNil))
-	suite.Assert().Falsef(streamNil.ShouldWriteWithTopic(logger.INFO, "another_topic"), "Stream %s should not write INFO messages for another_topic topic", reflect.TypeOf(streamNil))
+	suite.Assert().Falsef(streamNil.ShouldWrite(logger.DEBUG, "", ""), "Stream %s should not write DEBUG messages", reflect.TypeOf(streamNil))
+	suite.Assert().Falsef(streamNil.ShouldWrite(logger.DEBUG, "main", ""), "Stream %s should not write DEBUG messages for main topic", reflect.TypeOf(streamNil))
+	suite.Assert().Falsef(streamNil.ShouldWrite(logger.INFO, "another_topic", ""), "Stream %s should not write INFO messages for another_topic topic", reflect.TypeOf(streamNil))
 
-	streamMulti := logger.CreateMultiStream(streamNil).(*logger.MultiStream)
+	streamMulti := logger.CreateMultiStream(&logger.StdoutStream{FilterLevel: logger.INFO}, &logger.FileStream{FilterLevel: logger.DEBUG}).(*logger.MultiStream)
 	streamMulti.SetFilterLevelForTopic(logger.TRACE, "main")
-	suite.Assert().Truef(streamMulti.ShouldWrite(logger.DEBUG), "Stream %s should write DEBUG messages", reflect.TypeOf(streamNil))
-	suite.Assert().Truef(streamMulti.ShouldWriteWithTopic(logger.DEBUG, "main"), "Stream %s should write DEBUG messages for main topic", reflect.TypeOf(streamNil))
-	suite.Assert().Truef(streamMulti.ShouldWriteWithTopic(logger.INFO, "another_topic"), "Stream %s should write INFO messages for another_topic topic", reflect.TypeOf(streamNil))
+	suite.Assert().Falsef(streamMulti.ShouldWrite(logger.TRACE, "", ""), "Stream %s should not write TRACE messages", reflect.TypeOf(streamMulti))
+	suite.Assert().Truef(streamMulti.ShouldWrite(logger.DEBUG, "", ""), "Stream %s should write DEBUG messages", reflect.TypeOf(streamMulti))
+	suite.Assert().Truef(streamMulti.ShouldWrite(logger.DEBUG, "main", ""), "Stream %s should write DEBUG messages for main topic", reflect.TypeOf(streamMulti))
+	suite.Assert().Truef(streamMulti.ShouldWrite(logger.INFO, "another_topic", ""), "Stream %s should write INFO messages for another_topic topic", reflect.TypeOf(streamMulti))
 }
 
 func (suite *StreamSuite) TestCanSetLevelPerTopicAndScope() {
@@ -529,28 +530,29 @@ func (suite *StreamSuite) TestCanSetLevelPerTopicAndScope() {
 		setter, ok := strm.(logger.FilterSetter)
 		suite.Require().Truef(ok, "Streamer %s should implement FilterSetter", reflect.TypeOf(strm))
 
-		suite.Assert().Truef(strm.ShouldWriteWithTopicAndScope(logger.INFO, "main", "any"), "Stream %s should write INFO messages for main topic and any scope before it is configured", reflect.TypeOf(strm))
-		suite.Assert().Falsef(strm.ShouldWriteWithTopicAndScope(logger.DEBUG, "main", "any"), "Stream %s should not write DEBUG messages for main topic and any scope before it is configured", reflect.TypeOf(strm))
+		suite.Assert().Truef(strm.ShouldWrite(logger.INFO, "main", "any"), "Stream %s should write INFO messages for main topic and any scope before it is configured", reflect.TypeOf(strm))
+		suite.Assert().Falsef(strm.ShouldWrite(logger.DEBUG, "main", "any"), "Stream %s should not write DEBUG messages for main topic and any scope before it is configured", reflect.TypeOf(strm))
 
 		setter.SetFilterLevelForTopicAndScope(logger.TRACE, "main", "specific")
 		setter.SetFilterLevelForTopic(logger.DEBUG, "main")
 
-		suite.Assert().Truef(strm.ShouldWriteWithTopicAndScope(logger.DEBUG, "main", "any"), "Stream %s should write DEBUG messages for main topic and any scope", reflect.TypeOf(strm))
-		suite.Assert().Truef(strm.ShouldWriteWithTopicAndScope(logger.TRACE, "main", "specific"), "Stream %s should write TRACE messages for main topic and specific scope", reflect.TypeOf(strm))
-		suite.Assert().Falsef(strm.ShouldWriteWithTopicAndScope(logger.TRACE, "main", "any"), "Stream %s should not write TRACE messages for main topic and any scope", reflect.TypeOf(strm))
+		suite.Assert().Truef(strm.ShouldWrite(logger.DEBUG, "main", "any"), "Stream %s should write DEBUG messages for main topic and any scope", reflect.TypeOf(strm))
+		suite.Assert().Truef(strm.ShouldWrite(logger.TRACE, "main", "specific"), "Stream %s should write TRACE messages for main topic and specific scope", reflect.TypeOf(strm))
+		suite.Assert().Falsef(strm.ShouldWrite(logger.TRACE, "main", "any"), "Stream %s should not write TRACE messages for main topic and any scope", reflect.TypeOf(strm))
 
-		suite.Assert().Falsef(strm.ShouldWriteWithTopicAndScope(logger.DEBUG, "another_topic", "any"), "Stream %s should not write DEBUG messages for another_topic topic and any scope", reflect.TypeOf(strm))
+		suite.Assert().Falsef(strm.ShouldWrite(logger.DEBUG, "another_topic", "any"), "Stream %s should not write DEBUG messages for another_topic topic and any scope", reflect.TypeOf(strm))
 	}
 
 	streamNil := &logger.NilStream{}
 	streamNil.SetFilterLevelForTopicAndScope(logger.TRACE, "main", "specific")
-	suite.Assert().Falsef(streamNil.ShouldWriteWithTopicAndScope(logger.DEBUG, "main", "any"), "Stream %s should not write DEBUG messages for main topic and any scope", reflect.TypeOf(streamNil))
-	suite.Assert().Falsef(streamNil.ShouldWriteWithTopicAndScope(logger.TRACE, "main", "specific"), "Stream %s should not write TRACE messages for main topic and specific scope", reflect.TypeOf(streamNil))
-	suite.Assert().Falsef(streamNil.ShouldWriteWithTopicAndScope(logger.DEBUG, "another_topic", "any"), "Stream %s should not write DEBUG messages for another_topic topic and any scope", reflect.TypeOf(streamNil))
+	suite.Assert().Falsef(streamNil.ShouldWrite(logger.DEBUG, "main", "any"), "Stream %s should not write DEBUG messages for main topic and any scope", reflect.TypeOf(streamNil))
+	suite.Assert().Falsef(streamNil.ShouldWrite(logger.TRACE, "main", "specific"), "Stream %s should not write TRACE messages for main topic and specific scope", reflect.TypeOf(streamNil))
+	suite.Assert().Falsef(streamNil.ShouldWrite(logger.DEBUG, "another_topic", "any"), "Stream %s should not write DEBUG messages for another_topic topic and any scope", reflect.TypeOf(streamNil))
 
-	streamMulti := logger.CreateMultiStream(streamNil).(*logger.MultiStream)
+	streamMulti := logger.CreateMultiStream(&logger.StdoutStream{FilterLevel: logger.INFO}, &logger.FileStream{FilterLevel: logger.DEBUG}).(*logger.MultiStream)
 	streamMulti.SetFilterLevelForTopicAndScope(logger.TRACE, "main", "specific")
-	suite.Assert().Truef(streamMulti.ShouldWriteWithTopicAndScope(logger.DEBUG, "main", "any"), "Stream %s should write DEBUG messages for main topic and any scope", reflect.TypeOf(streamNil))
-	suite.Assert().Truef(streamMulti.ShouldWriteWithTopicAndScope(logger.TRACE, "main", "specific"), "Stream %s should write TRACE messages for main topic and specific scope", reflect.TypeOf(streamNil))
-	suite.Assert().Truef(streamMulti.ShouldWriteWithTopicAndScope(logger.DEBUG, "another_topic", "any"), "Stream %s should write DEBUG messages for another_topic topic and any scope", reflect.TypeOf(streamNil))
+	suite.Assert().Falsef(streamMulti.ShouldWrite(logger.TRACE, "main", "any"), "Stream %s should not write TRACE messages for main topic and any scope", reflect.TypeOf(streamMulti))
+	suite.Assert().Truef(streamMulti.ShouldWrite(logger.DEBUG, "main", "any"), "Stream %s should write DEBUG messages for main topic and any scope", reflect.TypeOf(streamMulti))
+	suite.Assert().Truef(streamMulti.ShouldWrite(logger.TRACE, "main", "specific"), "Stream %s should write TRACE messages for main topic and specific scope", reflect.TypeOf(streamMulti))
+	suite.Assert().Truef(streamMulti.ShouldWrite(logger.DEBUG, "another_topic", "any"), "Stream %s should write DEBUG messages for another_topic topic and any scope", reflect.TypeOf(streamMulti))
 }

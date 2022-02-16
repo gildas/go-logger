@@ -80,22 +80,8 @@ func (log *Logger) FilterLess() {
 // ShouldWrite tells if the given level should be written to this stream
 //
 // implements logger.Streamer
-func (log *Logger) ShouldWrite(level Level) bool {
-	return log.stream.ShouldWrite(level)
-}
-
-// ShouldWriteWithTopic tells if the given level should be written to this stream
-//
-// implements logger.Streamer
-func (log *Logger) ShouldWriteWithTopic(level Level, topic string) bool {
-	return log.stream.ShouldWriteWithTopic(level, topic)
-}
-
-// ShouldWriteWithTopicAndScope tells if the given level should be written to this stream
-//
-// implements logger.Streamer
-func (log *Logger) ShouldWriteWithTopicAndScope(level Level, topic, scope string) bool {
-	return log.stream.ShouldWriteWithTopicAndScope(level, topic, scope)
+func (log *Logger) ShouldWrite(level Level, topic, scope string) bool {
+	return log.stream.ShouldWrite(level, topic, scope)
 }
 
 // Flush flushes the stream (makes sure records are actually written)
