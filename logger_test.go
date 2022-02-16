@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"reflect"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -37,6 +39,10 @@ func (e *ErrorForTest) Error() string {
 
 func TestLoggerSuite(t *testing.T) {
 	suite.Run(t, new(LoggerSuite))
+}
+
+func (suite *LoggerSuite) SetupSuite() {
+	suite.Name = strings.TrimSuffix(reflect.TypeOf(*suite).Name(), "Suite")
 }
 
 func (suite *LoggerSuite) TestShouldPanicWithNoLogger() {

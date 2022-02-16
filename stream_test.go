@@ -28,6 +28,10 @@ func TestStreamSuite(t *testing.T) {
 	suite.Run(t, new(StreamSuite))
 }
 
+func (suite *StreamSuite) SetupSuite() {
+	suite.Name = strings.TrimSuffix(reflect.TypeOf(*suite).Name(), "Suite")
+}
+
 func (suite *StreamSuite) TestCanCreateStreamFromDestination() {
 	var stream logger.Streamer
 
@@ -549,8 +553,4 @@ func (suite *StreamSuite) TestCanSetLevelPerTopicAndScope() {
 	suite.Assert().Truef(streamMulti.ShouldWriteWithTopicAndScope(logger.DEBUG, "main", "any"), "Stream %s should write DEBUG messages for main topic and any scope", reflect.TypeOf(streamNil))
 	suite.Assert().Truef(streamMulti.ShouldWriteWithTopicAndScope(logger.TRACE, "main", "specific"), "Stream %s should write TRACE messages for main topic and specific scope", reflect.TypeOf(streamNil))
 	suite.Assert().Truef(streamMulti.ShouldWriteWithTopicAndScope(logger.DEBUG, "another_topic", "any"), "Stream %s should write DEBUG messages for another_topic topic and any scope", reflect.TypeOf(streamNil))
-}
-
-func (suite *StreamSuite) SetupSuite() {
-	suite.Name = strings.TrimSuffix(reflect.TypeOf(*suite).Name(), "Suite")
 }
