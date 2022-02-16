@@ -13,7 +13,7 @@ type StackDriverConverter struct {
 // Convert converts the Record into a StackDriver compatible Record
 func (converter *StackDriverConverter) Convert(record Record) Record {
 	// StackDriver special fields: https://cloud.google.com/logging/docs/agent/configuration#special-fields
-	record["severity"] = severity(record["level"])
+	record["severity"] = converter.severity(record["level"])
 	record["message"] = record["msg"]
 	if value, ok := record["time"]; ok {
 		if rtime, ok := value.(time.Time); ok {
@@ -27,7 +27,7 @@ func (converter *StackDriverConverter) Convert(record Record) Record {
 	return record
 }
 
-func severity(value interface{}) logging.Severity {
+func (converter StackDriverConverter) severity(value interface{}) logging.Severity {
 	switch level := value.(type) {
 	case Level:
 		switch level {
