@@ -184,7 +184,7 @@ var Log = logger.Create("myapp",
 
 All `Stream` types, except `NilStream` and `MultiStream` can use a `FilterLevel`. When set, `Record` objects that have a `Level` below the `FilterLevel` are not written to the `Stream`. This allows to log only stuff above *WARN* for instance.
 
-These streams can even use a `FilterLevel` per `topic` and `scope`. This allows to log everything at the *INFO* level and only the log messages beloging to the topic *db* at the *DEBUG* level, for instance. OR even. at the topic *db* and scope *disk*.
+These streams can even use a `FilterLevel` per `topic` and `scope`. This allows to log everything at the *INFO* level and only the log messages beloging to the topic *db* at the *DEBUG* level, for instance. Or even at the topic *db* and scope *disk*.
 
 The `FilterLevel` can be set via the environment variable `LOG_LEVEL`:
 
@@ -274,6 +274,7 @@ var Log = logger.Must(logger.FromContext(context))
 `Must` can be used to create a `Logger` from a method that returns `*Logger, error`, if there is an error, `Must` will panic.
 
 `FromContext` can be used to retrieve a `Logger` from a GO context. (This is used in the paragraph about HTTP Usage)  
+
 `log.ToContext` will store the `Logger` to the given GO context.
 
 ## Redacting
@@ -328,8 +329,11 @@ The default `Converter` is `BunyanConverter` so the `bunyan` log viewer can read
 Here is a list of all the converters:
 
 - `BunyanConverter`, the default converter (does nothing, actually),
+- `CloudWatchConverter` produces logs that are nicer with AWS CloudWatch log viewer.
 - `PinoConverter` produces logs that can be used by [pino](http://getpino.io),
 - `StackDriverConverter` produces logs that are nicer with Google StackDriver log viewer,
+
+**Note**: When you use converters, their output will most probably not work anymore with `bunyan`. That means you cannot have both worlds in the same Streamer. In some situation, you can survive this by using several streamers, one converted, one not.
 
 ### Writing your own Converter
 
@@ -350,7 +354,7 @@ var Log = logger.Create("myapp", &logger.StdoutStream{Converter: &MyConverter{}}
 
 ## Standard Log Compatibility
 
-To use a `Logger` with the standard go `log` library, you can simply call the `AsStandardLog()` method. You can optionally give a `Level`  
+To use a `Logger` with the standard go `log` library, you can simply call the `AsStandardLog()` method. You can optionally give a `Level`:  
 ```go
 package main
 
@@ -414,24 +418,24 @@ package main
 
 import (
   "net/http"
-	"github.com/gildas/go-logger"
-	"github.com/gorilla/mux"
+  "github.com/gildas/go-logger"
+  "github.com/gorilla/mux"
 )
 
 func MyHandler() http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        // Extracts the Logger from the request's context
-        //  Note: Use logger.Must only when you know there is a Logger as it will panic otherwise
-        log := logger.Must(logger.FromContext(r.Context()))
+      // Extracts the Logger from the request's context
+      //  Note: Use logger.Must only when you know there is a Logger as it will panic otherwise
+      log := logger.Must(logger.FromContext(r.Context()))
 
-        log.Infof("Now we are logging inside this http Handler")
+      log.Infof("Now we are logging inside this http Handler")
     })
 }
 
 func main() {
-    log := logger.Create("myapp")
-    router := mux.NewRouter()
-    router.Methods("GET").Path("/").Handler(log.HttpHandler()(MyHandler()))
+  log := logger.Create("myapp")
+  router := mux.NewRouter()
+  router.Methods("GET").Path("/").Handler(log.HttpHandler()(MyHandler()))
 }
 ```
 
