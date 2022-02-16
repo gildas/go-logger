@@ -30,6 +30,10 @@ const (
 	NEVER Level = 1
 )
 
+// FilterSetter describes objects that can set their Filter Level
+//
+// The Filter Level is the level that will be used to filter what gets written to the Stream:
+// Records with a level lower than the filter level will not be written
 type FilterSetter interface {
 	// SetFilterLevel sets the filter level
 	SetFilterLevel(level Level)
@@ -44,6 +48,7 @@ type FilterSetter interface {
 	SetFilterLevelIfUnset(level Level)
 }
 
+// FilterModifier describes objects that can modify their Filter Level
 type FilterModifier interface {
 	// FilterMore tells the stream to filter more
 	FilterMore()
