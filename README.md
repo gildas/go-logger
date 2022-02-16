@@ -168,7 +168,6 @@ A few notes:
 - the `StackDriverStream` needs a `LogID` parameter or the value of the environment variable `GOOGLE_PROJECT_ID`. (see [Google's StackDriver documentation](https://godoc.org/cloud.google.com/go/logging#NewClient) for the description of that parameter).
 - `NilStream` is a `Stream` that does not write anything, all messages are lost.
 - `MultiStream` is a `Stream` than can write to several streams.
-- All `Stream` types, except `NilStream` and `MultiStream` can use a `FilterLevel`. When set, `Record` objects that have a `Level` below the `FilterLevel` are not written to the `Stream`. This allows to log only stuff above *Warn* for instance. The `FilterLevel` can be set via the environment variable `LOG_LEVEL`.
 - `StdoutStream` and `FileStream` are buffered by default. Data is written from every `LOG_FLUSHFREQUENCY` (default 5 minutes) or when the `Record`'s `Level` is at least *ERROR*.
 - Streams convert the `Record` to write via a `Converter`. The converter is set to a default value per Stream.
 
@@ -180,6 +179,33 @@ var Log = logger.Create("myapp",
     "stackdriver",
     NewRecord().Set("key", "value"),
 )
+```
+### Setting the FilterLevel
+
+All `Stream` types, except `NilStream` and `MultiStream` can use a `FilterLevel`. When set, `Record` objects that have a `Level` below the `FilterLevel` are not written to the `Stream`. This allows to log only stuff above *WARN* for instance.
+
+These streams can even use a `FilterLevel` per `topic` and `scope`. This allows to log everything at the *INFO* level and only the log messages beloging to the topic *db* at the *DEBUG* level, for instance. OR even. at the topic *db* and scope *disk*.
+
+The `FilterLevel` can be set via the environment variable `LOG_LEVEL`:
+
+- `LOG_LEVEL=INFO`  
+  will set the FilterLevel to *INFO*, which is the default if nothing is set;
+- `LOG_LEVEL=INFO;DEBUG:{topic1}` or `LOG_LEVEL=TRACE:{topic1};DEBUG`  
+  will set the FilterLevel to *DEBUG* and the FilterLevel for the topic *topic1* to *TRACE* (and all the scopes under that topic);
+- `LOG_LEVEL=INFO;DEBUG:{topic1:scope1,scope2}`  
+  will set the FilterLevel to *INFO* and the FilterLevel for the topic *topic1* and scopes *scope1*, *scope2* to *DEBUG* (all the other scopes under that topic will be filtered at *INFO*);
+- `LOG_LEVEL=INFO;DEBUG:{topic1};TRACE:{topic2}`  
+  will set the FilterLevel to *INFO* and the FilterLevel for the topic *topic1* to *DEBUG*, respectively *topic2* and *TRACE* (and all the scopes under these topics);
+- The last setting of a topic supersedes the ones set before;
+- If the environment variable `DEBUG` is set to *1*, the default FilterLevel is overrident and set to *DEBUG*.
+
+It is also possible to change the FilterLevel by calling `FilterMore()`and `FilterLess()` methods on the `Logger` or any of its `Streamer` members. The former will log less data and the latter will log more data. We provide an example of how to use these in the [examples](examples/set-level-with-signal/) folder using Unix signals.
+
+```go
+log := logger.Create("myapp", &logger.StdoutStream{})
+// We are filtering at INFO
+log.FilterLess()
+// We are now filtering at DEBUG
 ```
 
 ### StackDriver Stream
@@ -249,8 +275,6 @@ var Log = logger.Must(logger.FromContext(context))
 
 `FromContext` can be used to retrieve a `Logger` from a GO context. (This is used in the paragraph about HTTP Usage)  
 `log.ToContext` will store the `Logger` to the given GO context.
-
-It is also possible to change the FilterLevel by calling `FilterMore()`and `FilterLess()` methods on the `Logger` or any of its `Streamer` member. The former will log less data and the latter will log more data. We provide an example of how to use these in the [examples](examples/set-level-with-signal/) folder using Unix signals.
 
 ## Redacting
 

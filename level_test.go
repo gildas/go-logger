@@ -69,6 +69,89 @@ func (suite *LevelSuite) TestCanSetTopicScopeLevel() {
 	suite.Assert().Equal(logger.DEBUG, level, "The level for topic1 should be DEBUG")
 }
 
+func (suite *LevelSuite) TestCanGetLevelsFromString() {
+	level, levels := logger.GetLevelsFromString("")
+	suite.Assert().Equal(logger.INFO, level, "The default level should be INFO")
+	suite.Assert().Len(levels, 0, "There should be no levels")
+
+	level, levels = logger.GetLevelsFromString("WARN")
+	suite.Assert().Equal(logger.WARN, level, "The default level should be WARN")
+	suite.Assert().Len(levels, 0, "There should be no levels")
+
+	level, levels = logger.GetLevelsFromString("DEBUG:{topic1}")
+	suite.Assert().Equal(logger.INFO, level, "The default level should be INFO")
+	suite.Assert().Len(levels, 1, "There should be 1 item in levels")
+	for _, topic_scope := range [][]string{{"topic1", "", "DEBUG"}, {"topic1", "any", "DEBUG"}} {
+		topic := topic_scope[0]
+		scope := topic_scope[1]
+		expected := logger.ParseLevel(topic_scope[2])
+		level, found := levels.Get(topic, scope)
+		suite.Assert().Truef(found, "The level for %s:%s should be found", topic, scope)
+		suite.Assert().Equalf(expected, level, "The level for %s:%s should be %s", topic, scope, expected)
+	}
+	for _, topic_scope := range [][]string{{"topic2", ""}, {"topic2", "any"}} {
+		topic := topic_scope[0]
+		scope := topic_scope[1]
+		_, found := levels.Get(topic, scope)
+		suite.Assert().Falsef(found, "The level for %s:%s should not be found", topic, scope)
+	}
+}
+
+func (suite *LevelSuite) TestCanGetLevelsFromEnvironment() {
+	if current, ok := os.LookupEnv("LOG_LEVEL"); ok {
+		defer os.Setenv("LOG_LEVEL", current)
+	} else {
+		defer os.Unsetenv("LOG_LEVEL")
+	}
+	if current, ok := os.LookupEnv("DEBUG"); ok {
+		defer os.Setenv("DEBUG", current)
+	} else {
+		defer os.Unsetenv("DEBUG")
+	}
+	os.Unsetenv("LOG_LEVEL")
+	os.Unsetenv("DEBUG")
+	level, levels := logger.GetLevelsFromEnvironment()
+	suite.Assert().Equal(logger.INFO, level, "The default level should be INFO")
+	suite.Assert().Len(levels, 0, "There should be no levels")
+
+
+	os.Setenv("LOG_LEVEL", "DEBUG:{topic1:scope1,scope2};WARN:{topic2:scope2};TRACE:{topic3};WARN")
+	level, levels = logger.GetLevelsFromEnvironment()
+
+	suite.Assert().Equal(logger.WARN, level, "The default level should be WARN")
+	suite.Assert().Len(levels, 4, "There should be 4 levels")
+
+	for _, topic_scope := range [][]string{{"topic1", "scope1", "DEBUG"}, {"topic1", "scope2", "DEBUG"}, {"topic2", "scope2", "WARN"}, {"topic3", "", "TRACE"}, {"topic3", "any", "TRACE"}} {
+		topic := topic_scope[0]
+		scope := topic_scope[1]
+		expected := logger.ParseLevel(topic_scope[2])
+		level, found := levels.Get(topic, scope)
+		suite.Assert().Truef(found, "The level for %s:%s should be found", topic, scope)
+		suite.Assert().Equalf(expected, level, "The level for %s:%s should be %s", topic, scope, expected)
+	}
+
+	for _, topic_scope := range [][]string{{"topic1", ""}, {"topic1", "any"}, {"topic2", ""}, {"topic2", "any"}, {"topic4", ""}} {
+		topic := topic_scope[0]
+		scope := topic_scope[1]
+		_, found := levels.Get(topic, scope)
+		suite.Assert().Falsef(found, "The level for %s:%s should not be found", topic, scope)
+	}
+
+	// The environment variable DEBUG should override the environment LOG_LEVEL
+	os.Setenv("DEBUG", "1")
+	os.Setenv("LOG_LEVEL", "DEBUG:{topic1:scope1,scope2};WARN:{topic2:scope2};TRACE:{topic3};WARN")
+	level, levels = logger.GetLevelsFromEnvironment()
+
+	suite.Assert().Equal(logger.DEBUG, level, "The default level should be DEBUG")
+	suite.Assert().Len(levels, 4, "There should be 4 levels")
+
+	os.Setenv("LOG_LEVEL", "DEBUG:{topic1:scope1,scope2};WARN:{topic2:scope2};TRACE:{topic3}")
+	level, levels = logger.GetLevelsFromEnvironment()
+
+	suite.Assert().Equal(logger.DEBUG, level, "The default level should be DEBUG")
+	suite.Assert().Len(levels, 4, "There should be 4 levels")
+}
+
 func (suite *LevelSuite) TestCanStringLevel() {
 	suite.Assert().Equal("INFO", logger.INFO.String())
 	suite.Assert().Equal("ERROR", logger.ERROR.String())

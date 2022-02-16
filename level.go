@@ -2,6 +2,7 @@ package logger
 
 import (
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -83,6 +84,52 @@ func GetLevelFromRecord(record Record) Level {
 		}
 	}
 	return NEVER
+}
+
+// GetLevelsFromString retrieves the level and the topic/scope levels from the given string
+func GetLevelsFromString(settings string) (level Level, levels TopicScopeLevels) {
+	levels = TopicScopeLevels{}
+	level = INFO
+
+	if len(settings) == 0 {
+		return
+	}
+	// Pattern to match a list of topic/scope levels
+	// See: https://regex101.com/r/HjXZYX/1
+	pattern := regexp.MustCompile(`(?m)(?P<LEVEL>[A-Z]+)(?::\{(?P<TOPIC>\w+)(?::(?P<SCOPES>\w+(?:,\w+)?))?\})?(?:;|$)`)
+	matches := pattern.FindAllStringSubmatch(settings, -1)
+
+	for _, match := range matches {
+		if len(match[2]) > 0 {
+			topic := match[2]
+			if len(match[3]) > 0 {
+				for _, scope := range strings.Split(match[3], ",") {
+					levels.Set(topic, scope, ParseLevel(match[1]))
+				}
+			} else {
+				levels.Set(topic, "", ParseLevel(match[1]))
+			}
+		} else {
+			level = ParseLevel(match[1])
+		}
+	}
+	return
+}
+
+// GetLevelsFromEnvironment retrieves the level and the topic/scope levels from the environment variable LOG_LEVEL
+func GetLevelsFromEnvironment() (Level, TopicScopeLevels) {
+	level := UNSET
+	if value, ok := os.LookupEnv("DEBUG"); ok && value == "1" {
+		level = DEBUG
+	}
+	if value, ok := os.LookupEnv("LOG_LEVEL"); ok {
+		if level == UNSET {
+			return GetLevelsFromString(value)
+		}
+		_, levels := GetLevelsFromString(value)
+		return level, levels
+	}
+	return INFO, map[string]Level{}
 }
 
 // GetLevelFromEnvironment retrieves the level from the environment LOG_LEVEL
