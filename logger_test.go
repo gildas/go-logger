@@ -86,8 +86,8 @@ func (suite *LoggerSuite) TestShouldFailLoadingFromContextWithoutLogger() {
 	_, err := logger.FromContext(context.Background())
 	suite.Require().NotNil(err, "Context should not contain a Logger")
 	suite.Assert().True(errors.Is(err, errors.ArgumentMissing), "error should be an Argument Missing error")
-	details, found := errors.ArgumentMissing.Extract(err)
-	suite.Require().True(found, "Error chain should contain an errors.Error")
+	details := errors.ArgumentMissing.Clone()
+	suite.Require().ErrorAs(err, &details, "Error chain should contain an errors.ArgumentMissing")
 	suite.Assert().Equal("Logger", details.What, "Error's What is wrong")
 }
 
@@ -95,8 +95,8 @@ func (suite *LoggerSuite) TestShouldFailLoadingFromNilContext() {
 	_, err := logger.FromContext(nil) //nolint
 	suite.Require().NotNil(err, "Context should not contain a Logger")
 	suite.Assert().True(errors.Is(err, errors.ArgumentMissing), "error should be an Argument Missing error")
-	details, found := errors.ArgumentMissing.Extract(err)
-	suite.Require().True(found, "Error chain should contain an errors.Error")
+	details := errors.ArgumentMissing.Clone()
+	suite.Require().ErrorAs(err, &details, "Error chain should contain an errors.ArgumentMissing")
 	suite.Assert().Equal("Logger", details.What, "Error's What is wrong")
 }
 

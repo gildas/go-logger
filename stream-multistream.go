@@ -87,10 +87,10 @@ func (stream *MultiStream) FilterLess() {
 //
 // implements logger.Streamer
 func (stream *MultiStream) Write(record Record) error {
-	errs := errors.MultiError{}
+	errs := errors.Error{}
 	for _, s := range stream.streams {
 		if err := s.Write(record); err != nil {
-			_ = errs.Append(errors.WithStack(err))
+			errs.WithCause(errors.WithStack(err))
 		}
 	}
 	return errs.AsError()

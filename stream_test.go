@@ -334,8 +334,8 @@ func (suite *StreamSuite) TestFailsWritingToStackDriverWithNoParent() {
 	err := stream.Write(logger.NewRecord().Set("key", "value"))
 	suite.Require().NotNil(err, "Should have failed writing to stream")
 	suite.Assert().True(errors.Is(err, errors.EnvironmentMissing), "error should be an Environment Missing error")
-	details, found := errors.EnvironmentMissing.Extract(err)
-	suite.Require().True(found, "Error chain should contain an errors.Error")
+	details := errors.EnvironmentMissing.Clone()
+	suite.Require().ErrorAs(err, &details, "Error chain should contain an errors.EnvironmentMissing")
 	suite.Assert().Equal("GOOGLE_PROJECT_ID", details.What, "Error's What is wrong")
 }
 
