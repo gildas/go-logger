@@ -23,6 +23,7 @@ type StackDriverStream struct {
 	Converter    Converter
 	FilterLevel  Level
 	FilterLevels TopicScopeLevels
+	SourceInfo   bool
 	mutex        sync.Mutex
 	client       *logging.Client
 	target       *logging.Logger
@@ -141,6 +142,13 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 		Payload:   grecord,
 	})
 	return nil
+}
+
+// ShouldLogSourceInfo tells if the source info should be logged
+//
+// implements logger.Streamer
+func (stream *StackDriverStream) ShouldLogSourceInfo() bool {
+	return stream.SourceInfo
 }
 
 // ShouldWrite tells if the given level should be written to this stream

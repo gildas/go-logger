@@ -40,6 +40,7 @@ func (suite *StreamSuite) TestCanCreateStreamFromDestination() {
 	suite.Assert().IsType(&logger.NilStream{}, stream)
 	suite.Assert().IsType(&logger.NilStream{}, stream)
 	suite.Assert().Equal("Stream to nil", fmt.Sprintf("%s", stream))
+	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
 	stream = logger.CreateStreamWithDestination("null")
@@ -47,24 +48,28 @@ func (suite *StreamSuite) TestCanCreateStreamFromDestination() {
 	suite.Assert().IsType(&logger.NilStream{}, stream)
 	suite.Assert().IsType(&logger.NilStream{}, stream)
 	suite.Assert().Equal("Stream to nil", fmt.Sprintf("%s", stream))
+	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
 	stream = logger.CreateStreamWithDestination("void")
 	suite.Require().NotNil(stream, "Failed to create a nil stream")
 	suite.Assert().IsType(&logger.NilStream{}, stream)
 	suite.Assert().Equal("Stream to nil", fmt.Sprintf("%s", stream))
+	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
 	stream = logger.CreateStreamWithDestination("stdout")
 	suite.Require().NotNil(stream, "Failed to create a stdout stream")
 	suite.Assert().IsType(&logger.StdoutStream{}, stream)
 	suite.Assert().Equal("Stream to stdout", fmt.Sprintf("%s", stream))
+	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
 	stream = logger.CreateStreamWithDestination("stderr")
 	suite.Require().NotNil(stream, "Failed to create a stderr stream")
 	suite.Assert().IsType(&logger.StderrStream{}, stream)
 	suite.Assert().Equal("Stream to stderr", fmt.Sprintf("%s", stream))
+	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 
 	stream.Close()
 	stream = logger.CreateStreamWithDestination("gcp")
@@ -72,46 +77,55 @@ func (suite *StreamSuite) TestCanCreateStreamFromDestination() {
 	suite.Assert().IsType(&logger.StdoutStream{}, stream)
 	suite.Assert().NotNil((stream.(*logger.StdoutStream)).Converter)
 	suite.Assert().IsType(&logger.StackDriverConverter{}, (stream.(*logger.StdoutStream)).Converter)
+	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
 	stream = logger.CreateStreamWithDestination("google")
 	suite.Require().NotNil(stream, "Failed to create a Google Cloud Platform stream")
 	suite.Assert().IsType(&logger.StdoutStream{}, stream)
+	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
 	stream = logger.CreateStreamWithDestination("stackdriver")
 	suite.Require().NotNil(stream, "Failed to create a Google Stackdriver stream")
 	suite.Assert().IsType(&logger.StackDriverStream{}, stream)
+	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
 	stream = logger.CreateStreamWithDestination("file://./log/test.log")
 	suite.Require().NotNil(stream, "Failed to create a file stream")
 	suite.Assert().IsType(&logger.FileStream{}, stream)
+	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
 	stream = logger.CreateStreamWithDestination("/var/log/test.log")
 	suite.Require().NotNil(stream, "Failed to create a file stream")
 	suite.Assert().IsType(&logger.FileStream{}, stream)
+	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
 	stream = logger.CreateStreamWithDestination("./log/test.log")
 	suite.Require().NotNil(stream, "Failed to create a file stream")
 	suite.Assert().IsType(&logger.FileStream{}, stream)
+	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
 	stream = logger.CreateStreamWithDestination()
 	suite.Require().NotNil(stream, "Failed to create a stream from an empty destination")
 	suite.Assert().IsType(&logger.StdoutStream{}, stream)
+	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
 	stream = logger.CreateStreamWithDestination("")
 	suite.Require().NotNil(stream, "Failed to create a stream from an empty destination")
 	suite.Assert().IsType(&logger.StdoutStream{}, stream)
+	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
 	stream = logger.CreateStreamWithDestination("myfile", "stackdriver")
 	suite.Require().NotNil(stream, "Failed to create a stream from an empty destination")
 	suite.Assert().IsType(&logger.MultiStream{}, stream)
+	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 }
 
@@ -155,9 +169,10 @@ func (suite *StreamSuite) TestCanCreateStackDriverStream() {
 }
 
 func (suite *StreamSuite) TestCanCreateMultiStream() {
-	stream := logger.CreateStreamWithDestination("stdout", "nil")
+	stream := logger.CreateMultiStream(&logger.StdoutStream{}, &logger.StderrStream{SourceInfo: true})
 	suite.Assert().IsType(&logger.MultiStream{}, stream)
 	suite.Assert().Equal("MultiStream", fmt.Sprintf("%s", stream))
+	suite.Assert().True(stream.ShouldLogSourceInfo(), "Should log source info")
 }
 
 func (suite *StreamSuite) TestCanStreamToFile() {

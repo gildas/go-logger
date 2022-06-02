@@ -23,7 +23,7 @@ func (levels TopicScopeLevels) Get(topic, scope string) (level Level, found bool
 		return UNSET, false
 	}
 	if len(scope) > 0 {
-		if level, found = levels[topic + "|" + scope]; found {
+		if level, found = levels[topic+"|"+scope]; found {
 			return
 		}
 	}

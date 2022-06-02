@@ -58,6 +58,13 @@ func (stream *NilStream) Write(record Record) error {
 	return nil
 }
 
+// ShouldLogSourceInfo tells if the source info should be logged
+//
+// implements logger.Streamer
+func (stream *NilStream) ShouldLogSourceInfo() bool {
+	return false
+}
+
 // ShouldWrite tells if the given level should be written to this stream
 //
 // implements logger.Streamer

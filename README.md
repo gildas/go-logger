@@ -241,8 +241,11 @@ gcloud iam service-accounts keys create /path/to/key.json \
 
 You can either set the `GOOGLE_APPLICATION_CREDENTIAL` and `GOOGLE_PROJECT_ID` environment variables with the path of the obtained key and Google Project ID or provide them to the StackDriver stream:  
 ```go
-var Log = logger.Create("myapp", &logger.StackDriverStream{})
-var Log = logger.Create("myapp", &logger.StackDriverStream{
+var log = logger.Create("myapp", &logger.StackDriverStream{})
+```
+
+```go
+var log = logger.Create("myapp", &logger.StackDriverStream{
     Parent:      "my-logging-project",
     KeyFilename: "/path/to/key.json",
 })
@@ -253,7 +256,61 @@ var Log = logger.Create("myapp", &logger.StackDriverStream{
 You can also write your own `Stream` by implementing the `logger.Streamer` interface and create the Logger like this:
 
 ```go
-var Log = logger.Create("myapp", &MyStream{})
+var log = logger.Create("myapp", &MyStream{})
+```
+
+### Logging Source Information
+
+It is possible to log source information such as the source filename and code line, go package, and the caller func.
+
+```go
+var Log = logger.Create("myapp", &logger.FileStream{Path: "/path/to/myapp.log", SourceInfo: true})
+
+func MyFunc() {
+  Log.Infof("I am Here")
+}
+```
+
+**Note**: Since this feature can be expensive to compute, it is turned of by default.  
+To turn it on, you need to either specify the option in the Stream object, set the environment variable `LOG_SOURCEINFO` to _true_. It is also turned on if the environment variable `DEBUG` is _true_.
+
+### Timing your funcs
+
+You can automatically log the duration of your func by calling them via the logger:
+
+```go
+log.TimeFunc("message shown with the duration", func() {
+  log.Info("I am here")
+  // ... some stuff that takes time
+  time.Sleep(12*time.Second)
+})
+```
+
+The duration will logged in the `msg` record after the given message. It will also be added as a float value in the `duration` record.
+
+There are 3 more variations for funcs that return an error, a value, an error and a value:
+
+```go
+result := log.TimeFuncV("message shown with the duration", func() interface{} {
+  log.Info("I am here")
+  // ... some stuff that takes time
+  time.Sleep(12*time.Second)
+  return 12
+})
+
+err := log.TimeFuncE("message shown with the duration", func() err {
+  log.Info("I am here")
+  // ... some stuff that takes time
+  time.Sleep(12*time.Second)
+  return errors.ArgumentMissing.With("path")
+})
+
+result, err := log.TimeFuncV("message shown with the duration", func() (interface{}, error) {
+  log.Info("I am here")
+  // ... some stuff that takes time
+  time.Sleep(12*time.Second)
+  return 12, errors.ArgumentInvalid.With("value", 12)
+})
 ```
 
 ### Miscellaneous
@@ -261,14 +318,16 @@ var Log = logger.Create("myapp", &MyStream{})
 The following convenience methods can be used when creating a `Logger` from another one (received from arguments, for example):
 
 ```go
-var Log = logger.CreateIfNil(OtherLogger, "myapp")
-var Log = logger.Create("myapp", OtherLogger)
+var log = logger.CreateIfNil(OtherLogger, "myapp")
+```
+```go
+var log = logger.Create("myapp", OtherLogger)
 ```
 
 If `OtherLogger` is `nil`, the new `Logger` will write to the `NilStream()`.
 
 ```go
-var Log = logger.Must(logger.FromContext(context))
+var log = logger.Must(logger.FromContext(context))
 ```
 
 `Must` can be used to create a `Logger` from a method that returns `*Logger, error`, if there is an error, `Must` will panic.
@@ -438,6 +497,15 @@ func main() {
   router.Methods("GET").Path("/").Handler(log.HttpHandler()(MyHandler()))
 }
 ```
+
+When the http request handler (_MyHandler_) starts, the following records are logged:  
+- `reqid`, contains the request Header X-Request-Id if present, or a random UUID
+- `path`, contains the URL Path of the request
+- `remote`, contains the remote address of the request
+- The `topic` is set to "route" and the `scope` to the path of the request URL
+
+When the http request handler (_MyHandler_) ends, the following additional records are logged:  
+- `duration`, contains the duration in seconds (**float64**) of the handler execution
 
 ## Environment Variables
 

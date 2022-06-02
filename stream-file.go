@@ -22,6 +22,7 @@ type FileStream struct {
 	FilterLevel    Level
 	FilterLevels   TopicScopeLevels
 	Unbuffered     bool
+	SourceInfo     bool
 	file           *os.File
 	output         *bufio.Writer
 	flushFrequency time.Duration
@@ -143,6 +144,13 @@ func (stream *FileStream) ShouldWrite(level Level, topic, scope string) bool {
 		return level.ShouldWrite(_level)
 	}
 	return level.ShouldWrite(stream.FilterLevel)
+}
+
+// ShouldLogSourceInfo tells if the source info should be logged
+//
+// implements logger.Streamer
+func (stream *FileStream) ShouldLogSourceInfo() bool {
+	return stream.SourceInfo
 }
 
 // Flush flushes the stream (makes sure records are actually written)

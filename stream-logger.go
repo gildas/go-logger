@@ -77,6 +77,13 @@ func (log *Logger) FilterLess() {
 	}
 }
 
+// ShouldLogSourceInfo tells if the source info should be logged
+//
+// implements logger.Streamer
+func (log *Logger) ShouldLogSourceInfo() bool {
+	return log.stream.ShouldLogSourceInfo()
+}
+
 // ShouldWrite tells if the given level should be written to this stream
 //
 // implements logger.Streamer

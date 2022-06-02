@@ -114,7 +114,6 @@ func (suite *LevelSuite) TestCanGetLevelsFromEnvironment() {
 	suite.Assert().Equal(logger.INFO, level, "The default level should be INFO")
 	suite.Assert().Len(levels, 0, "There should be no levels")
 
-
 	os.Setenv("LOG_LEVEL", "DEBUG:{topic1:scope1,scope2};WARN:{topic2:scope2};TRACE:{topic3};WARN")
 	level, levels = logger.GetLevelsFromEnvironment()
 

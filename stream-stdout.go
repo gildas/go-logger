@@ -19,6 +19,7 @@ type StdoutStream struct {
 	FilterLevel    Level
 	FilterLevels   TopicScopeLevels
 	Unbuffered     bool
+	SourceInfo     bool
 	output         *bufio.Writer
 	flushFrequency time.Duration
 	mutex          sync.Mutex
@@ -120,6 +121,13 @@ func (stream *StdoutStream) Write(record Record) error {
 		stream.output.Flush() // calling stream.Flush would Lock the mutex again and end up with a dead-lock
 	}
 	return nil
+}
+
+// ShouldLogSourceInfo tells if the source info should be logged
+//
+// implements logger.Streamer
+func (stream *StdoutStream) ShouldLogSourceInfo() bool {
+	return stream.SourceInfo
 }
 
 // ShouldWrite tells if the given level should be written to this stream

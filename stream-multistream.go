@@ -83,6 +83,20 @@ func (stream *MultiStream) FilterLess() {
 	}
 }
 
+// ShouldLogSourceInfo tells if the source info should be logged
+//
+// If at least one stream returns true, the stream should write the record
+//
+// implements logger.Streamer
+func (stream *MultiStream) ShouldLogSourceInfo() bool {
+	for _, s := range stream.streams {
+		if s.ShouldLogSourceInfo() {
+			return true
+		}
+	}
+	return false
+}
+
 // Write writes the given Record
 //
 // implements logger.Streamer

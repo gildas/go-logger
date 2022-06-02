@@ -93,15 +93,15 @@ The Child method will create one Logger that has a Record containing a topic, a 
 
 The Records method will create one Logger that has 2 keys (*key2* and *key3*) with their values.
 
-For example, with these methods:  
+For example, with these methods:
 
 	var Log    = logger.Create("test")
 	var child1 = Log.Child("topic", "scope", "key2", "value2", "key3", "value3")
 	var child2 = child1.Records("key2", "value21", "key4", "value4")
 
-*child1* will be something like Logger(Logger(Stream to stdout)). Though we added 2 records.  
+*child1* will be something like Logger(Logger(Stream to stdout)). Though we added 2 records.
 
-*child2* will be something like Logger(Logger(Logger(Stream to stdout))). Though we added 1 record to the 2 records added previously.  
+*child2* will be something like Logger(Logger(Logger(Stream to stdout))). Though we added 1 record to the 2 records added previously.
 
 Stream objects
 

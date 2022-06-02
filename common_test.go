@@ -8,6 +8,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
+	"regexp"
+	"strconv"
 	"testing"
 
 	"github.com/gildas/go-logger"
@@ -27,6 +30,10 @@ func (stream *BogusStream) SetFilterLevelIfUnset(level logger.Level) {
 
 func (stream *BogusStream) Write(record logger.Record) error {
 	return fmt.Errorf("This Stream is Bogus")
+}
+
+func (stream *BogusStream) ShouldLogSourceInfo() bool {
+	return false
 }
 
 func (stream *BogusStream) ShouldWrite(level logger.Level, topic, scope string) bool {
@@ -140,4 +147,43 @@ func CaptureStdout(f func()) string {
 	output := bytes.Buffer{}
 	_, _ = io.Copy(&output, reader)
 	return output.String()
+}
+
+func (suite *LoggerSuite) LogLineEqual(line string, records map[string]string) {
+	rex_records := make(map[string]*regexp.Regexp)
+	for key, value := range records {
+		rex_records[key] = regexp.MustCompile(value)
+	}
+
+	properties := map[string]interface{}{}
+	err := json.Unmarshal([]byte(line), &properties)
+	suite.Require().NoError(err, "Could not unmarshal line, error: %s", err)
+
+	for key, rex := range rex_records {
+		suite.Assert().Contains(properties, key, "The line does not contain the key %s", key)
+		if value, found := properties[key]; found {
+			var stringvalue string
+			switch actual := value.(type) {
+				case string:
+					stringvalue = actual
+				case int, int8, int16, int32, int64:
+					stringvalue = strconv.FormatInt(value.(int64), 10)
+				case uint, uint8, uint16, uint32, uint64:
+					stringvalue = strconv.FormatUint(value.(uint64), 10)
+				case float32, float64:
+					stringvalue = strconv.FormatFloat(value.(float64), 'f', -1, 64)
+				case fmt.Stringer:
+					stringvalue = actual.String()
+				case map[string]interface{}:
+					stringvalue  = fmt.Sprintf("%v", value)
+				default:
+					suite.Failf(fmt.Sprintf("The value of the key %s cannot be casted to string", key), "Type: %s", reflect.TypeOf(value))
+			}
+			suite.Assert().Truef(rex.MatchString(stringvalue), "Key %s: the value %v does not match the regex %s", key, value, rex)
+		}
+	}
+
+	for key := range properties {
+		suite.Assert().Contains(rex_records, key, "The line contains the extra key %s", key)
+	}
 }

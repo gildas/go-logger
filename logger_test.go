@@ -10,7 +10,6 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"reflect"
-	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -352,8 +351,18 @@ func (suite *LoggerSuite) TestCanUseWithIOWriter() {
 		log := log.New(logger.Writer(), "", 0)
 		log.Print("This is a Standard Log message")
 	})
-	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"This is a Standard Log message\\n","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
-	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+	suite.LogLineEqual(output, map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      "This is a Standard Log message",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
 }
 
 func (suite *LoggerSuite) TestCanUseWithIOWriterWithLevel() {
@@ -362,8 +371,18 @@ func (suite *LoggerSuite) TestCanUseWithIOWriterWithLevel() {
 		log := log.New(l.Writer(logger.WARN), "", 0)
 		log.Print("This is a Standard Log message")
 	})
-	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":40,"msg":"This is a Standard Log message\\n","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
-	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+	suite.LogLineEqual(output, map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "40",
+		"msg":      "This is a Standard Log message",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
 }
 
 func (suite *LoggerSuite) TestCanUseWithStandardLog() {
@@ -371,8 +390,18 @@ func (suite *LoggerSuite) TestCanUseWithStandardLog() {
 		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true}).AsStandardLog()
 		log.Print("This is a Standard Log message")
 	})
-	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"This is a Standard Log message\\n","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
-	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+	suite.LogLineEqual(output, map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      "This is a Standard Log message",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
 }
 
 func (suite *LoggerSuite) TestCanUseWithStandardLogWithLevel() {
@@ -380,8 +409,18 @@ func (suite *LoggerSuite) TestCanUseWithStandardLogWithLevel() {
 		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true}).AsStandardLog(logger.WARN)
 		log.Print("This is a Standard Log message")
 	})
-	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":40,"msg":"This is a Standard Log message\\n","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
-	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+	suite.LogLineEqual(output, map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "40",
+		"msg":      "This is a Standard Log message",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
 }
 
 func (suite *LoggerSuite) TestCanLogAtErrorWithNilError() {
@@ -412,8 +451,18 @@ func (suite *LoggerSuite) TestCanLogMemory() {
 		log.Memory()
 	})
 	suite.Require().NotEmpty(output, "There was no output")
-	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":10,"msg":"Heap\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), Stack\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), NumGC = [0-9]+","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
-	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+	suite.LogLineEqual(output, map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "10",
+		"msg":      `Heap\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), Stack\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), NumGC = [0-9]+`,
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
 }
 
 func (suite *LoggerSuite) TestCanLogMemoryWithLevel() {
@@ -422,8 +471,18 @@ func (suite *LoggerSuite) TestCanLogMemoryWithLevel() {
 		log.Memoryl(logger.INFO)
 	})
 	suite.Require().NotEmpty(output, "There was no output")
-	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"Heap\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), Stack\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), NumGC = [0-9]+","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
-	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+	suite.LogLineEqual(output, map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      `Heap\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), Stack\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), NumGC = [0-9]+`,
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
 }
 
 func (suite *LoggerSuite) TestCanLogMemoryWithMessage() {
@@ -432,8 +491,18 @@ func (suite *LoggerSuite) TestCanLogMemoryWithMessage() {
 		log.Memoryf("Text %d:", 2)
 	})
 	suite.Require().NotEmpty(output, "There was no output")
-	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":10,"msg":"Text 2: Heap\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), Stack\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), NumGC = [0-9]+","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
-	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+	suite.LogLineEqual(output, map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "10",
+		"msg":      `Text 2: Heap\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), Stack\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), NumGC = [0-9]+`,
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
 }
 
 func (suite *LoggerSuite) TestCanLogMemoryWithMessageWithLevelAndMessage() {
@@ -441,14 +510,25 @@ func (suite *LoggerSuite) TestCanLogMemoryWithMessageWithLevelAndMessage() {
 		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, FilterLevel: logger.TRACE})
 		log.Memorylf(logger.INFO, "Text %d:", 2)
 	})
-	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"Text 2: Heap\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), Stack\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), NumGC = [0-9]+","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
-	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+	suite.LogLineEqual(output, map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      `Text 2: Heap\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), Stack\(Alloc = [0-9]+\.[0-9]{2}[GMK]iB, System = [0-9]+\.[0-9]{2}[GMK]iB\), NumGC = [0-9]+`,
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
 }
 
 type Customer struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 }
+
 func (customer Customer) Redact() interface{} {
 	return Customer{customer.ID, "REDACTED"}
 }
@@ -459,8 +539,19 @@ func (suite *LoggerSuite) TestCanRedactSensitiveStruct() {
 		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
 		log.Record("customer", customer).Infof("message")
 	})
-	pattern := regexp.MustCompile(`{"customer":{"id":"12345678","name":"REDACTED"},"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"message","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
-	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+	suite.LogLineEqual(output, map[string]string{
+		"customer": `map\[id:12345678 name:REDACTED\]`,
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      "message",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
 }
 
 func (suite *LoggerSuite) TestCanRedactMessage() {
@@ -472,8 +563,18 @@ func (suite *LoggerSuite) TestCanRedactMessage() {
 		)
 		log.Infof("message with sensitive (+13178723000) data")
 	})
-	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"message with sensitive \(REDACTED\) data","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
-	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+	suite.LogLineEqual(output, map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      `message with sensitive \(REDACTED\) data`,
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
 }
 
 func (suite *LoggerSuite) TestCanFilterMore() {
@@ -498,8 +599,18 @@ func (suite *LoggerSuite) TestCanLogAtDifferentLevelsPerTopic() {
 		log.Debugf("message")
 	})
 	suite.Require().NotEmpty(output, "There was no output")
-	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":20,"msg":"message","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"child","v":0}`)
-	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+	suite.LogLineEqual(output, map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "20",
+		"msg":      "message",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "child",
+		"v":        "0",
+	})
 }
 
 func (suite *LoggerSuite) TestCanLogAtDifferentLevelsPerTopicAndEmptyScope() {
@@ -510,8 +621,18 @@ func (suite *LoggerSuite) TestCanLogAtDifferentLevelsPerTopicAndEmptyScope() {
 		log.Debugf("message")
 	})
 	suite.Require().NotEmpty(output, "There was no output")
-	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":20,"msg":"message","name":"test","pid":[0-9]+,"scope":"","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"child","v":0}`)
-	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+	suite.LogLineEqual(output, map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "20",
+		"msg":      "message",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "hild",
+		"v":        "0",
+	})
 }
 
 func (suite *LoggerSuite) TestCannotLogAtDifferentLevelsWithEmptyTopicAndEmptyScope() {
@@ -532,8 +653,18 @@ func (suite *LoggerSuite) TestCanLogWithEmptyTopicAndEmptyScope() {
 		log.Infof("message")
 	})
 	suite.Require().NotEmpty(output, "There was no output")
-	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"message","name":"test","pid":[0-9]+,"scope":"","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"","v":0}`)
-	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+	suite.LogLineEqual(output, map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      "message",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "",
+		"v":        "0",
+	})
 }
 
 func (suite *LoggerSuite) TestCanLogAtDifferentLevelsPerTopicAndScope() {
@@ -544,6 +675,221 @@ func (suite *LoggerSuite) TestCanLogAtDifferentLevelsPerTopicAndScope() {
 		log.Debugf("message")
 	})
 	suite.Require().NotEmpty(output, "There was no output")
-	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":20,"msg":"message","name":"test","pid":[0-9]+,"scope":"scope","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"child","v":0}`)
-	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+	suite.LogLineEqual(output, map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "20",
+		"msg":      "message",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "scope",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "child",
+		"v":        "0",
+	})
+}
+
+func (suite *LoggerSuite) TestCanLogTimedFunc() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.TimeFunc("code", func() {
+			log.Infof("message")
+			time.Sleep(500 * time.Millisecond)
+		})
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	suite.Require().Len(lines, 3, "There should be 3 lines in the log output, found %d", len(lines))
+
+	suite.LogLineEqual(lines[0], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      "message",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
+
+	suite.LogLineEqual(lines[1], map[string]string{
+		"duration": `[0-9]+\.[0-9]+`,
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      "code. executed in [0-9]+.[0-9]+ms",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
+}
+
+func (suite *LoggerSuite) TestCanLogTimedFuncWithReturnedValue() {
+	var result interface{}
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		code := func() int {
+			log.Infof("message")
+			time.Sleep(500 * time.Millisecond)
+			return 12
+		}
+		result = log.TimeFuncV("code", func() interface{} {
+			return code()
+		})
+	})
+	suite.Assert().NotNil(result, "There was no result")
+	suite.Assert().Equal(12, result.(int), "The result is not 12")
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	suite.Require().Len(lines, 3, "There should be 3 lines in the log output, found %d", len(lines))
+
+	suite.LogLineEqual(lines[0], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      "message",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
+
+	suite.LogLineEqual(lines[1], map[string]string{
+		"duration": `[0-9]+\.[0-9]+`,
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      "code. executed in [0-9]+.[0-9]+ms",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
+}
+
+func (suite *LoggerSuite) TestCanLogTimedFuncWithReturnedError() {
+	var err error
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		err = log.TimeFuncE("code", func() error {
+			log.Infof("message")
+			time.Sleep(500 * time.Millisecond)
+			return errors.New("error")
+		})
+	})
+	suite.Assert().Error(err, "There was no error")
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	suite.Require().Len(lines, 3, "There should be 3 lines in the log output, found %d", len(lines))
+
+	suite.LogLineEqual(lines[0], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      "message",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
+
+	suite.LogLineEqual(lines[1], map[string]string{
+		"duration": `[0-9]+\.[0-9]+`,
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      "code. executed in [0-9]+.[0-9]+ms",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
+}
+
+func (suite *LoggerSuite) TestCanLogTimedFuncWithReturnedValueAndError() {
+	var result interface{}
+	var err error
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		code := func() (int, error) {
+			log.Infof("message")
+			time.Sleep(500 * time.Millisecond)
+			return 12, errors.New("error")
+		}
+		result, err = log.TimeFuncVE("code", func() (interface{}, error) {
+			return code()
+		})
+	})
+	suite.Assert().Error(err, "There was no error")
+	suite.Assert().NotNil(result, "There was no result")
+	suite.Assert().Equal(12, result.(int), "The result is not 12")
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	suite.Require().Len(lines, 3, "There should be 3 lines in the log output, found %d", len(lines))
+
+	suite.LogLineEqual(lines[0], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      "message",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
+
+	suite.LogLineEqual(lines[1], map[string]string{
+		"duration": `[0-9]+\.[0-9]+`,
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      "code. executed in [0-9]+.[0-9]+ms",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
+}
+
+func (suite *LoggerSuite) TestCanLogWithSourceInfo() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, SourceInfo: true})
+		log.Infof("message")
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	suite.Require().Len(lines, 2, "There should be 2 lines in the log output, found %d", len(lines))
+	suite.LogLineEqual(lines[0], map[string]string{
+		"file":     `logger_test\.go`,
+		"func":     `\(\*LoggerSuite\)\.TestCanLogWithSourceInfo\.func1`,
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"line":     "[0-9]+",
+		"msg":      "message",
+		"name":     "test",
+		"package":  "github.com/gildas/go-logger_test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
 }
