@@ -483,6 +483,15 @@ func main() {
 }
 ```
 
+When the http request handler (_MyHandler_) starts, the following records are logged:  
+- `reqid`, contains the request Header X-Request-Id if present, or a random UUID
+- `path`, contains the URL Path of the request
+- `remote`, contains the remote address of the request
+- The `topic` is set to "route" and the `scope` to the path of the request URL
+
+When the http request handler (_MyHandler_) ends, the following additional records are logged:  
+- `duration`, contains the duration in seconds (**float64**) of the handler execution
+
 ## Environment Variables
 
 The `Logger` can be configured completely by environment variables if needed. These are:  
