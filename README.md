@@ -259,6 +259,21 @@ You can also write your own `Stream` by implementing the `logger.Streamer` inter
 var log = logger.Create("myapp", &MyStream{})
 ```
 
+### Logging Source Information
+
+It is possible to log source information such as the source filename and code line, go package, and the caller func.
+
+```go
+var Log = logger.Create("myapp", &logger.FileStream{Path: "/path/to/myapp.log", SourceInfo: true})
+
+func MyFunc() {
+  Log.Infof("I am Here")
+}
+```
+
+**Note**: Since this feature can be expensive to compute, it is turned of by default.  
+To turn it on, you need to either specify the option in the Stream object, set the environment variable `LOG_SOURCEINFO` to _true_. It is also turned on if the environment variable `DEBUG` is _true_.
+
 ### Timing your funcs
 
 You can automatically log the duration of your func by calling them via the logger:

@@ -14,6 +14,7 @@ type StderrStream struct {
 	Converter    Converter
 	FilterLevel  Level
 	FilterLevels TopicScopeLevels
+	SourceInfo   bool
 	mutex        sync.Mutex
 }
 
@@ -102,6 +103,13 @@ func (stream *StderrStream) Write(record Record) error {
 		return errors.JSONMarshalError.Wrap(err)
 	}
 	return nil
+}
+
+// ShouldLogSourceInfo tells if the source info should be logged
+//
+// implements logger.Streamer
+func (stream *StderrStream) ShouldLogSourceInfo() bool {
+	return stream.SourceInfo
 }
 
 // ShouldWrite tells if the given level should be written to this stream
