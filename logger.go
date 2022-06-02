@@ -133,7 +133,7 @@ func (log *Logger) Records(params ...interface{}) *Logger {
 			key = param.(string)
 		} else if len(key) > 0 {
 			record.Set(key, param)
-			key=""
+			key = ""
 		}
 	}
 	return &Logger{log, record, log.redactors}
@@ -177,12 +177,12 @@ func (log *Logger) Child(topic, scope interface{}, params ...interface{}) *Logge
 				key = actual
 			} else {
 				record.Set(key, actual)
-				key=""
+				key = ""
 			}
 		default:
 			if len(key) > 0 {
 				record.Set(key, actual)
-				key=""
+				key = ""
 			}
 		}
 	}
@@ -328,14 +328,14 @@ func (log *Logger) send(level Level, msg string, args ...interface{}) {
 }
 
 func bytesToString(bytes uint64) string {
-	if bytes >= 1024 * 1024 * 1024 {
-		return fmt.Sprintf("%.2fGiB", float64(bytes) / 1024.0 / 1024.0 / 1024.0)
+	if bytes >= 1024*1024*1024 {
+		return fmt.Sprintf("%.2fGiB", float64(bytes)/1024.0/1024.0/1024.0)
 	}
-	if bytes >= 1024 * 1024 {
-		return fmt.Sprintf("%.2fMiB", float64(bytes) / 1024.0 / 1024.0)
+	if bytes >= 1024*1024 {
+		return fmt.Sprintf("%.2fMiB", float64(bytes)/1024.0/1024.0)
 	}
 	if bytes >= 1024 {
-		return fmt.Sprintf("%.2fKiB", float64(bytes) / 1024.0)
+		return fmt.Sprintf("%.2fKiB", float64(bytes)/1024.0)
 	}
 	return fmt.Sprintf("%dB", bytes)
 }
