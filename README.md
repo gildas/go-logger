@@ -241,8 +241,11 @@ gcloud iam service-accounts keys create /path/to/key.json \
 
 You can either set the `GOOGLE_APPLICATION_CREDENTIAL` and `GOOGLE_PROJECT_ID` environment variables with the path of the obtained key and Google Project ID or provide them to the StackDriver stream:  
 ```go
-var Log = logger.Create("myapp", &logger.StackDriverStream{})
-var Log = logger.Create("myapp", &logger.StackDriverStream{
+var log = logger.Create("myapp", &logger.StackDriverStream{})
+```
+
+```go
+var log = logger.Create("myapp", &logger.StackDriverStream{
     Parent:      "my-logging-project",
     KeyFilename: "/path/to/key.json",
 })
@@ -253,7 +256,46 @@ var Log = logger.Create("myapp", &logger.StackDriverStream{
 You can also write your own `Stream` by implementing the `logger.Streamer` interface and create the Logger like this:
 
 ```go
-var Log = logger.Create("myapp", &MyStream{})
+var log = logger.Create("myapp", &MyStream{})
+```
+
+### Timing your funcs
+
+You can automatically log the duration of your func by calling them via the logger:
+
+```go
+log.TimeFunc("message shown with the duration", func() {
+  log.Info("I am here")
+  // ... some stuff that takes time
+  time.Sleep(12*time.Second)
+})
+```
+
+The duration will logged in the `msg` record after the given message. It will also be added as a float value in the `duration` record.
+
+There are 3 more variations for funcs that return an error, a value, an error and a value:
+
+```go
+result := log.TimeFuncV("message shown with the duration", func() interface{} {
+  log.Info("I am here")
+  // ... some stuff that takes time
+  time.Sleep(12*time.Second)
+  return 12
+})
+
+err := log.TimeFuncE("message shown with the duration", func() err {
+  log.Info("I am here")
+  // ... some stuff that takes time
+  time.Sleep(12*time.Second)
+  return errors.ArgumentMissing.With("path")
+})
+
+result, err := log.TimeFuncV("message shown with the duration", func() (interface{}, error) {
+  log.Info("I am here")
+  // ... some stuff that takes time
+  time.Sleep(12*time.Second)
+  return 12, errors.ArgumentInvalid.With("value", 12)
+})
 ```
 
 ### Miscellaneous
@@ -261,14 +303,16 @@ var Log = logger.Create("myapp", &MyStream{})
 The following convenience methods can be used when creating a `Logger` from another one (received from arguments, for example):
 
 ```go
-var Log = logger.CreateIfNil(OtherLogger, "myapp")
-var Log = logger.Create("myapp", OtherLogger)
+var log = logger.CreateIfNil(OtherLogger, "myapp")
+```
+```go
+var log = logger.Create("myapp", OtherLogger)
 ```
 
 If `OtherLogger` is `nil`, the new `Logger` will write to the `NilStream()`.
 
 ```go
-var Log = logger.Must(logger.FromContext(context))
+var log = logger.Must(logger.FromContext(context))
 ```
 
 `Must` can be used to create a `Logger` from a method that returns `*Logger, error`, if there is an error, `Must` will panic.

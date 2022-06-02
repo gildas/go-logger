@@ -449,6 +449,7 @@ type Customer struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 }
+
 func (customer Customer) Redact() interface{} {
 	return Customer{customer.ID, "REDACTED"}
 }
@@ -546,4 +547,99 @@ func (suite *LoggerSuite) TestCanLogAtDifferentLevelsPerTopicAndScope() {
 	suite.Require().NotEmpty(output, "There was no output")
 	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":20,"msg":"message","name":"test","pid":[0-9]+,"scope":"scope","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"child","v":0}`)
 	suite.Assert().Truef(pattern.MatchString(output), "Output is malformed: %s", output)
+}
+
+func (suite *LoggerSuite) TestCanLogTimedFunc() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.TimeFunc("code", func() {
+			log.Infof("message")
+			time.Sleep(500 * time.Millisecond)
+		})
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	suite.Require().Len(lines, 3, "There should be 3 lines in the log output, found %d", len(lines))
+
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"message","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(lines[0]), "Line #1: Output is malformed: \n%s", lines[0])
+
+	pattern = regexp.MustCompile(`{"duration":[0-9]+\.[0-9]+,"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"code\. executed in [0-9]+\.[0-9]+ms","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(lines[1]), "Line #2: Output is malformed: \n%s", lines[1])
+}
+
+func (suite *LoggerSuite) TestCanLogTimedFuncWithReturnedValue() {
+	var result interface{}
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		code := func() int {
+			log.Infof("message")
+			time.Sleep(500 * time.Millisecond)
+			return 12
+		}
+		result = log.TimeFuncV("code", func() interface{} {
+			return code()
+		})
+	})
+	suite.Assert().NotNil(result, "There was no result")
+	suite.Assert().Equal(12, result.(int), "The result is not 12")
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	suite.Require().Len(lines, 3, "There should be 3 lines in the log output, found %d", len(lines))
+
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"message","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(lines[0]), "Line #1: Output is malformed: \n%s", lines[0])
+
+	pattern = regexp.MustCompile(`{"duration":[0-9]+\.[0-9]+,"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"code\. executed in [0-9]+\.[0-9]+ms","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(lines[1]), "Line #2: Output is malformed: \n%s", lines[1])
+}
+
+func (suite *LoggerSuite) TestCanLogTimedFuncWithReturnedError() {
+	var err error
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		err = log.TimeFuncE("code", func() error {
+			log.Infof("message")
+			time.Sleep(500 * time.Millisecond)
+			return errors.New("error")
+		})
+	})
+	suite.Assert().Error(err, "There was no error")
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	suite.Require().Len(lines, 3, "There should be 3 lines in the log output, found %d", len(lines))
+
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"message","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(lines[0]), "Line #1: Output is malformed: \n%s", lines[0])
+
+	pattern = regexp.MustCompile(`{"duration":[0-9]+\.[0-9]+,"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"code\. executed in [0-9]+\.[0-9]+ms","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(lines[1]), "Line #2: Output is malformed: \n%s", lines[1])
+}
+
+func (suite *LoggerSuite) TestCanLogTimedFuncWithReturnedValueAndError() {
+	var result interface{}
+	var err error
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		code := func() (int, error) {
+			log.Infof("message")
+			time.Sleep(500 * time.Millisecond)
+			return 12, errors.New("error")
+		}
+		result, err = log.TimeFuncVE("code", func() (interface{}, error) {
+			return code()
+		})
+	})
+	suite.Assert().Error(err, "There was no error")
+	suite.Assert().NotNil(result, "There was no result")
+	suite.Assert().Equal(12, result.(int), "The result is not 12")
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	suite.Require().Len(lines, 3, "There should be 3 lines in the log output, found %d", len(lines))
+
+	pattern := regexp.MustCompile(`{"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"message","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(lines[0]), "Line #1: Output is malformed: \n%s", lines[0])
+
+	pattern = regexp.MustCompile(`{"duration":[0-9]+\.[0-9]+,"hostname":"[a-zA-Z_0-9\-\.]+","level":30,"msg":"code\. executed in [0-9]+\.[0-9]+ms","name":"test","pid":[0-9]+,"scope":"main","tid":[0-9]+,"time":"[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z","topic":"main","v":0}`)
+	suite.Assert().Truef(pattern.MatchString(lines[1]), "Line #2: Output is malformed: \n%s", lines[1])
 }
