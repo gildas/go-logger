@@ -349,7 +349,7 @@ type Customer {
 
 // implements logger.Redactable
 func (customer Customer) Redact() interface{} {
-  return Customer{customer.ID, "REDACTED"}
+  return Customer{customer.Name, "REDACTED"}
 }
 
 main() {
@@ -377,7 +377,7 @@ r3 := logger.NewRedactor("[a-z]{8}")
 log := parent.Child("topic", "scope", "record1", "value1", r3)
 ```
 
-**Note:** Adding redactors to a logger **WILL** have a performance impact on your application as each regular expression will be matched against every single message produced by the logger. We advise you to use as few redactors as possible and contain them in child logger, so they have a minmal impact.
+**Note:** Adding redactors to a logger **WILL** have a performance impact on your application as each regular expression will be matched against every single message produced by the logger. We advise you to use as few redactors as possible and contain them in child logger, so they have a minimal impact.
 
 ## Converters
 
