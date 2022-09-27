@@ -559,7 +559,7 @@ func (suite *LoggerSuite) TestCanRedactMessage() {
 		log := logger.Create(
 			"test",
 			&logger.StdoutStream{Unbuffered: true},
-			core.Must(logger.NewRedactor(`\+[0-9]{11}`)).(*logger.Redactor),
+			core.Must(logger.NewRedactor(`\+[0-9]{11}`)),
 		)
 		log.Infof("message with sensitive (+13178723000) data")
 	})
