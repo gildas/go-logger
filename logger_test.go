@@ -41,7 +41,7 @@ func TestLoggerSuite(t *testing.T) {
 }
 
 func (suite *LoggerSuite) SetupSuite() {
-	suite.Name = strings.TrimSuffix(reflect.TypeOf(*suite).Name(), "Suite")
+	suite.Name = strings.TrimSuffix(reflect.TypeOf(suite).Elem().Name(), "Suite")
 }
 
 func (suite *LoggerSuite) TestShouldPanicWithNoLogger() {
