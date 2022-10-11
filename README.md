@@ -305,7 +305,7 @@ err := log.TimeFuncE("message shown with the duration", func() err {
   return errors.ArgumentMissing.With("path")
 })
 
-result, err := log.TimeFuncV("message shown with the duration", func() (interface{}, error) {
+result, err := log.TimeFuncVE("message shown with the duration", func() (interface{}, error) {
   log.Info("I am here")
   // ... some stuff that takes time
   time.Sleep(12*time.Second)
