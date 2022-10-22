@@ -78,10 +78,10 @@ func (suite *LevelSuite) TestCanGetLevelsFromString() {
 	suite.Assert().Equal(logger.WARN, level, "The default level should be WARN")
 	suite.Assert().Len(levels, 0, "There should be no levels")
 
-	level, levels = logger.GetLevelsFromString("DEBUG:{topic1}")
-	suite.Assert().Equal(logger.INFO, level, "The default level should be INFO")
+	level, levels = logger.GetLevelsFromString("DEBUG;TRACE:{topic1}")
+	suite.Assert().Equal(logger.DEBUG, level, "The default level should be DEBUG")
 	suite.Assert().Len(levels, 1, "There should be 1 item in levels")
-	for _, topic_scope := range [][]string{{"topic1", "", "DEBUG"}, {"topic1", "any", "DEBUG"}} {
+	for _, topic_scope := range [][]string{{"topic1", "", "TRACE"}, {"topic1", "any", "TRACE"}} {
 		topic := topic_scope[0]
 		scope := topic_scope[1]
 		expected := logger.ParseLevel(topic_scope[2])
@@ -90,6 +90,24 @@ func (suite *LevelSuite) TestCanGetLevelsFromString() {
 		suite.Assert().Equalf(expected, level, "The level for %s:%s should be %s", topic, scope, expected)
 	}
 	for _, topic_scope := range [][]string{{"topic2", ""}, {"topic2", "any"}} {
+		topic := topic_scope[0]
+		scope := topic_scope[1]
+		_, found := levels.Get(topic, scope)
+		suite.Assert().Falsef(found, "The level for %s:%s should not be found", topic, scope)
+	}
+
+	level, levels = logger.GetLevelsFromString("DEBUG;TRACE:{topic1:scope1}")
+	suite.Assert().Equal(logger.DEBUG, level, "The default level should be DEBUG")
+	suite.Assert().Len(levels, 1, "There should be 1 item in levels")
+	for _, topic_scope := range [][]string{{"topic1", "scope1", "TRACE"}} {
+		topic := topic_scope[0]
+		scope := topic_scope[1]
+		expected := logger.ParseLevel(topic_scope[2])
+		level, found := levels.Get(topic, scope)
+		suite.Assert().Truef(found, "The level for %s:%s should be found", topic, scope)
+		suite.Assert().Equalf(expected, level, "The level for %s:%s should be %s", topic, scope, expected)
+	}
+	for _, topic_scope := range [][]string{{"topic1", ""}, {"topic1", "any"},{"topic2", ""}, {"topic2", "any"}} {
 		topic := topic_scope[0]
 		scope := topic_scope[1]
 		_, found := levels.Get(topic, scope)
