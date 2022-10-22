@@ -197,7 +197,7 @@ The `FilterLevel` can be set via the environment variable `LOG_LEVEL`:
 - `LOG_LEVEL=INFO;DEBUG:{topic1};TRACE:{topic2}`  
   will set the FilterLevel to *INFO* and the FilterLevel for the topic *topic1* to *DEBUG*, respectively *topic2* and *TRACE* (and all the scopes under these topics);
 - The last setting of a topic supersedes the ones set before;
-- If the environment variable `DEBUG` is set to *1*, the default FilterLevel is overrident and set to *DEBUG*.
+- If the environment variable `DEBUG` is set to *1*, the default FilterLevel is superseded and set to *DEBUG*.
 
 It is also possible to change the FilterLevel by calling `FilterMore()`and `FilterLess()` methods on the `Logger` or any of its `Streamer` members. The former will log less data and the latter will log more data. We provide an example of how to use these in the [examples](examples/set-level-with-signal/) folder using Unix signals.
 
