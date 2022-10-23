@@ -206,6 +206,24 @@ func (suite *LoggerSuite) TestCanSetLevelPerTopicAndScope() {
 
 	suite.Assert().Falsef(log.ShouldWrite(logger.DEBUG, "another_topic", "any"), "Logger should not write DEBUG messages for another_topic topic and any scope")
 }
+
+func (suite *LoggerSuite) TestCanSetLevelsPerTopicAndScope() {
+	// DEBUG:TRACE{topic1:scope1, topic2:scope2}
+	log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+
+	suite.Assert().Truef(log.ShouldWrite(logger.INFO, "main", "any"), "Logger should write INFO messages for main topic and any scope before it is configured")
+	suite.Assert().Falsef(log.ShouldWrite(logger.DEBUG, "main", "any"), "Logger should not write DEBUG messages for main topic and any scope before it is configured")
+
+	log.SetFilterLevelForTopicAndScope(logger.TRACE, "main", "specific")
+	log.SetFilterLevelForTopic(logger.DEBUG, "main")
+
+	suite.Assert().Truef(log.ShouldWrite(logger.DEBUG, "main", "any"), "Logger should write DEBUG messages for main topic and any scope")
+	suite.Assert().Truef(log.ShouldWrite(logger.TRACE, "main", "specific"), "Logger should write TRACE messages for main topic and specific scope")
+	suite.Assert().Falsef(log.ShouldWrite(logger.TRACE, "main", "any"), "Logger should not write TRACE messages for main topic and any scope")
+
+	suite.Assert().Falsef(log.ShouldWrite(logger.DEBUG, "another_topic", "any"), "Logger should not write DEBUG messages for another_topic topic and any scope")
+}
+
 func (suite *LoggerSuite) TestCanLogAtTrace() {
 	log, teardown := CreateLogger(suite.T(), "test.log", true)
 	defer teardown()
@@ -890,6 +908,42 @@ func (suite *LoggerSuite) TestCanLogWithSourceInfo() {
 		"tid":      "[0-9]+",
 		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
 		"topic":    "main",
+		"v":        "0",
+	})
+}
+
+func (suite *LoggerSuite) TestCanLogWithMultipleLevelsPerTopic() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.Debugf("message")
+		log.Child("topic1", nil).Tracef("message") // This should not be logged
+		log.Child("topic1", "scope1").Tracef("message")
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	suite.Require().Len(lines, 2, "There should be 2 lines in the log output, found %d", len(lines))
+	suite.LogLineEqual(lines[0], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "20",
+		"msg":      "message",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
+	suite.LogLineEqual(lines[1], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "10",
+		"msg":      "message",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "scope1",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "topic1",
 		"v":        "0",
 	})
 }

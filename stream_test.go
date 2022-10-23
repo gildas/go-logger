@@ -571,3 +571,24 @@ func (suite *StreamSuite) TestCanSetLevelPerTopicAndScope() {
 	suite.Assert().Truef(streamMulti.ShouldWrite(logger.TRACE, "main", "specific"), "Stream %s should write TRACE messages for main topic and specific scope", reflect.TypeOf(streamMulti))
 	suite.Assert().Truef(streamMulti.ShouldWrite(logger.DEBUG, "another_topic", "any"), "Stream %s should write DEBUG messages for another_topic topic and any scope", reflect.TypeOf(streamMulti))
 }
+
+func (suite *StreamSuite) TestCanSetFromEnvironment() {
+	environment := "DEBUG;TRACE:{topic1:scope1}"
+	stream := logger.StdoutStream{}
+	level, topicScopeLevels := logger.GetLevelsFromString(environment)
+	suite.Require().Len(topicScopeLevels, 1)
+	stream.SetFilterLevel(level)
+	stream.FilterLevels = topicScopeLevels
+
+	suite.Assert().Equal(logger.DEBUG, stream.FilterLevel, "Stream should have DEBUG level")
+	suite.Assert().Equal(logger.TRACE, stream.FilterLevels["topic1|scope1"], "Stream should have TRACE level for topic1 and scope1")
+	suite.Assert().True(stream.ShouldWrite(logger.TRACE, "topic1", "scope1"), "Stream should write record with level=TRACE, topic=topic1, scope=scope1")
+	suite.Assert().True(stream.ShouldWrite(logger.DEBUG, "topic1", "scope1"), "Stream should write record with level=DEBUG, topic=topic1, scope=scope1")
+	suite.Assert().True(stream.ShouldWrite(logger.DEBUG, "topic1", "scope2"), "Stream should write record with level=DEBUG, topic=topic1, scope=scope2")
+	suite.Assert().True(stream.ShouldWrite(logger.DEBUG, "topic2", "scope1"), "Stream should write record with level=DEBUG, topic=topic2, scope=scope1")
+	suite.Assert().True(stream.ShouldWrite(logger.DEBUG, "topic2", "scope2"), "Stream should write record with level=DEBUG, topic=topic2, scope=scope2")
+
+	suite.Assert().False(stream.ShouldWrite(logger.TRACE, "topic1", "scope2"), "Stream should not write record with level=TRACE, topic=topic1, scope=scope2")
+	suite.Assert().False(stream.ShouldWrite(logger.TRACE, "topic2", "scope1"), "Stream should not write record with level=TRACE, topic=topic2, scope=scope1")
+	suite.Assert().False(stream.ShouldWrite(logger.TRACE, "topic2", "scope2"), "Stream should not write record with level=TRACE, topic=topic2, scope=scope2")
+}
