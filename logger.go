@@ -34,7 +34,7 @@ func Create(name string, parameters ...interface{}) *Logger {
 		streams      = []Streamer{}
 		records      = []Record{}
 		redactors    = []Redactor{}
-		filterLevel  = GetLevelFromEnvironment()
+		filterLevel, filterLevels  = GetLevelsFromEnvironment()
 	)
 
 	for _, parameter := range parameters {
@@ -64,6 +64,7 @@ func Create(name string, parameters ...interface{}) *Logger {
 	}
 	logger := CreateWithStream(name, streams...)
 	logger.SetFilterLevelIfUnset(filterLevel)
+	logger.SetFilterLevelForTopicAndScope(filterLevels)
 	for _, record := range records {
 		for key, value := range record {
 			logger.record.Set(key, value)
