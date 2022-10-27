@@ -27,7 +27,7 @@ func (suite *InternalLoggerSuite) TestCanCreate() {
 	suite.Require().NotNil(log, "Failed to create a Logger with default options")
 	suite.Assert().IsType(&StdoutStream{}, log.stream)
 	suite.Assert().Equal(false, log.stream.(*StdoutStream).Unbuffered, "stream should be buffered")
-	suite.Assert().Equal(INFO, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be INFO")
+	suite.Assert().Equal(INFO, log.stream.(*StdoutStream).FilterLevels.GetDefault(), "FilterLevel should be INFO")
 }
 
 func (suite *InternalLoggerSuite) TestCanCreateWithStream() {
@@ -44,7 +44,7 @@ func (suite *InternalLoggerSuite) TestCanCreateWithFileStream() {
 }
 
 func (suite *InternalLoggerSuite) TestCanCreateWithMultipleStreams() {
-	log := CreateWithStream("test", &StdoutStream{}, &StackDriverStream{})
+	log := Create("test", &StdoutStream{}, &StackDriverStream{})
 	suite.Require().NotNil(log, "Failed to create a Logger with 2 streams")
 	suite.Assert().IsType(&MultiStream{}, log.stream)
 	suite.Require().Len(log.stream.(*MultiStream).streams, 2)
@@ -56,7 +56,7 @@ func (suite *InternalLoggerSuite) TestCanCreateWithFilterLevel() {
 	log := Create("test", TRACE)
 	suite.Require().NotNil(log, "Failed to create a Logger")
 	suite.Assert().IsType(&StdoutStream{}, log.stream)
-	suite.Assert().Equal(TRACE, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be TRACE")
+	suite.Assert().Equal(TRACE, log.stream.(*StdoutStream).FilterLevels.GetDefault(), "FilterLevel should be TRACE")
 }
 
 func (suite *InternalLoggerSuite) TestCanCreateWithEnvironmentDEBUG() {
@@ -66,7 +66,7 @@ func (suite *InternalLoggerSuite) TestCanCreateWithEnvironmentDEBUG() {
 	suite.Require().NotNil(log, "Failed to create a Logger with stdout stream")
 	suite.Assert().IsType(&StdoutStream{}, log.stream)
 	suite.Assert().Equal(true, log.stream.(*StdoutStream).Unbuffered, "In DEBUG mode, stdout should be unbuffered")
-	suite.Assert().Equal(DEBUG, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be DEBUG")
+	suite.Assert().Equal(DEBUG, log.stream.(*StdoutStream).FilterLevels.GetDefault(), "FilterLevel should be DEBUG")
 }
 
 func (suite *InternalLoggerSuite) TestCanCreateWithEnvironmentFLUSHFREQUENCY() {
@@ -76,7 +76,7 @@ func (suite *InternalLoggerSuite) TestCanCreateWithEnvironmentFLUSHFREQUENCY() {
 	suite.Require().NotNil(log, "Failed to create a Logger with stdout stream")
 	suite.Assert().IsType(&StdoutStream{}, log.stream)
 	suite.Assert().Equal(false, log.stream.(*StdoutStream).Unbuffered, "stream should be buffered")
-	suite.Assert().Equal(INFO, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be INFO")
+	suite.Assert().Equal(INFO, log.stream.(*StdoutStream).FilterLevels.GetDefault(), "FilterLevel should be INFO")
 	_ = captureStdout(func() {
 		log.Infof("writing something")
 	})
@@ -96,15 +96,15 @@ func (suite *InternalLoggerSuite) TestCanCreateWithEnvironmentDESTINATION() {
 func (suite *InternalLoggerSuite) TestCanCreateWithDestination() {
 	var log *Logger
 
-	log = CreateWithDestination("test")
+	log = Create("test")
 	suite.Require().NotNil(log, "cannot create a Logger with no destination")
 	suite.Assert().IsType(&StdoutStream{}, log.stream)
 
-	log = CreateWithDestination("test", "/var/log/test.log")
+	log = Create("test", "/var/log/test.log")
 	suite.Require().NotNil(log, "cannot create a Logger with a destination")
 	suite.Assert().IsType(&FileStream{}, log.stream)
 
-	log = CreateWithDestination("test", "/var/log/test.log", "stackdriver")
+	log = Create("test", "/var/log/test.log", "stackdriver")
 	suite.Require().NotNil(log, "cannot create a Logger with 2 destinations")
 	suite.Require().IsType(&MultiStream{}, log.stream)
 	suite.Require().Len(log.stream.(*MultiStream).streams, 2)
@@ -297,11 +297,9 @@ func (suite *InternalLoggerSuite) TestCanSetFilterLevel() {
 	log := Create("test")
 	suite.Require().NotNil(log, "cannot create a Logger")
 	suite.Assert().IsType(&StdoutStream{}, log.stream)
-	suite.Assert().Equal(INFO, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be INFO")
+	suite.Assert().Equal(INFO, log.stream.(*StdoutStream).FilterLevels.GetDefault(), "FilterLevel should be INFO")
 	log.SetFilterLevel(WARN)
-	suite.Assert().Equal(WARN, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be WARN")
-	log.SetFilterLevelIfUnset(ERROR)
-	suite.Assert().Equal(WARN, log.stream.(*StdoutStream).FilterLevel, "FilterLevel should be WARN")
+	suite.Assert().Equal(WARN, log.stream.(*StdoutStream).FilterLevels.GetDefault(), "FilterLevel should be WARN")
 }
 
 func (suite *InternalLoggerSuite) TestCanConvertBytesToString() {

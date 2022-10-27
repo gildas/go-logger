@@ -2,6 +2,7 @@ package logger
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"sync"
 
@@ -12,48 +13,28 @@ import (
 type StderrStream struct {
 	*json.Encoder
 	Converter    Converter
-	FilterLevel  Level
-	FilterLevels TopicScopeLevels
+	FilterLevels LevelSet
 	SourceInfo   bool
 	mutex        sync.Mutex
 }
 
 // SetFilterLevel sets the filter level
 //
-// implements logger.FilterSetter
-func (stream *StderrStream) SetFilterLevel(level Level) {
-	stream.mutex.Lock()
-	defer stream.mutex.Unlock()
-	stream.FilterLevel = level
-}
-
-// SetFilterLevelIfUnset sets the filter level if not set already
+// If present, the first parameter is the topic.
+//
+// If present, the second parameter is the scope.
 //
 // implements logger.FilterSetter
-func (stream *StderrStream) SetFilterLevelIfUnset(level Level) {
+func (stream *StderrStream) SetFilterLevel(level Level, parameters ...string) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
-	if stream.FilterLevel == UNSET {
-		stream.FilterLevel = level
+	if len(parameters) == 0 {
+		stream.FilterLevels.SetDefault(level)
+	} else if len(parameters) == 1 {
+		stream.FilterLevels.Set(level, parameters[0], "")
+	} else {
+		stream.FilterLevels.Set(level, parameters[0], parameters[1])
 	}
-}
-
-// SetFilterLevelForTopic sets the filter level for a given topic
-//
-// implements logger.FilterSetter
-func (stream *StderrStream) SetFilterLevelForTopic(level Level, topic string) {
-	stream.mutex.Lock()
-	defer stream.mutex.Unlock()
-	stream.FilterLevels.Set(topic, "", level)
-}
-
-// SetFilterLevelForTopicAndScope sets the filter level for a given topic
-//
-// implements logger.FilterSetter
-func (stream *StderrStream) SetFilterLevelForTopicAndScope(level Level, topic, scope string) {
-	stream.mutex.Lock()
-	defer stream.mutex.Unlock()
-	stream.FilterLevels.Set(topic, scope, level)
 }
 
 // FilterMore tells the stream to filter more
@@ -67,7 +48,7 @@ func (stream *StderrStream) SetFilterLevelForTopicAndScope(level Level, topic, s
 func (stream *StderrStream) FilterMore() {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
-	stream.FilterLevel = stream.FilterLevel.Next()
+	stream.FilterLevels.SetDefault(stream.FilterLevels.GetDefault().Next())
 }
 
 // FilterLess tells the stream to filter less
@@ -81,7 +62,7 @@ func (stream *StderrStream) FilterMore() {
 func (stream *StderrStream) FilterLess() {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
-	stream.FilterLevel = stream.FilterLevel.Previous()
+	stream.FilterLevels.SetDefault(stream.FilterLevels.GetDefault().Previous())
 }
 
 // Write writes the given Record
@@ -91,15 +72,15 @@ func (stream *StderrStream) Write(record Record) error {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.Encoder == nil {
-		stream.Encoder = json.NewEncoder(os.Stderr)
-		if stream.FilterLevel == UNSET {
-			stream.FilterLevel = GetLevelFromEnvironment()
+		if stream.Converter == nil {
+			stream.Converter = GetConverterFromEnvironment()
 		}
+		if len(stream.FilterLevels) == 0 {
+			stream.FilterLevels = ParseLevelsFromEnvironment()
+		}
+		stream.Encoder = json.NewEncoder(os.Stderr)
 	}
-	if stream.Converter == nil {
-		stream.Converter = GetConverterFromEnvironment()
-	}
-	if err := stream.Encoder.Encode(stream.Converter.Convert(record)); errors.Is(err, errors.JSONUnmarshalError) {
+	if err := stream.Encoder.Encode(stream.Converter.Convert(record)); errors.Is(err, errors.JSONMarshalError) {
 		return err
 	} else if err != nil {
 		return errors.JSONMarshalError.Wrap(err)
@@ -118,10 +99,7 @@ func (stream *StderrStream) ShouldLogSourceInfo() bool {
 //
 // implements logger.Streamer
 func (stream *StderrStream) ShouldWrite(level Level, topic, scope string) bool {
-	if _level, found := stream.FilterLevels.Get(topic, scope); found {
-		return level.ShouldWrite(_level)
-	}
-	return level.ShouldWrite(stream.FilterLevel)
+	return level.ShouldWrite(stream.FilterLevels.Get(topic, scope))
 }
 
 // Flush flushes the stream (makes sure records are actually written)
@@ -140,5 +118,8 @@ func (stream *StderrStream) Close() {
 //
 // implements fmt.Stringer
 func (stream *StderrStream) String() string {
+	if len(stream.FilterLevels) > 0 {
+		return fmt.Sprintf("Stream to stderr, Filter: %s", stream.FilterLevels)
+	}
 	return "Stream to stderr"
 }

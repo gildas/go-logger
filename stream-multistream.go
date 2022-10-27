@@ -7,46 +7,17 @@ type MultiStream struct {
 	streams []Streamer
 }
 
-// SetFilterLevel sets the filter level of all streams
+// SetFilterLevel sets the filter level
+//
+// If present, the first parameter is the topic.
+//
+// If present, the second parameter is the scope.
 //
 // implements logger.FilterSetter
-func (stream *MultiStream) SetFilterLevel(level Level) {
+func (stream *MultiStream) SetFilterLevel(level Level, parameters ...string) {
 	for _, s := range stream.streams {
 		if setter, ok := s.(FilterSetter); ok {
-			setter.SetFilterLevel(level)
-		}
-	}
-}
-
-// SetFilterLevelIfUnset sets the filter level if not set already
-//
-// implements logger.FilterSetter
-func (stream *MultiStream) SetFilterLevelIfUnset(level Level) {
-	for _, s := range stream.streams {
-		if setter, ok := s.(FilterSetter); ok {
-			setter.SetFilterLevelIfUnset(level)
-		}
-	}
-}
-
-// SetFilterLevelForTopic sets the filter level for a given topic
-//
-// implements logger.FilterSetter
-func (stream *MultiStream) SetFilterLevelForTopic(level Level, topic string) {
-	for _, s := range stream.streams {
-		if setter, ok := s.(FilterSetter); ok {
-			setter.SetFilterLevelForTopic(level, topic)
-		}
-	}
-}
-
-// SetFilterLevelForTopicAndScope sets the filter level for a given topic
-//
-// implements logger.FilterSetter
-func (stream *MultiStream) SetFilterLevelForTopicAndScope(level Level, topic, scope string) {
-	for _, s := range stream.streams {
-		if setter, ok := s.(FilterSetter); ok {
-			setter.SetFilterLevelForTopicAndScope(level, topic, scope)
+			setter.SetFilterLevel(level, parameters...)
 		}
 	}
 }

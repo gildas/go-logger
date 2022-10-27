@@ -28,13 +28,13 @@ func Must(log *Logger, err error) *Logger {
 }
 
 // Create creates a new Logger
-func Create(name string, parameters ...interface{}) *Logger {
+func Create(name string, parameters ...interface{}) (logger *Logger) {
 	var (
 		destinations = []string{}
 		streams      = []Streamer{}
 		records      = []Record{}
 		redactors    = []Redactor{}
-		filterLevel, filterLevels  = GetLevelsFromEnvironment()
+		filterLevels = ParseLevelsFromEnvironment()
 	)
 
 	for _, parameter := range parameters {
@@ -46,7 +46,7 @@ func Create(name string, parameters ...interface{}) *Logger {
 		case string:
 			destinations = append(destinations, parameter)
 		case Level:
-			filterLevel = parameter
+			filterLevels.Set(parameter, "any", "any")
 		case Streamer:
 			streams = append(streams, parameter)
 		case Record:
@@ -59,28 +59,7 @@ func Create(name string, parameters ...interface{}) *Logger {
 		// if param is a struct or pointer to struct, or interface
 		// we should use it for the Topic, Scope
 	}
-	for _, destination := range destinations {
-		streams = append(streams, CreateStreamWithDestination(destination))
-	}
-	logger := CreateWithStream(name, streams...)
-	logger.SetFilterLevelIfUnset(filterLevel)
-	logger.SetFilterLevelForTopicAndScope(filterLevels)
-	for _, record := range records {
-		for key, value := range record {
-			logger.record.Set(key, value)
-		}
-	}
-	logger.redactors = append(logger.redactors, redactors...)
-	return logger
-}
 
-// CreateWithDestination creates a new Logger streaming to the given destination(s)
-func CreateWithDestination(name string, destinations ...string) *Logger {
-	return CreateWithStream(name, CreateStreamWithDestination(destinations...))
-}
-
-// CreateWithStream creates a new Logger streaming to the given stream or list of streams
-func CreateWithStream(name string, streams ...Streamer) *Logger {
 	hostname, _ := os.Hostname()
 	record := NewRecord().
 		Set("name", name).
@@ -91,12 +70,25 @@ func CreateWithStream(name string, streams ...Streamer) *Logger {
 		Set("scope", "main").
 		Set("v", 0)
 
-	if len(streams) == 0 {
-		return &Logger{CreateStreamWithDestination(), record, []Redactor{}}
-	} else if len(streams) == 1 {
-		return &Logger{streams[0], record, []Redactor{}}
+	for _, destination := range destinations {
+		streams = append(streams, CreateStream(filterLevels, destination))
 	}
-	return &Logger{&MultiStream{streams: streams}, record, []Redactor{}}
+
+	if len(streams) == 0 {
+		logger = &Logger{CreateStream(filterLevels), record, []Redactor{}}
+	} else if len(streams) == 1 {
+		logger = &Logger{streams[0], record, []Redactor{}}
+	} else {
+		logger = &Logger{&MultiStream{streams: streams}, record, []Redactor{}}
+	}
+
+	for _, record := range records {
+		for key, value := range record {
+			logger.record.Set(key, value)
+		}
+	}
+	logger.redactors = append(logger.redactors, redactors...)
+	return logger
 }
 
 // CreateIfNil creates a new Logger if the given Logger is nil, otherwise return the said Logger
@@ -104,7 +96,7 @@ func CreateIfNil(logger *Logger, name string) *Logger {
 	if logger != nil {
 		return logger
 	}
-	return CreateWithStream(name, &NilStream{})
+	return Create(name, &NilStream{})
 }
 
 // Record adds the given Record to the Log

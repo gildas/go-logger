@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/gildas/go-errors"
 	"github.com/gildas/go-logger"
 	"github.com/stretchr/testify/require"
 )
@@ -46,11 +47,20 @@ func (stream *BogusStream) Flush() {
 func (stream *BogusStream) Close() {
 }
 
+// BogusValue is a bogus value that fails to marshal
 type BogusValue struct {
 }
 
 func (v *BogusValue) MarshalJSON() ([]byte, error) {
 	return nil, fmt.Errorf("Failed to Marshal BogusValue")
+}
+
+// BogusValue2 is a bogus value that fails to marshal with an errors.JSONMarshalError
+type BogusValue2 struct {
+}
+
+func (v *BogusValue2) MarshalJSON() ([]byte, error) {
+	return nil, errors.JSONMarshalError.Wrap(errors.ArgumentInvalid.With("value", "self"))
 }
 
 // Load loads an object from a file and marshals it
@@ -84,7 +94,7 @@ func CreateLogger(t *testing.T, filename string, wantLocal bool) (*logger.Logger
 		folder, teardown = CreateTempDir(t)
 	}
 	path := filepath.Join(folder, filename)
-	log := logger.CreateWithDestination("test", "file://"+path)
+	log := logger.Create("test", "file://"+path)
 	//if _, err := os.Stat(path); err != nil {
 	//	t.Fatalf("Log file was not created at: %s. Error: %s\n", path, err)
 	//}
@@ -164,20 +174,20 @@ func (suite *LoggerSuite) LogLineEqual(line string, records map[string]string) {
 		if value, found := properties[key]; found {
 			var stringvalue string
 			switch actual := value.(type) {
-				case string:
-					stringvalue = actual
-				case int, int8, int16, int32, int64:
-					stringvalue = strconv.FormatInt(value.(int64), 10)
-				case uint, uint8, uint16, uint32, uint64:
-					stringvalue = strconv.FormatUint(value.(uint64), 10)
-				case float32, float64:
-					stringvalue = strconv.FormatFloat(value.(float64), 'f', -1, 64)
-				case fmt.Stringer:
-					stringvalue = actual.String()
-				case map[string]interface{}:
-					stringvalue  = fmt.Sprintf("%v", value)
-				default:
-					suite.Failf(fmt.Sprintf("The value of the key %s cannot be casted to string", key), "Type: %s", reflect.TypeOf(value))
+			case string:
+				stringvalue = actual
+			case int, int8, int16, int32, int64:
+				stringvalue = strconv.FormatInt(value.(int64), 10)
+			case uint, uint8, uint16, uint32, uint64:
+				stringvalue = strconv.FormatUint(value.(uint64), 10)
+			case float32, float64:
+				stringvalue = strconv.FormatFloat(value.(float64), 'f', -1, 64)
+			case fmt.Stringer:
+				stringvalue = actual.String()
+			case map[string]interface{}:
+				stringvalue = fmt.Sprintf("%v", value)
+			default:
+				suite.Failf(fmt.Sprintf("The value of the key %s cannot be casted to string", key), "Type: %s", reflect.TypeOf(value))
 			}
 			suite.Assert().Truef(rex.MatchString(stringvalue), "Key %s: the value %v does not match the regex %s", key, value, rex)
 		}

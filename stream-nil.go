@@ -4,28 +4,14 @@ package logger
 type NilStream struct {
 }
 
-// SetFilterLevel sets the filter level of all streams
+// SetFilterLevel sets the filter level
+//
+// If present, the first parameter is the topic.
+//
+// If present, the second parameter is the scope.
 //
 // implements logger.FilterSetter
-func (stream *NilStream) SetFilterLevel(level Level) {
-}
-
-// SetFilterLevelIfUnset sets the filter level if not set already
-//
-// implements logger.FilterSetter
-func (stream *NilStream) SetFilterLevelIfUnset(level Level) {
-}
-
-// SetFilterLevelForTopic sets the filter level for a given topic
-//
-// implements logger.FilterSetter
-func (stream *NilStream) SetFilterLevelForTopic(level Level, topic string) {
-}
-
-// SetFilterLevelForTopicAndScope sets the filter level for a given topic
-//
-// implements logger.FilterSetter
-func (stream *NilStream) SetFilterLevelForTopicAndScope(level Level, topic, scope string) {
+func (stream *NilStream) SetFilterLevel(level Level, parameters ...string) {
 }
 
 // FilterMore tells the stream to filter more

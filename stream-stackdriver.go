@@ -3,6 +3,7 @@ package logger
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -21,8 +22,7 @@ type StackDriverStream struct {
 	KeyFilename  string
 	Key          interface{}
 	Converter    Converter
-	FilterLevel  Level
-	FilterLevels TopicScopeLevels
+	FilterLevels LevelSet
 	SourceInfo   bool
 	mutex        sync.Mutex
 	client       *logging.Client
@@ -31,40 +31,21 @@ type StackDriverStream struct {
 
 // SetFilterLevel sets the filter level
 //
-// implements logger.FilterSetter
-func (stream *StackDriverStream) SetFilterLevel(level Level) {
-	stream.mutex.Lock()
-	defer stream.mutex.Unlock()
-	stream.FilterLevel = level
-}
-
-// SetFilterLevelIfUnset sets the filter level if not set already
+// If present, the first parameter is the topic.
+//
+// If present, the second parameter is the scope.
 //
 // implements logger.FilterSetter
-func (stream *StackDriverStream) SetFilterLevelIfUnset(level Level) {
+func (stream *StackDriverStream) SetFilterLevel(level Level, parameters ...string) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
-	if stream.FilterLevel == UNSET {
-		stream.FilterLevel = level
+	if len(parameters) == 0 {
+		stream.FilterLevels.SetDefault(level)
+	} else if len(parameters) == 1 {
+		stream.FilterLevels.Set(level, parameters[0], "")
+	} else {
+		stream.FilterLevels.Set(level, parameters[0], parameters[1])
 	}
-}
-
-// SetFilterLevelForTopic sets the filter level for a given topic
-//
-// implements logger.FilterSetter
-func (stream *StackDriverStream) SetFilterLevelForTopic(level Level, topic string) {
-	stream.mutex.Lock()
-	defer stream.mutex.Unlock()
-	stream.FilterLevels.Set(topic, "", level)
-}
-
-// SetFilterLevelForTopicAndScope sets the filter level for a given topic
-//
-// implements logger.FilterSetter
-func (stream *StackDriverStream) SetFilterLevelForTopicAndScope(level Level, topic, scope string) {
-	stream.mutex.Lock()
-	defer stream.mutex.Unlock()
-	stream.FilterLevels.Set(topic, scope, level)
 }
 
 // FilterMore tells the stream to filter more
@@ -78,7 +59,7 @@ func (stream *StackDriverStream) SetFilterLevelForTopicAndScope(level Level, top
 func (stream *StackDriverStream) FilterMore() {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
-	stream.FilterLevel = stream.FilterLevel.Next()
+	stream.FilterLevels.SetDefault(stream.FilterLevels.GetDefault().Next())
 }
 
 // FilterLess tells the stream to filter less
@@ -92,7 +73,7 @@ func (stream *StackDriverStream) FilterMore() {
 func (stream *StackDriverStream) FilterLess() {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
-	stream.FilterLevel = stream.FilterLevel.Previous()
+	stream.FilterLevels.SetDefault(stream.FilterLevels.GetDefault().Previous())
 }
 
 // Write writes the given Record
@@ -114,7 +95,7 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 		options := []googleoption.ClientOption{}
 		if stream.Key != nil {
 			payload, err := json.Marshal(stream.Key)
-			if errors.Is(err, errors.JSONUnmarshalError) {
+			if errors.Is(err, errors.JSONMarshalError) {
 				return err
 			} else if err != nil {
 				return errors.JSONMarshalError.Wrap(err)
@@ -129,8 +110,8 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 			return errors.WithStack(err)
 		}
 		stream.target = stream.client.Logger(stream.LogID)
-		if stream.FilterLevel == 0 {
-			stream.FilterLevel = GetLevelFromEnvironment()
+		if len(stream.FilterLevels) == 0 {
+			stream.FilterLevels = ParseLevelsFromEnvironment()
 		}
 	}
 	grecord := stream.Converter.Convert(record)
@@ -157,10 +138,7 @@ func (stream *StackDriverStream) ShouldLogSourceInfo() bool {
 //
 // implements logger.Streamer
 func (stream *StackDriverStream) ShouldWrite(level Level, topic, scope string) bool {
-	if _level, found := stream.FilterLevels.Get(topic, scope); found {
-		return level.ShouldWrite(_level)
-	}
-	return level.ShouldWrite(stream.FilterLevel)
+	return level.ShouldWrite(stream.FilterLevels.Get(topic, scope))
 }
 
 // Flush flushes the stream (makes sure records are actually written)
@@ -192,5 +170,8 @@ func (stream *StackDriverStream) Close() {
 //
 // implements fmt.Stringer
 func (stream *StackDriverStream) String() string {
+	if len(stream.FilterLevels) > 0 {
+		return fmt.Sprintf("Stream to Google StackDriver, Filter: %s", stream.FilterLevels)
+	}
 	return "Stream to Google StackDriver"
 }

@@ -35,7 +35,7 @@ func (suite *StreamSuite) SetupSuite() {
 func (suite *StreamSuite) TestCanCreateStreamFromDestination() {
 	var stream logger.Streamer
 
-	stream = logger.CreateStreamWithDestination("nil")
+	stream = logger.CreateStream(logger.NewLevelSet(logger.INFO), "nil")
 	suite.Require().NotNil(stream, "Failed to create a nil stream")
 	suite.Assert().IsType(&logger.NilStream{}, stream)
 	suite.Assert().IsType(&logger.NilStream{}, stream)
@@ -43,7 +43,7 @@ func (suite *StreamSuite) TestCanCreateStreamFromDestination() {
 	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
-	stream = logger.CreateStreamWithDestination("null")
+	stream = logger.CreateStream(logger.NewLevelSet(logger.INFO), "null")
 	suite.Require().NotNil(stream, "Failed to create a nil stream")
 	suite.Assert().IsType(&logger.NilStream{}, stream)
 	suite.Assert().IsType(&logger.NilStream{}, stream)
@@ -51,28 +51,28 @@ func (suite *StreamSuite) TestCanCreateStreamFromDestination() {
 	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
-	stream = logger.CreateStreamWithDestination("void")
+	stream = logger.CreateStream(logger.NewLevelSet(logger.INFO), "void")
 	suite.Require().NotNil(stream, "Failed to create a nil stream")
 	suite.Assert().IsType(&logger.NilStream{}, stream)
 	suite.Assert().Equal("Stream to nil", fmt.Sprintf("%s", stream))
 	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
-	stream = logger.CreateStreamWithDestination("stdout")
+	stream = logger.CreateStream(logger.NewLevelSet(logger.INFO), "stdout")
 	suite.Require().NotNil(stream, "Failed to create a stdout stream")
 	suite.Assert().IsType(&logger.StdoutStream{}, stream)
-	suite.Assert().Equal("Stream to stdout", fmt.Sprintf("%s", stream))
+	suite.Assert().Equal("Stream to stdout, Filter: INFO", fmt.Sprintf("%s", stream))
 	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
-	stream = logger.CreateStreamWithDestination("stderr")
+	stream = logger.CreateStream(logger.NewLevelSet(logger.INFO), "stderr")
 	suite.Require().NotNil(stream, "Failed to create a stderr stream")
 	suite.Assert().IsType(&logger.StderrStream{}, stream)
-	suite.Assert().Equal("Stream to stderr", fmt.Sprintf("%s", stream))
+	suite.Assert().Equal("Stream to stderr, Filter: INFO", fmt.Sprintf("%s", stream))
 	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 
 	stream.Close()
-	stream = logger.CreateStreamWithDestination("gcp")
+	stream = logger.CreateStream(logger.NewLevelSet(logger.INFO), "gcp")
 	suite.Require().NotNil(stream, "Failed to create a Google Cloud Platform stream")
 	suite.Assert().IsType(&logger.StdoutStream{}, stream)
 	suite.Assert().NotNil((stream.(*logger.StdoutStream)).Converter)
@@ -80,49 +80,49 @@ func (suite *StreamSuite) TestCanCreateStreamFromDestination() {
 	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
-	stream = logger.CreateStreamWithDestination("google")
+	stream = logger.CreateStream(logger.NewLevelSet(logger.INFO), "google")
 	suite.Require().NotNil(stream, "Failed to create a Google Cloud Platform stream")
 	suite.Assert().IsType(&logger.StdoutStream{}, stream)
 	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
-	stream = logger.CreateStreamWithDestination("stackdriver")
+	stream = logger.CreateStream(logger.NewLevelSet(logger.INFO), "stackdriver")
 	suite.Require().NotNil(stream, "Failed to create a Google Stackdriver stream")
 	suite.Assert().IsType(&logger.StackDriverStream{}, stream)
 	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
-	stream = logger.CreateStreamWithDestination("file://./log/test.log")
+	stream = logger.CreateStream(logger.NewLevelSet(logger.INFO), "file://./log/test.log")
 	suite.Require().NotNil(stream, "Failed to create a file stream")
 	suite.Assert().IsType(&logger.FileStream{}, stream)
 	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
-	stream = logger.CreateStreamWithDestination("/var/log/test.log")
+	stream = logger.CreateStream(logger.NewLevelSet(logger.INFO), "/var/log/test.log")
 	suite.Require().NotNil(stream, "Failed to create a file stream")
 	suite.Assert().IsType(&logger.FileStream{}, stream)
 	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
-	stream = logger.CreateStreamWithDestination("./log/test.log")
+	stream = logger.CreateStream(logger.NewLevelSet(logger.INFO), "./log/test.log")
 	suite.Require().NotNil(stream, "Failed to create a file stream")
 	suite.Assert().IsType(&logger.FileStream{}, stream)
 	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
-	stream = logger.CreateStreamWithDestination()
+	stream = logger.CreateStream(logger.NewLevelSet(logger.INFO))
 	suite.Require().NotNil(stream, "Failed to create a stream from an empty destination")
 	suite.Assert().IsType(&logger.StdoutStream{}, stream)
 	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
-	stream = logger.CreateStreamWithDestination("")
+	stream = logger.CreateStream(logger.NewLevelSet(logger.INFO), "")
 	suite.Require().NotNil(stream, "Failed to create a stream from an empty destination")
 	suite.Assert().IsType(&logger.StdoutStream{}, stream)
 	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
-	stream = logger.CreateStreamWithDestination("myfile", "stackdriver")
+	stream = logger.CreateStream(logger.NewLevelSet(logger.INFO), "myfile", "stackdriver")
 	suite.Require().NotNil(stream, "Failed to create a stream from an empty destination")
 	suite.Assert().IsType(&logger.MultiStream{}, stream)
 	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
@@ -132,10 +132,15 @@ func (suite *StreamSuite) TestCanCreateStreamFromDestination() {
 func (suite *StreamSuite) TestCanCreateStreamFromEnvironment() {
 	os.Setenv("LOG_DESTINATION", "/var/log/test.log")
 	defer os.Unsetenv("LOG_DESTINATION")
-	stream := logger.CreateStreamWithDestination()
+	stream := logger.CreateStream(logger.NewLevelSet(logger.INFO))
 	suite.Require().NotNil(stream, "Failed to create a file stream")
 	suite.Assert().IsType(&logger.FileStream{}, stream)
 	suite.Assert().Equal("/var/log/test.log", stream.(*logger.FileStream).Path, "File Stream Path should be /var/log/test.log")
+}
+
+func (suite *StreamSuite) TestCanCreateStderrStream() {
+	stream := &logger.StderrStream{}
+	suite.Assert().Equal("Stream to stderr", stream.String())
 }
 
 func (suite *StreamSuite) TestCanCreateStdoutStream() {
@@ -144,7 +149,7 @@ func (suite *StreamSuite) TestCanCreateStdoutStream() {
 }
 
 func (suite *StreamSuite) TestCanCreateUnbufferedStdoutStream() {
-	stream := &logger.StdoutStream{Unbuffered: true, FilterLevel: logger.INFO}
+	stream := &logger.StdoutStream{Unbuffered: true, FilterLevels: logger.NewLevelSet(logger.INFO)}
 	suite.Assert().Equal("Unbuffered Stream to stdout, Filter: INFO", stream.String())
 }
 
@@ -157,7 +162,7 @@ func (suite *StreamSuite) TestCanCreateFileStream() {
 }
 
 func (suite *StreamSuite) TestCanCreateUnbufferedFileStream() {
-	stream := &logger.FileStream{Path: "log/test.log", Unbuffered: true, FilterLevel: logger.INFO}
+	stream := &logger.FileStream{Path: "log/test.log", Unbuffered: true, FilterLevels: logger.NewLevelSet(logger.INFO)}
 	suite.Assert().Equal("Unbuffered Stream to log/test.log, Filter: INFO", stream.String())
 	err := stream.Write(logger.NewRecord().Set("key", "value"))
 	suite.Assert().Nil(err, "FileStream should have written something")
@@ -197,6 +202,39 @@ func (suite *StreamSuite) TestCanStreamToFile() {
 	stream.Close()
 }
 
+func (suite *StreamSuite) TestFileStreamCanSetFilterLevel() {
+	stream := &logger.FileStream{}
+	suite.Assert().Equal(logger.UNSET, stream.FilterLevels.GetDefault())
+	stream.SetFilterLevel(logger.WARN)
+	suite.Assert().Equal(logger.WARN, stream.FilterLevels.GetDefault())
+}
+
+func (suite *StreamSuite) TestNilStreamCanSetFilterLevel() {
+	stream := &logger.NilStream{}
+	stream.SetFilterLevel(logger.WARN)
+}
+
+func (suite *StreamSuite) TestStderrStreamCanSetFilterLevel() {
+	stream := &logger.StderrStream{}
+	suite.Assert().Equal(logger.UNSET, stream.FilterLevels.GetDefault())
+	stream.SetFilterLevel(logger.WARN)
+	suite.Assert().Equal(logger.WARN, stream.FilterLevels.GetDefault())
+}
+
+func (suite *StreamSuite) TestStdoutStreamCanSetFilterLevel() {
+	stream := &logger.StdoutStream{}
+	suite.Assert().Equal(logger.UNSET, stream.FilterLevels.GetDefault())
+	stream.SetFilterLevel(logger.WARN)
+	suite.Assert().Equal(logger.WARN, stream.FilterLevels.GetDefault())
+}
+
+func (suite *StreamSuite) TestStackDriverStreamCanSetFilterLevel() {
+	stream := &logger.StackDriverStream{}
+	suite.Assert().Equal(logger.UNSET, stream.FilterLevels.GetDefault())
+	stream.SetFilterLevel(logger.WARN)
+	suite.Assert().Equal(logger.WARN, stream.FilterLevels.GetDefault())
+}
+
 func ExampleStdoutStream() {
 	os.Setenv("LOG_FLUSHFREQUENCY", "10ms")
 	defer os.Unsetenv("LOG_FLUSHFREQUENCY")
@@ -206,7 +244,7 @@ func ExampleStdoutStream() {
 		os.Stdout.WriteString(err.Error() + "\n")
 	}
 	if stream.ShouldWrite(logger.TRACE, "", "") {
-		os.Stdout.WriteString("This should not be seen, stream Filter: " + stream.FilterLevel.String() + "\n")
+		os.Stdout.WriteString("This should not be seen, stream Filter: " + stream.FilterLevels.String() + "\n")
 	}
 	if err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.ERROR)); err != nil {
 		os.Stdout.WriteString(err.Error() + "\n")
@@ -226,7 +264,7 @@ func ExampleStdoutStream_Unbuffered() {
 		os.Stdout.WriteString(err.Error() + "\n")
 	}
 	if stream.ShouldWrite(logger.TRACE, "", "") {
-		os.Stdout.WriteString("This should not be seen, stream Filter: " + stream.FilterLevel.String() + "\n")
+		os.Stdout.WriteString("This should not be seen, stream Filter: " + stream.FilterLevels.String() + "\n")
 	}
 	// Output: {"bello":"banana","だれ":"Me"}
 }
@@ -239,7 +277,7 @@ func ExampleStderrStream() {
 			os.Stderr.WriteString(err.Error() + "\n")
 		}
 		if stream.ShouldWrite(logger.TRACE, "", "") {
-			os.Stderr.WriteString("This should not be seen, stream Filter: " + stream.FilterLevel.String() + "\n")
+			os.Stderr.WriteString("This should not be seen, stream Filter: " + stream.FilterLevels.String() + "\n")
 		}
 		stream.Flush()
 	})
@@ -316,7 +354,7 @@ func (suite *StreamSuite) TestCanStreamToStackDriverWithKey() {
 
 func (suite *StreamSuite) TestCanStreamToMultiStream() {
 	output := CaptureStdout(func() {
-		stream := logger.CreateStreamWithDestination("stdout", "nil")
+		stream := logger.CreateStream(logger.NewLevelSet(logger.INFO), "stdout", "nil")
 		suite.Assert().IsType(&logger.MultiStream{}, stream)
 		suite.Assert().Equal("MultiStream", fmt.Sprintf("%s", stream))
 		suite.Assert().Truef(stream.ShouldWrite(logger.WARN, "", ""), "It should be possible to write to a %s", stream)
@@ -419,85 +457,110 @@ func (suite *StreamSuite) TestFailsWritingtoMultiStreamWithBogusStream() {
 }
 
 func (suite *StreamSuite) TestFailsWritingWithBogusRecordValue() {
+	var err error
 	streamStderr := &logger.StderrStream{}
-	err := streamStderr.Write(logger.NewRecord().Set("key", &BogusValue{}))
+	err = streamStderr.Write(logger.NewRecord().Set("key", &BogusValue{}))
 	suite.Require().NotNil(err, "Should have failed writing to stream")
-	suite.Assert().True(errors.Is(err, errors.JSONMarshalError), "error should be a JSON Marshal error")
+	suite.Assert().ErrorIs(err, errors.JSONMarshalError, "error should be a JSON Marshal error")
 	suite.Assert().Contains(err.Error(), "Failed to Marshal BogusValue")
+
 	streamStdout := &logger.StdoutStream{}
 	err = streamStdout.Write(logger.NewRecord().Set("key", &BogusValue{}))
 	suite.Require().NotNil(err, "Should have failed writing to stream")
-	suite.Assert().True(errors.Is(err, errors.JSONMarshalError), "error should be a JSON Marshal error")
+	suite.Assert().ErrorIs(err, errors.JSONMarshalError, "error should be a JSON Marshal error")
 	suite.Assert().Contains(err.Error(), "Failed to Marshal BogusValue")
+
 	streamFile := &logger.FileStream{Path: "/tmp/test.log"}
 	err = streamFile.Write(logger.NewRecord().Set("key", &BogusValue{}))
 	suite.Require().NotNil(err, "Should have failed writing to stream")
-	suite.Assert().True(errors.Is(err, errors.JSONMarshalError), "error should be a JSON Marshal error")
+	suite.Assert().ErrorIs(err, errors.JSONMarshalError, "error should be a JSON Marshal error")
 	suite.Assert().Contains(err.Error(), "Failed to Marshal BogusValue")
 }
 
+func (suite *StreamSuite) TestFailsWritingWithBogusRecordValue2() {
+	var err error
+	streamStderr := &logger.StderrStream{}
+	err = streamStderr.Write(logger.NewRecord().Set("key", &BogusValue2{}))
+	suite.Require().NotNil(err, "Should have failed writing to stream")
+	suite.Assert().ErrorIs(err, errors.JSONMarshalError, "error should be a JSON Marshal error")
+	suite.Assert().ErrorIs(err, errors.ArgumentInvalid, "error should be an Argument Invalid error")
+
+	streamStdout := &logger.StdoutStream{}
+	err = streamStdout.Write(logger.NewRecord().Set("key", &BogusValue2{}))
+	suite.Require().NotNil(err, "Should have failed writing to stream")
+	suite.Assert().ErrorIs(err, errors.JSONMarshalError, "error should be a JSON Marshal error")
+	suite.Assert().ErrorIs(err, errors.ArgumentInvalid, "error should be an Argument Invalid error")
+
+	streamFile := &logger.FileStream{Path: "/tmp/test.log"}
+	err = streamFile.Write(logger.NewRecord().Set("key", &BogusValue2{}))
+	suite.Require().NotNil(err, "Should have failed writing to stream")
+	suite.Assert().ErrorIs(err, errors.JSONMarshalError, "error should be a JSON Marshal error")
+	suite.Assert().ErrorIs(err, errors.ArgumentInvalid, "error should be an Argument Invalid error")
+	suite.T().Logf("Error: %s", err.Error())
+}
+
 func (suite *StreamSuite) TestCanFilterMore() {
-	streamFile := &logger.FileStream{FilterLevel: logger.INFO}
+	streamFile := &logger.FileStream{FilterLevels: logger.NewLevelSet(logger.INFO)}
 	streamFile.FilterMore()
-	suite.Assert().Equal(logger.WARN, streamFile.FilterLevel)
+	suite.Assert().Equal(logger.WARN, streamFile.FilterLevels.GetDefault())
 
 	streamNil := &logger.NilStream{}
 	streamNil.FilterMore()
 
-	streamStackDriver := &logger.StackDriverStream{FilterLevel: logger.INFO}
+	streamStackDriver := &logger.StackDriverStream{FilterLevels: logger.NewLevelSet(logger.INFO)}
 	streamStackDriver.FilterMore()
-	suite.Assert().Equal(logger.WARN, streamStackDriver.FilterLevel)
+	suite.Assert().Equal(logger.WARN, streamStackDriver.FilterLevels.GetDefault())
 
-	streamStderr := &logger.StderrStream{FilterLevel: logger.INFO}
+	streamStderr := &logger.StderrStream{FilterLevels: logger.NewLevelSet(logger.INFO)}
 	streamStderr.FilterMore()
-	suite.Assert().Equal(logger.WARN, streamStderr.FilterLevel)
+	suite.Assert().Equal(logger.WARN, streamStderr.FilterLevels.GetDefault())
 
-	streamStdout := &logger.StdoutStream{FilterLevel: logger.INFO}
+	streamStdout := &logger.StdoutStream{FilterLevels: logger.NewLevelSet(logger.INFO)}
 	streamStdout.FilterMore()
-	suite.Assert().Equal(logger.WARN, streamStdout.FilterLevel)
+	suite.Assert().Equal(logger.WARN, streamStdout.FilterLevels.GetDefault())
 
 	streamMulti := logger.CreateMultiStream(streamStderr, streamStdout)
 	modifier, ok := streamMulti.(logger.FilterModifier)
 	suite.Require().True(ok, "MultiStream should implement FilterModifier")
 	modifier.FilterMore()
-	suite.Assert().Equal(logger.ERROR, streamStderr.FilterLevel)
-	suite.Assert().Equal(logger.ERROR, streamStdout.FilterLevel)
+	suite.Assert().Equal(logger.ERROR, streamStderr.FilterLevels.GetDefault())
+	suite.Assert().Equal(logger.ERROR, streamStdout.FilterLevels.GetDefault())
 }
 
 func (suite *StreamSuite) TestCanFilterLess() {
-	streamFile := &logger.FileStream{FilterLevel: logger.INFO}
+	streamFile := &logger.FileStream{FilterLevels: logger.NewLevelSet(logger.INFO)}
 	streamFile.FilterLess()
-	suite.Assert().Equal(logger.DEBUG, streamFile.FilterLevel)
+	suite.Assert().Equal(logger.DEBUG, streamFile.FilterLevels.GetDefault())
 
 	streamNil := &logger.NilStream{}
 	streamNil.FilterLess()
 
-	streamStackDriver := &logger.StackDriverStream{FilterLevel: logger.INFO}
+	streamStackDriver := &logger.StackDriverStream{FilterLevels: logger.NewLevelSet(logger.INFO)}
 	streamStackDriver.FilterLess()
-	suite.Assert().Equal(logger.DEBUG, streamStackDriver.FilterLevel)
+	suite.Assert().Equal(logger.DEBUG, streamStackDriver.FilterLevels.GetDefault())
 
-	streamStderr := &logger.StderrStream{FilterLevel: logger.INFO}
+	streamStderr := &logger.StderrStream{FilterLevels: logger.NewLevelSet(logger.INFO)}
 	streamStderr.FilterLess()
-	suite.Assert().Equal(logger.DEBUG, streamStderr.FilterLevel)
+	suite.Assert().Equal(logger.DEBUG, streamStderr.FilterLevels.GetDefault())
 
-	streamStdout := &logger.StdoutStream{FilterLevel: logger.INFO}
+	streamStdout := &logger.StdoutStream{FilterLevels: logger.NewLevelSet(logger.INFO)}
 	streamStdout.FilterLess()
-	suite.Assert().Equal(logger.DEBUG, streamStdout.FilterLevel)
+	suite.Assert().Equal(logger.DEBUG, streamStdout.FilterLevels.GetDefault())
 
 	streamMulti := logger.CreateMultiStream(streamStderr, streamStdout)
 	modifier, ok := streamMulti.(logger.FilterModifier)
 	suite.Require().True(ok, "MultiStream should implement FilterModifier")
 	modifier.FilterLess()
-	suite.Assert().Equal(logger.TRACE, streamStderr.FilterLevel)
-	suite.Assert().Equal(logger.TRACE, streamStdout.FilterLevel)
+	suite.Assert().Equal(logger.TRACE, streamStderr.FilterLevels.GetDefault())
+	suite.Assert().Equal(logger.TRACE, streamStdout.FilterLevels.GetDefault())
 }
 
 func (suite *StreamSuite) TestCanSetLevelPerTopic() {
 	streams := []logger.Streamer{
-		&logger.FileStream{FilterLevel: logger.INFO},
-		&logger.StackDriverStream{FilterLevel: logger.INFO},
-		&logger.StderrStream{FilterLevel: logger.INFO},
-		&logger.StdoutStream{FilterLevel: logger.INFO},
+		&logger.FileStream{FilterLevels: logger.NewLevelSet(logger.INFO)},
+		&logger.StackDriverStream{FilterLevels: logger.NewLevelSet(logger.INFO)},
+		&logger.StderrStream{FilterLevels: logger.NewLevelSet(logger.INFO)},
+		&logger.StdoutStream{FilterLevels: logger.NewLevelSet(logger.INFO)},
 	}
 
 	for _, strm := range streams {
@@ -507,7 +570,7 @@ func (suite *StreamSuite) TestCanSetLevelPerTopic() {
 		suite.Assert().Truef(strm.ShouldWrite(logger.INFO, "main", ""), "Stream %s should write INFO messages for main topic before it is configured", reflect.TypeOf(strm))
 		suite.Assert().Falsef(strm.ShouldWrite(logger.DEBUG, "main", ""), "Stream %s should not write DEBUG messages for main topic before it is configured", reflect.TypeOf(strm))
 
-		setter.SetFilterLevelForTopic(logger.DEBUG, "main")
+		setter.SetFilterLevel(logger.DEBUG, "main")
 
 		suite.Assert().Truef(strm.ShouldWrite(logger.WARN, "", ""), "Stream %s should write WARN messages", reflect.TypeOf(strm))
 		suite.Assert().Falsef(strm.ShouldWrite(logger.DEBUG, "", ""), "Stream %s should not write DEBUG messages", reflect.TypeOf(strm))
@@ -520,13 +583,13 @@ func (suite *StreamSuite) TestCanSetLevelPerTopic() {
 	}
 
 	streamNil := &logger.NilStream{}
-	streamNil.SetFilterLevelForTopic(logger.DEBUG, "main")
+	streamNil.SetFilterLevel(logger.DEBUG, "main")
 	suite.Assert().Falsef(streamNil.ShouldWrite(logger.DEBUG, "", ""), "Stream %s should not write DEBUG messages", reflect.TypeOf(streamNil))
 	suite.Assert().Falsef(streamNil.ShouldWrite(logger.DEBUG, "main", ""), "Stream %s should not write DEBUG messages for main topic", reflect.TypeOf(streamNil))
 	suite.Assert().Falsef(streamNil.ShouldWrite(logger.INFO, "another_topic", ""), "Stream %s should not write INFO messages for another_topic topic", reflect.TypeOf(streamNil))
 
-	streamMulti := logger.CreateMultiStream(&logger.StdoutStream{FilterLevel: logger.INFO}, &logger.FileStream{FilterLevel: logger.DEBUG}).(*logger.MultiStream)
-	streamMulti.SetFilterLevelForTopic(logger.TRACE, "main")
+	streamMulti := logger.CreateMultiStream(&logger.StdoutStream{FilterLevels: logger.NewLevelSet(logger.INFO)}, &logger.FileStream{FilterLevels: logger.NewLevelSet(logger.DEBUG)}).(*logger.MultiStream)
+	streamMulti.SetFilterLevel(logger.TRACE, "main")
 	suite.Assert().Falsef(streamMulti.ShouldWrite(logger.TRACE, "", ""), "Stream %s should not write TRACE messages", reflect.TypeOf(streamMulti))
 	suite.Assert().Truef(streamMulti.ShouldWrite(logger.DEBUG, "", ""), "Stream %s should write DEBUG messages", reflect.TypeOf(streamMulti))
 	suite.Assert().Truef(streamMulti.ShouldWrite(logger.DEBUG, "main", ""), "Stream %s should write DEBUG messages for main topic", reflect.TypeOf(streamMulti))
@@ -535,10 +598,10 @@ func (suite *StreamSuite) TestCanSetLevelPerTopic() {
 
 func (suite *StreamSuite) TestCanSetLevelPerTopicAndScope() {
 	streams := []logger.Streamer{
-		&logger.FileStream{FilterLevel: logger.INFO},
-		&logger.StackDriverStream{FilterLevel: logger.INFO},
-		&logger.StderrStream{FilterLevel: logger.INFO},
-		&logger.StdoutStream{FilterLevel: logger.INFO},
+		&logger.FileStream{FilterLevels: logger.NewLevelSet(logger.INFO)},
+		&logger.StackDriverStream{FilterLevels: logger.NewLevelSet(logger.INFO)},
+		&logger.StderrStream{FilterLevels: logger.NewLevelSet(logger.INFO)},
+		&logger.StdoutStream{FilterLevels: logger.NewLevelSet(logger.INFO)},
 	}
 
 	for _, strm := range streams {
@@ -548,8 +611,8 @@ func (suite *StreamSuite) TestCanSetLevelPerTopicAndScope() {
 		suite.Assert().Truef(strm.ShouldWrite(logger.INFO, "main", "any"), "Stream %s should write INFO messages for main topic and any scope before it is configured", reflect.TypeOf(strm))
 		suite.Assert().Falsef(strm.ShouldWrite(logger.DEBUG, "main", "any"), "Stream %s should not write DEBUG messages for main topic and any scope before it is configured", reflect.TypeOf(strm))
 
-		setter.SetFilterLevelForTopicAndScope(logger.TRACE, "main", "specific")
-		setter.SetFilterLevelForTopic(logger.DEBUG, "main")
+		setter.SetFilterLevel(logger.TRACE, "main", "specific")
+		setter.SetFilterLevel(logger.DEBUG, "main")
 
 		suite.Assert().Truef(strm.ShouldWrite(logger.DEBUG, "main", "any"), "Stream %s should write DEBUG messages for main topic and any scope", reflect.TypeOf(strm))
 		suite.Assert().Truef(strm.ShouldWrite(logger.TRACE, "main", "specific"), "Stream %s should write TRACE messages for main topic and specific scope", reflect.TypeOf(strm))
@@ -559,36 +622,15 @@ func (suite *StreamSuite) TestCanSetLevelPerTopicAndScope() {
 	}
 
 	streamNil := &logger.NilStream{}
-	streamNil.SetFilterLevelForTopicAndScope(logger.TRACE, "main", "specific")
+	streamNil.SetFilterLevel(logger.TRACE, "main", "specific")
 	suite.Assert().Falsef(streamNil.ShouldWrite(logger.DEBUG, "main", "any"), "Stream %s should not write DEBUG messages for main topic and any scope", reflect.TypeOf(streamNil))
 	suite.Assert().Falsef(streamNil.ShouldWrite(logger.TRACE, "main", "specific"), "Stream %s should not write TRACE messages for main topic and specific scope", reflect.TypeOf(streamNil))
 	suite.Assert().Falsef(streamNil.ShouldWrite(logger.DEBUG, "another_topic", "any"), "Stream %s should not write DEBUG messages for another_topic topic and any scope", reflect.TypeOf(streamNil))
 
-	streamMulti := logger.CreateMultiStream(&logger.StdoutStream{FilterLevel: logger.INFO}, &logger.FileStream{FilterLevel: logger.DEBUG}).(*logger.MultiStream)
-	streamMulti.SetFilterLevelForTopicAndScope(logger.TRACE, "main", "specific")
+	streamMulti := logger.CreateMultiStream(&logger.StdoutStream{FilterLevels: logger.NewLevelSet(logger.INFO)}, &logger.FileStream{FilterLevels: logger.NewLevelSet(logger.DEBUG)}).(*logger.MultiStream)
+	streamMulti.SetFilterLevel(logger.TRACE, "main", "specific")
 	suite.Assert().Falsef(streamMulti.ShouldWrite(logger.TRACE, "main", "any"), "Stream %s should not write TRACE messages for main topic and any scope", reflect.TypeOf(streamMulti))
 	suite.Assert().Truef(streamMulti.ShouldWrite(logger.DEBUG, "main", "any"), "Stream %s should write DEBUG messages for main topic and any scope", reflect.TypeOf(streamMulti))
 	suite.Assert().Truef(streamMulti.ShouldWrite(logger.TRACE, "main", "specific"), "Stream %s should write TRACE messages for main topic and specific scope", reflect.TypeOf(streamMulti))
 	suite.Assert().Truef(streamMulti.ShouldWrite(logger.DEBUG, "another_topic", "any"), "Stream %s should write DEBUG messages for another_topic topic and any scope", reflect.TypeOf(streamMulti))
-}
-
-func (suite *StreamSuite) TestCanSetFromEnvironment() {
-	environment := "DEBUG;TRACE:{topic1:scope1}"
-	stream := logger.StdoutStream{}
-	level, topicScopeLevels := logger.GetLevelsFromString(environment)
-	suite.Require().Len(topicScopeLevels, 1)
-	stream.SetFilterLevel(level)
-	stream.FilterLevels = topicScopeLevels
-
-	suite.Assert().Equal(logger.DEBUG, stream.FilterLevel, "Stream should have DEBUG level")
-	suite.Assert().Equal(logger.TRACE, stream.FilterLevels["topic1|scope1"], "Stream should have TRACE level for topic1 and scope1")
-	suite.Assert().True(stream.ShouldWrite(logger.TRACE, "topic1", "scope1"), "Stream should write record with level=TRACE, topic=topic1, scope=scope1")
-	suite.Assert().True(stream.ShouldWrite(logger.DEBUG, "topic1", "scope1"), "Stream should write record with level=DEBUG, topic=topic1, scope=scope1")
-	suite.Assert().True(stream.ShouldWrite(logger.DEBUG, "topic1", "scope2"), "Stream should write record with level=DEBUG, topic=topic1, scope=scope2")
-	suite.Assert().True(stream.ShouldWrite(logger.DEBUG, "topic2", "scope1"), "Stream should write record with level=DEBUG, topic=topic2, scope=scope1")
-	suite.Assert().True(stream.ShouldWrite(logger.DEBUG, "topic2", "scope2"), "Stream should write record with level=DEBUG, topic=topic2, scope=scope2")
-
-	suite.Assert().False(stream.ShouldWrite(logger.TRACE, "topic1", "scope2"), "Stream should not write record with level=TRACE, topic=topic1, scope=scope2")
-	suite.Assert().False(stream.ShouldWrite(logger.TRACE, "topic2", "scope1"), "Stream should not write record with level=TRACE, topic=topic2, scope=scope1")
-	suite.Assert().False(stream.ShouldWrite(logger.TRACE, "topic2", "scope2"), "Stream should not write record with level=TRACE, topic=topic2, scope=scope2")
 }
