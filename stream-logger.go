@@ -15,37 +15,14 @@ func (log *Logger) Write(record Record) error {
 
 // SetFilterLevel sets the filter level of the streamer
 //
-// implements logger.FilterSetter
-func (log *Logger) SetFilterLevel(level Level) {
-	if setter, ok := log.stream.(FilterSetter); ok {
-		setter.SetFilterLevel(level)
-	}
-}
-
-// SetFilterLevelIfUnset sets the filter level if not set already
+// If present, the first parameter is the topic.
+//
+// If present, the second parameter is the scope.
 //
 // implements logger.FilterSetter
-func (log *Logger) SetFilterLevelIfUnset(level Level) {
+func (log *Logger) SetFilterLevel(level Level, parameters ...string) {
 	if setter, ok := log.stream.(FilterSetter); ok {
-		setter.SetFilterLevelIfUnset(level)
-	}
-}
-
-// SetFilterLevelForTopic sets the filter level for a given topic
-//
-// implements logger.FilterSetter
-func (log *Logger) SetFilterLevelForTopic(level Level, topic string) {
-	if setter, ok := log.stream.(FilterSetter); ok {
-		setter.SetFilterLevelForTopic(level, topic)
-	}
-}
-
-// SetFilterLevelForTopicAndScope sets the filter level for a given topic
-//
-// implements logger.FilterSetter
-func (log *Logger) SetFilterLevelForTopicAndScope(level Level, topic, scope string) {
-	if setter, ok := log.stream.(FilterSetter); ok {
-		setter.SetFilterLevelForTopicAndScope(level, topic, scope)
+		setter.SetFilterLevel(level, parameters...)
 	}
 }
 

@@ -8,21 +8,13 @@ type CloudWatchConverter struct {
 
 // Convert converts the Record into a StackDriver compatible Record
 func (converter *CloudWatchConverter) Convert(record Record) Record {
-	if value, ok := record["level"]; ok {
-		if level, ok := value.(Level); ok {
-			record["level"] = level.String()
-		}
-	} else {
-		record["level"] = INFO.String()
+	if level, ok := record["level"].(Level); ok {
+		record["severity"] = level.String()
 	}
-	record["message"] = record["msg"]
 	if value, ok := record["time"]; ok {
 		if rtime, ok := value.(time.Time); ok {
 			record["time"] = rtime.Format(time.RFC3339)
 		}
 	}
-	delete(record, "name")
-	delete(record, "msg")
-	delete(record, "v")
 	return record
 }

@@ -161,10 +161,6 @@ var Log = logger.Create("myapp", &logger.FileStream{Path: "/path/to/myapp.log"},
 ```
 
 A few notes:
-- `logger.CreateWithStream` can also be used to create with one or more streams.  
-  (Backward compatibility)
-- `logger.CreateWithDestination` can also be used to create with one or more destinations.  
-  (Backward compatibility)
 - the `StackDriverStream` needs a `LogID` parameter or the value of the environment variable `GOOGLE_PROJECT_ID`. (see [Google's StackDriver documentation](https://godoc.org/cloud.google.com/go/logging#NewClient) for the description of that parameter).
 - `NilStream` is a `Stream` that does not write anything, all messages are lost.
 - `MultiStream` is a `Stream` than can write to several streams.
@@ -180,26 +176,30 @@ var Log = logger.Create("myapp",
     NewRecord().Set("key", "value"),
 )
 ```
-### Setting the FilterLevel
+### Setting the LevelSet
 
-All `Stream` types, except `NilStream` and `MultiStream` can use a `FilterLevel`. When set, `Record` objects that have a `Level` below the `FilterLevel` are not written to the `Stream`. This allows to log only stuff above *WARN* for instance.
+All `Stream` types, except `NilStream` and `MultiStream` can use a `LevelSet`. When set, `Record` objects that have a `Level` below the `LevelSet` are not written to the `Stream`. This allows to log only stuff above *WARN* for instance.
 
-These streams can even use a `FilterLevel` per `topic` and `scope`. This allows to log everything at the *INFO* level and only the log messages beloging to the topic *db* at the *DEBUG* level, for instance. Or even at the topic *db* and scope *disk*.
+A `LevelSet` is a set of `Level` objects organized by `topic` and `scope`.
 
-The `FilterLevel` can be set via the environment variable `LOG_LEVEL`:
+The `LevelSet` can be set via a string or the environment variable `LOG_LEVEL`:
 
 - `LOG_LEVEL=INFO`  
-  will set the FilterLevel to *INFO*, which is the default if nothing is set;
-- `LOG_LEVEL=INFO;DEBUG:{topic1}` or `LOG_LEVEL=TRACE:{topic1};DEBUG`  
-  will set the FilterLevel to *DEBUG* and the FilterLevel for the topic *topic1* to *TRACE* (and all the scopes under that topic);
+  will configure the `LevelSet` to *INFO*, which is the default if nothing is set;
+- `LOG_LEVEL=TRACE:{topic1};DEBUG`  
+  will configure the `LevelSet` to *DEBUG* for everything and *TRACE* for the topic *topic1* to *TRACE* (and all the scopes under that topic);
 - `LOG_LEVEL=INFO;DEBUG:{topic1:scope1,scope2}`  
-  will set the FilterLevel to *INFO* and the FilterLevel for the topic *topic1* and scopes *scope1*, *scope2* to *DEBUG* (all the other scopes under that topic will be filtered at *INFO*);
+  will configure the `LevelSet` to *INFO* for everything and to *DEBUG* for the topic *topic1* and scopes *scope1*, *scope2* to *DEBUG* (all the other scopes under that topic will be set to *INFO*);
 - `LOG_LEVEL=INFO;DEBUG:{topic1};TRACE:{topic2}`  
-  will set the FilterLevel to *INFO* and the FilterLevel for the topic *topic1* to *DEBUG*, respectively *topic2* and *TRACE* (and all the scopes under these topics);
+  will configure the `LevelSet` to *INFO* for everything, to *DEBUG* for the topic *topic1*, and to *TRACE* for the topic *topic2* (and all the scopes under these topics);
+- `LOG_LEVEL=INFO;DEBUG:{:scope1}`  
+  will configure the `LevelSet` to *INFO* for everything, to *DEBUG* for the scope *topic1* (and all the topics containing that scope);
 - The last setting of a topic supersedes the ones set before;
-- If the environment variable `DEBUG` is set to *1*, the default FilterLevel is overrident and set to *DEBUG*.
+- If the environment variable `DEBUG` is set to *1*, the default `Level` in the `LevelSet` is superseded with *DEBUG*.
 
-It is also possible to change the FilterLevel by calling `FilterMore()`and `FilterLess()` methods on the `Logger` or any of its `Streamer` members. The former will log less data and the latter will log more data. We provide an example of how to use these in the [examples](examples/set-level-with-signal/) folder using Unix signals.
+At the moment, the `LevelSet` can be configured only for all `Streamer` of a `Logger`.
+
+It is also possible to change the default `Level` by calling `FilterMore()`and `FilterLess()` methods on the `Logger` or any of its `Streamer` members. The former will log less data and the latter will log more data. We provide an example of how to use these in the [examples](examples/set-level-with-signal/) folder using Unix signals.
 
 ```go
 log := logger.Create("myapp", &logger.StdoutStream{})
@@ -305,7 +305,7 @@ err := log.TimeFuncE("message shown with the duration", func() err {
   return errors.ArgumentMissing.With("path")
 })
 
-result, err := log.TimeFuncV("message shown with the duration", func() (interface{}, error) {
+result, err := log.TimeFuncVE("message shown with the duration", func() (interface{}, error) {
   log.Info("I am here")
   // ... some stuff that takes time
   time.Sleep(12*time.Second)
@@ -349,7 +349,7 @@ type Customer {
 
 // implements logger.Redactable
 func (customer Customer) Redact() interface{} {
-  return Customer{customer.ID, "REDACTED"}
+  return Customer{customer.Name, "REDACTED"}
 }
 
 main() {
@@ -377,7 +377,7 @@ r3 := logger.NewRedactor("[a-z]{8}")
 log := parent.Child("topic", "scope", "record1", "value1", r3)
 ```
 
-**Note:** Adding redactors to a logger **WILL** have a performance impact on your application as each regular expression will be matched against every single message produced by the logger. We advise you to use as few redactors as possible and contain them in child logger, so they have a minmal impact.
+**Note:** Adding redactors to a logger **WILL** have a performance impact on your application as each regular expression will be matched against every single message produced by the logger. We advise you to use as few redactors as possible and contain them in child logger, so they have a minimal impact.
 
 ## Converters
 

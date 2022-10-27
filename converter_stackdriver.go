@@ -20,10 +20,6 @@ func (converter *StackDriverConverter) Convert(record Record) Record {
 			record["time"] = rtime.Format(time.RFC3339)
 		}
 	}
-	delete(record, "level")
-	delete(record, "name")
-	delete(record, "msg")
-	delete(record, "v")
 	return record
 }
 

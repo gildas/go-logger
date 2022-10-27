@@ -19,8 +19,7 @@ type FileStream struct {
 	*json.Encoder
 	Path           string
 	Converter      Converter
-	FilterLevel    Level
-	FilterLevels   TopicScopeLevels
+	FilterLevels   LevelSet
 	Unbuffered     bool
 	SourceInfo     bool
 	file           *os.File
@@ -31,40 +30,21 @@ type FileStream struct {
 
 // SetFilterLevel sets the filter level
 //
-// implements logger.FilterSetter
-func (stream *FileStream) SetFilterLevel(level Level) {
-	stream.mutex.Lock()
-	defer stream.mutex.Unlock()
-	stream.FilterLevel = level
-}
-
-// SetFilterLevelIfUnset sets the filter level if not set already
+// If present, the first parameter is the topic.
+//
+// If present, the second parameter is the scope.
 //
 // implements logger.FilterSetter
-func (stream *FileStream) SetFilterLevelIfUnset(level Level) {
+func (stream *FileStream) SetFilterLevel(level Level, parameters ...string) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
-	if stream.FilterLevel == UNSET {
-		stream.FilterLevel = level
+	if len(parameters) == 0 {
+		stream.FilterLevels.SetDefault(level)
+	} else if len(parameters) == 1 {
+		stream.FilterLevels.Set(level, parameters[0], "")
+	} else {
+		stream.FilterLevels.Set(level, parameters[0], parameters[1])
 	}
-}
-
-// SetFilterLevelForTopic sets the filter level for a given topic
-//
-// implements logger.FilterSetter
-func (stream *FileStream) SetFilterLevelForTopic(level Level, topic string) {
-	stream.mutex.Lock()
-	defer stream.mutex.Unlock()
-	stream.FilterLevels.Set(topic, "", level)
-}
-
-// SetFilterLevelForTopicAndScope sets the filter level for a given topic
-//
-// implements logger.FilterSetter
-func (stream *FileStream) SetFilterLevelForTopicAndScope(level Level, topic, scope string) {
-	stream.mutex.Lock()
-	defer stream.mutex.Unlock()
-	stream.FilterLevels.Set(topic, scope, level)
 }
 
 // FilterMore tells the stream to filter more
@@ -78,7 +58,7 @@ func (stream *FileStream) SetFilterLevelForTopicAndScope(level Level, topic, sco
 func (stream *FileStream) FilterMore() {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
-	stream.FilterLevel = stream.FilterLevel.Next()
+	stream.FilterLevels.SetDefault(stream.FilterLevels.GetDefault().Next())
 }
 
 // FilterLess tells the stream to filter less
@@ -92,7 +72,7 @@ func (stream *FileStream) FilterMore() {
 func (stream *FileStream) FilterLess() {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
-	stream.FilterLevel = stream.FilterLevel.Previous()
+	stream.FilterLevels.SetDefault(stream.FilterLevels.GetDefault().Previous())
 }
 
 // Write writes the given Record
@@ -111,11 +91,11 @@ func (stream *FileStream) Write(record Record) (err error) {
 		if stream.file, err = os.OpenFile(stream.Path, flags, perms); err != nil {
 			return errors.WithStack(err)
 		}
-		if stream.FilterLevel == UNSET {
-			stream.FilterLevel = GetLevelFromEnvironment()
-		}
 		if stream.Converter == nil {
 			stream.Converter = GetConverterFromEnvironment()
+		}
+		if len(stream.FilterLevels) == 0 {
+			stream.FilterLevels = ParseLevelsFromEnvironment()
 		}
 		if stream.Unbuffered {
 			stream.output = nil
@@ -127,7 +107,9 @@ func (stream *FileStream) Write(record Record) (err error) {
 			go stream.flushJob()
 		}
 	}
-	if err := stream.Encoder.Encode(stream.Converter.Convert(record)); err != nil {
+	if err := stream.Encoder.Encode(stream.Converter.Convert(record)); errors.Is(err, errors.JSONMarshalError) {
+		return err
+	} else if err != nil {
 		return errors.JSONMarshalError.Wrap(err)
 	}
 	if GetLevelFromRecord(record) >= ERROR && stream.output != nil {
@@ -140,10 +122,7 @@ func (stream *FileStream) Write(record Record) (err error) {
 //
 // implements logger.Streamer
 func (stream *FileStream) ShouldWrite(level Level, topic, scope string) bool {
-	if _level, found := stream.FilterLevels.Get(topic, scope); found {
-		return level.ShouldWrite(_level)
-	}
-	return level.ShouldWrite(stream.FilterLevel)
+	return level.ShouldWrite(stream.FilterLevels.Get(topic, scope))
 }
 
 // ShouldLogSourceInfo tells if the source info should be logged
@@ -188,11 +167,11 @@ func (stream *FileStream) String() string {
 		format.WriteString("Unbuffered ")
 	}
 	format.WriteString("Stream to %s")
-	if stream.FilterLevel == UNSET {
-		return fmt.Sprintf(format.String(), stream.Path)
+	if len(stream.FilterLevels) > 0 {
+		format.WriteString(", Filter: %s")
+		return fmt.Sprintf(format.String(), stream.Path, stream.FilterLevels)
 	}
-	format.WriteString(", Filter: %s")
-	return fmt.Sprintf(format.String(), stream.Path, stream.FilterLevel)
+	return fmt.Sprintf(format.String(), stream.Path)
 }
 
 func (stream *FileStream) flushJob() {

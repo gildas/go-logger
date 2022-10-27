@@ -1,8 +1,6 @@
 package logger
 
 import (
-	"os"
-	"regexp"
 	"strings"
 )
 
@@ -37,16 +35,11 @@ const (
 // Records with a level lower than the filter level will not be written
 type FilterSetter interface {
 	// SetFilterLevel sets the filter level
-	SetFilterLevel(level Level)
-
-	// SetFilterLevelForTopic sets the filter level for a given topic
-	SetFilterLevelForTopic(level Level, topic string)
-
-	// SetFilterLevelForTopicAndScope sets the filter level for a given topic
-	SetFilterLevelForTopicAndScope(level Level, topic, scope string)
-
-	// SetFilterLevelIfUnset sets the filter level if not set already
-	SetFilterLevelIfUnset(level Level)
+	//
+	// If present, the first parameter is the topic.
+	//
+	// If present, the second parameter is the scope.
+	SetFilterLevel(level Level, parameters ...string)
 }
 
 // FilterModifier describes objects that can modify their Filter Level
@@ -84,63 +77,6 @@ func GetLevelFromRecord(record Record) Level {
 		}
 	}
 	return NEVER
-}
-
-// GetLevelsFromString retrieves the level and the topic/scope levels from the given string
-func GetLevelsFromString(settings string) (level Level, levels TopicScopeLevels) {
-	levels = TopicScopeLevels{}
-	level = INFO
-
-	if len(settings) == 0 {
-		return
-	}
-	// Pattern to match a list of topic/scope levels
-	// See: https://regex101.com/r/HjXZYX/1
-	pattern := regexp.MustCompile(`(?m)(?P<LEVEL>[A-Z]+)(?::\{(?P<TOPIC>\w+)(?::(?P<SCOPES>\w+(?:,\w+)?))?\})?(?:;|$)`)
-	matches := pattern.FindAllStringSubmatch(settings, -1)
-
-	for _, match := range matches {
-		if len(match[2]) > 0 {
-			topic := match[2]
-			if len(match[3]) > 0 {
-				for _, scope := range strings.Split(match[3], ",") {
-					levels.Set(topic, scope, ParseLevel(match[1]))
-				}
-			} else {
-				levels.Set(topic, "", ParseLevel(match[1]))
-			}
-		} else {
-			level = ParseLevel(match[1])
-		}
-	}
-	return
-}
-
-// GetLevelsFromEnvironment retrieves the level and the topic/scope levels from the environment variable LOG_LEVEL
-func GetLevelsFromEnvironment() (Level, TopicScopeLevels) {
-	level := UNSET
-	if value, ok := os.LookupEnv("DEBUG"); ok && value == "1" {
-		level = DEBUG
-	}
-	if value, ok := os.LookupEnv("LOG_LEVEL"); ok {
-		if level == UNSET {
-			return GetLevelsFromString(value)
-		}
-		_, levels := GetLevelsFromString(value)
-		return level, levels
-	}
-	return INFO, map[string]Level{}
-}
-
-// GetLevelFromEnvironment retrieves the level from the environment LOG_LEVEL
-func GetLevelFromEnvironment() Level {
-	if value, ok := os.LookupEnv("LOG_LEVEL"); ok {
-		return ParseLevel(value)
-	}
-	if value, ok := os.LookupEnv("DEBUG"); ok && value == "1" {
-		return DEBUG
-	}
-	return INFO
 }
 
 // Next returns the Level that follows the current one

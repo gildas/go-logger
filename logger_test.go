@@ -41,7 +41,7 @@ func TestLoggerSuite(t *testing.T) {
 }
 
 func (suite *LoggerSuite) SetupSuite() {
-	suite.Name = strings.TrimSuffix(reflect.TypeOf(*suite).Name(), "Suite")
+	suite.Name = strings.TrimSuffix(reflect.TypeOf(suite).Elem().Name(), "Suite")
 }
 
 func (suite *LoggerSuite) TestShouldPanicWithNoLogger() {
@@ -173,39 +173,43 @@ func (suite *LoggerSuite) TestCanGetTopicInheritedByChild() {
 	suite.Assert().Equal("main", log.GetTopic())
 }
 
-func (suite *LoggerSuite) TestCanSetLevelPerTopic() {
+func (suite *LoggerSuite) TestCanSetLevelsPerTopic() {
 	log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
 
-	suite.Assert().Truef(log.ShouldWrite(logger.INFO, "main", ""), "Logger should write INFO messages for main topic before it is configured")
-	suite.Assert().Falsef(log.ShouldWrite(logger.DEBUG, "main", ""), "Logger should not write DEBUG messages for main topic before it is configured")
+	log.SetFilterLevel(logger.INFO)
+	suite.Assert().True(log.ShouldWrite(logger.INFO, "main", ""), "Logger should write INFO messages for main topic before it is configured")
+	suite.Assert().False(log.ShouldWrite(logger.DEBUG, "main", ""), "Logger should not write DEBUG messages for main topic before it is configured")
 
-	log.SetFilterLevelForTopic(logger.DEBUG, "main")
+	log.SetFilterLevel(logger.DEBUG, "main")
 
-	suite.Assert().Truef(log.ShouldWrite(logger.WARN, "", ""), "Logger should write WARN messages")
-	suite.Assert().Falsef(log.ShouldWrite(logger.DEBUG, "", ""), "Logger should not write DEBUG messages")
+	suite.Assert().True(log.ShouldWrite(logger.WARN, "", ""), "Logger should write WARN messages")
+	suite.Assert().False(log.ShouldWrite(logger.DEBUG, "", ""), "Logger should not write DEBUG messages")
 
-	suite.Assert().Truef(log.ShouldWrite(logger.DEBUG, "main", ""), "Logger should write DEBUG messages for main topic")
-	suite.Assert().Falsef(log.ShouldWrite(logger.TRACE, "main", ""), "Logger should not write TRACE messages for main topic")
+	suite.Assert().True(log.ShouldWrite(logger.DEBUG, "main", ""), "Logger should write DEBUG messages for main topic")
+	suite.Assert().False(log.ShouldWrite(logger.TRACE, "main", ""), "Logger should not write TRACE messages for main topic")
 
-	suite.Assert().Truef(log.ShouldWrite(logger.INFO, "another_topic", ""), "Logger should write INFO messages for another_topic topic")
-	suite.Assert().Falsef(log.ShouldWrite(logger.DEBUG, "another_topic", ""), "Logger should not write DEBUG messages for another_topic topic")
+	suite.Assert().True(log.ShouldWrite(logger.INFO, "another_topic", ""), "Logger should write INFO messages for another_topic topic")
+	suite.Assert().False(log.ShouldWrite(logger.DEBUG, "another_topic", ""), "Logger should not write DEBUG messages for another_topic topic")
 }
 
-func (suite *LoggerSuite) TestCanSetLevelPerTopicAndScope() {
+func (suite *LoggerSuite) TestCanSetLevelsPerTopicAndScope() {
+	// DEBUG:TRACE{topic1:scope1, topic2:scope2}
 	log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
 
-	suite.Assert().Truef(log.ShouldWrite(logger.INFO, "main", "any"), "Logger should write INFO messages for main topic and any scope before it is configured")
-	suite.Assert().Falsef(log.ShouldWrite(logger.DEBUG, "main", "any"), "Logger should not write DEBUG messages for main topic and any scope before it is configured")
+	log.SetFilterLevel(logger.INFO)
+	suite.Assert().True(log.ShouldWrite(logger.INFO, "main", "any"), "Logger should write INFO messages for main topic and any scope before it is configured")
+	suite.Assert().False(log.ShouldWrite(logger.DEBUG, "main", "any"), "Logger should not write DEBUG messages for main topic and any scope before it is configured")
 
-	log.SetFilterLevelForTopicAndScope(logger.TRACE, "main", "specific")
-	log.SetFilterLevelForTopic(logger.DEBUG, "main")
+	log.SetFilterLevel(logger.TRACE, "main", "specific")
+	log.SetFilterLevel(logger.DEBUG, "main")
 
-	suite.Assert().Truef(log.ShouldWrite(logger.DEBUG, "main", "any"), "Logger should write DEBUG messages for main topic and any scope")
-	suite.Assert().Truef(log.ShouldWrite(logger.TRACE, "main", "specific"), "Logger should write TRACE messages for main topic and specific scope")
-	suite.Assert().Falsef(log.ShouldWrite(logger.TRACE, "main", "any"), "Logger should not write TRACE messages for main topic and any scope")
+	suite.Assert().True(log.ShouldWrite(logger.DEBUG, "main", "any"), "Logger should write DEBUG messages for main topic and any scope")
+	suite.Assert().True(log.ShouldWrite(logger.TRACE, "main", "specific"), "Logger should write TRACE messages for main topic and specific scope")
+	suite.Assert().False(log.ShouldWrite(logger.TRACE, "main", "any"), "Logger should not write TRACE messages for main topic and any scope")
 
-	suite.Assert().Falsef(log.ShouldWrite(logger.DEBUG, "another_topic", "any"), "Logger should not write DEBUG messages for another_topic topic and any scope")
+	suite.Assert().False(log.ShouldWrite(logger.DEBUG, "another_topic", "any"), "Logger should not write DEBUG messages for another_topic topic and any scope")
 }
+
 func (suite *LoggerSuite) TestCanLogAtTrace() {
 	log, teardown := CreateLogger(suite.T(), "test.log", true)
 	defer teardown()
@@ -289,8 +293,8 @@ func (suite *LoggerSuite) TestCanLogWithFilter() {
 	folder, teardown := CreateTempDir(suite.T())
 	defer teardown()
 	path := filepath.Join(folder, "test.log")
-	stream := &logger.FileStream{Path: path, FilterLevel: logger.INFO, Unbuffered: true}
-	log := logger.CreateWithStream("test", stream)
+	stream := &logger.FileStream{Path: path, FilterLevels: logger.NewLevelSet(logger.INFO), Unbuffered: true}
+	log := logger.Create("test", stream)
 
 	log.Record("bello", "banana").Record("だれ", "Me").Infof("Log at INFO")
 	log.Record("stuff", "other").Record("thing", "shiny").Debugf("Log at DEBUG")
@@ -447,7 +451,7 @@ func (suite *LoggerSuite) TestCanLogAtFatalWithNilError() {
 
 func (suite *LoggerSuite) TestCanLogMemory() {
 	output := CaptureStdout(func() {
-		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, FilterLevel: logger.TRACE})
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, FilterLevels: logger.NewLevelSet(logger.TRACE)})
 		log.Memory()
 	})
 	suite.Require().NotEmpty(output, "There was no output")
@@ -467,7 +471,7 @@ func (suite *LoggerSuite) TestCanLogMemory() {
 
 func (suite *LoggerSuite) TestCanLogMemoryWithLevel() {
 	output := CaptureStdout(func() {
-		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, FilterLevel: logger.TRACE})
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, FilterLevels: logger.NewLevelSet(logger.TRACE)})
 		log.Memoryl(logger.INFO)
 	})
 	suite.Require().NotEmpty(output, "There was no output")
@@ -487,7 +491,7 @@ func (suite *LoggerSuite) TestCanLogMemoryWithLevel() {
 
 func (suite *LoggerSuite) TestCanLogMemoryWithMessage() {
 	output := CaptureStdout(func() {
-		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, FilterLevel: logger.TRACE})
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, FilterLevels: logger.NewLevelSet(logger.TRACE)})
 		log.Memoryf("Text %d:", 2)
 	})
 	suite.Require().NotEmpty(output, "There was no output")
@@ -507,7 +511,7 @@ func (suite *LoggerSuite) TestCanLogMemoryWithMessage() {
 
 func (suite *LoggerSuite) TestCanLogMemoryWithMessageWithLevelAndMessage() {
 	output := CaptureStdout(func() {
-		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, FilterLevel: logger.TRACE})
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, FilterLevels: logger.NewLevelSet(logger.TRACE)})
 		log.Memorylf(logger.INFO, "Text %d:", 2)
 	})
 	suite.LogLineEqual(output, map[string]string{
@@ -555,11 +559,13 @@ func (suite *LoggerSuite) TestCanRedactSensitiveStruct() {
 }
 
 func (suite *LoggerSuite) TestCanRedactMessage() {
+	redactor := core.Must(logger.NewRedactor(`\+[0-9]{11}`))
+	suite.Require().NotEmpty(redactor.String())
 	output := CaptureStdout(func() {
 		log := logger.Create(
 			"test",
 			&logger.StdoutStream{Unbuffered: true},
-			core.Must(logger.NewRedactor(`\+[0-9]{11}`)).(*logger.Redactor),
+			redactor,
 		)
 		log.Infof("message with sensitive (+13178723000) data")
 	})
@@ -594,7 +600,7 @@ func (suite *LoggerSuite) TestCanFilterLess() {
 func (suite *LoggerSuite) TestCanLogAtDifferentLevelsPerTopic() {
 	output := CaptureStdout(func() {
 		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
-		log.SetFilterLevelForTopic(logger.DEBUG, "child")
+		log.SetFilterLevel(logger.DEBUG, "child")
 		log = log.Child("child", nil)
 		log.Debugf("message")
 	})
@@ -616,7 +622,7 @@ func (suite *LoggerSuite) TestCanLogAtDifferentLevelsPerTopic() {
 func (suite *LoggerSuite) TestCanLogAtDifferentLevelsPerTopicAndEmptyScope() {
 	output := CaptureStdout(func() {
 		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
-		log.SetFilterLevelForTopic(logger.DEBUG, "child")
+		log.SetFilterLevel(logger.DEBUG, "child")
 		log = log.Child("child", "")
 		log.Debugf("message")
 	})
@@ -635,20 +641,10 @@ func (suite *LoggerSuite) TestCanLogAtDifferentLevelsPerTopicAndEmptyScope() {
 	})
 }
 
-func (suite *LoggerSuite) TestCannotLogAtDifferentLevelsWithEmptyTopicAndEmptyScope() {
-	output := CaptureStdout(func() {
-		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
-		log.SetFilterLevelForTopic(logger.DEBUG, "child")
-		log = log.Child("", "")
-		log.Debugf("message")
-	})
-	suite.Assert().Empty(output, "There was an output")
-}
-
 func (suite *LoggerSuite) TestCanLogWithEmptyTopicAndEmptyScope() {
 	output := CaptureStdout(func() {
 		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
-		log.SetFilterLevelForTopic(logger.DEBUG, "child")
+		log.SetFilterLevel(logger.DEBUG, "child")
 		log = log.Child("", "")
 		log.Infof("message")
 	})
@@ -670,7 +666,7 @@ func (suite *LoggerSuite) TestCanLogWithEmptyTopicAndEmptyScope() {
 func (suite *LoggerSuite) TestCanLogAtDifferentLevelsPerTopicAndScope() {
 	output := CaptureStdout(func() {
 		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
-		log.SetFilterLevelForTopicAndScope(logger.DEBUG, "child", "scope")
+		log.SetFilterLevel(logger.DEBUG, "child", "scope")
 		log = log.Child("child", "scope")
 		log.Debugf("message")
 	})
@@ -890,6 +886,45 @@ func (suite *LoggerSuite) TestCanLogWithSourceInfo() {
 		"tid":      "[0-9]+",
 		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
 		"topic":    "main",
+		"v":        "0",
+	})
+}
+
+func (suite *LoggerSuite) TestCanLogWithMultipleLevelsPerTopic() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.SetFilterLevel(logger.DEBUG)
+		log.SetFilterLevel(logger.TRACE, "topic1", "scope1")
+		log.Debugf("message")
+		log.Child("topic1", nil).Tracef("message") // This should not be logged
+		log.Child("topic1", "scope1").Tracef("message")
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	lines = lines[0 : len(lines)-1] // remove the last empty line
+	suite.Require().Len(lines, 2, "There should be 2 lines in the log output, found %d", len(lines))
+	suite.LogLineEqual(lines[0], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "20",
+		"msg":      "message",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
+	suite.LogLineEqual(lines[1], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "10",
+		"msg":      "message",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "scope1",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "topic1",
 		"v":        "0",
 	})
 }

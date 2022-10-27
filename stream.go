@@ -54,14 +54,14 @@ func GetFlushFrequencyFromEnvironment() time.Duration {
 // If the environment variable DEBUG is set to 1, all Streams are created unbuffered.
 //
 // If the list is empty, the environment variable LOG_DESTINATION is used.
-func CreateStreamWithDestination(destinations ...string) Streamer {
-	debug := core.GetEnvAsBool("DEBUG", false)
+func CreateStream(levels LevelSet, destinations ...string) Streamer {
+	debug := levels.Get("any", "any") == DEBUG
 	unbuffered := debug
-	sourceInfo := core.GetEnvAsBool("LOG_SOURCEINFO", false) || debug
+	sourceInfo := core.GetEnvAsBool("LOG_SOURCEINFO", false)
 	if len(destinations) == 0 {
 		destination, ok := os.LookupEnv("LOG_DESTINATION")
 		if !ok || len(destination) == 0 {
-			return &StdoutStream{Unbuffered: unbuffered, SourceInfo: sourceInfo}
+			return &StdoutStream{FilterLevels: levels, Unbuffered: unbuffered, SourceInfo: sourceInfo}
 		}
 		destinations = strings.Split(destination, ",")
 	}
@@ -71,22 +71,22 @@ func CreateStreamWithDestination(destinations ...string) Streamer {
 		var stream Streamer
 		switch strings.ToLower(strings.TrimSpace(destination)) {
 		case "stdout":
-			stream = &StdoutStream{Unbuffered: unbuffered, SourceInfo: sourceInfo}
+			stream = &StdoutStream{FilterLevels: levels, Unbuffered: unbuffered, SourceInfo: sourceInfo}
 		case "stderr":
-			stream = &StderrStream{}
+			stream = &StderrStream{FilterLevels: levels, SourceInfo: sourceInfo}
 		case "gcp", "google", "googlecloud":
-			stream = &StdoutStream{Unbuffered: true, SourceInfo: sourceInfo, Converter: &StackDriverConverter{}}
+			stream = &StdoutStream{FilterLevels: levels, Unbuffered: true, SourceInfo: sourceInfo, Converter: &StackDriverConverter{}}
 		case "stackdriver":
-			stream = &StackDriverStream{}
+			stream = &StackDriverStream{FilterLevels: levels, SourceInfo: sourceInfo}
 		case "nil", "null", "void", "blackhole", "nether":
 			stream = &NilStream{}
 		default:
 			if strings.HasPrefix(destination, "file://") {
-				stream = &FileStream{Path: strings.TrimPrefix(destination, "file://"), Unbuffered: unbuffered}
+				stream = &FileStream{FilterLevels: levels, Path: strings.TrimPrefix(destination, "file://"), Unbuffered: unbuffered}
 			} else if len(destination) > 0 {
-				stream = &FileStream{Path: destination, Unbuffered: unbuffered, SourceInfo: sourceInfo}
+				stream = &FileStream{FilterLevels: levels, Path: destination, Unbuffered: unbuffered, SourceInfo: sourceInfo}
 			} else {
-				stream = &StdoutStream{Unbuffered: unbuffered, SourceInfo: sourceInfo}
+				stream = &StdoutStream{FilterLevels: levels, Unbuffered: unbuffered, SourceInfo: sourceInfo}
 			}
 		}
 		streams = append(streams, stream)

@@ -21,7 +21,7 @@ func TestConverterSuite(t *testing.T) {
 }
 
 func (suite *ConverterSuite) SetupSuite() {
-	suite.Name = strings.TrimSuffix(reflect.TypeOf(*suite).Name(), "Suite")
+	suite.Name = strings.TrimSuffix(reflect.TypeOf(suite).Elem().Name(), "Suite")
 }
 
 func (suite *ConverterSuite) TestCanGetConverterFromEnvironment() {
@@ -74,15 +74,15 @@ func (suite *ConverterSuite) TestCanConvertWithPinoConverter() {
 func (suite *ConverterSuite) TestCanConvertWithStackDriverConverter() {
 	now := time.Now().UTC()
 	converter := &StackDriverConverter{}
-	record := converter.Convert(NewRecord().Set("level", INFO).Set("time", now).Set("msg", "Hello World!"))
+	record := converter.Convert(NewRecord().Set("level", INFO).Set("time", now).Set("msg", "Hello World!").Set("v", 0))
 	suite.Assert().Contains(record, "message")
+	suite.Assert().Contains(record, "msg")
+	suite.Assert().Contains(record, "level")
 	suite.Assert().Contains(record, "severity")
 	suite.Assert().Contains(record, "time")
 	suite.Assert().IsType("string", record["time"])
-	suite.Assert().NotContains(record, "level")
-	suite.Assert().NotContains(record, "msg")
+	suite.Assert().Contains(record, "v")
 	suite.Assert().NotContains(record, "name")
-	suite.Assert().NotContains(record, "v")
 
 	record = converter.Convert(NewRecord().Set("level", NEVER).Set("msg", "Hello World!"))
 	suite.Assert().Equal(logging.Info, record["severity"])
@@ -112,36 +112,43 @@ func (suite *ConverterSuite) TestCanConvertWithStackDriverConverter() {
 func (suite *ConverterSuite) TestCanConvertWithCloudWatchConverter() {
 	now := time.Now().UTC()
 	converter := &CloudWatchConverter{}
-	record := converter.Convert(NewRecord().Set("level", INFO).Set("time", now).Set("msg", "Hello World!"))
+	record := converter.Convert(NewRecord().Set("level", INFO).Set("time", now).Set("msg", "Hello World!").Set("v", 0))
 	suite.Assert().Contains(record, "level")
-	suite.Assert().Contains(record, "message")
+	suite.Assert().Contains(record, "msg")
 	suite.Assert().Contains(record, "time")
 	suite.Assert().IsType("string", record["time"])
-	suite.Assert().NotContains(record, "msg")
+	suite.Assert().Contains(record, "v")
 	suite.Assert().NotContains(record, "name")
-	suite.Assert().NotContains(record, "v")
 
 	record = converter.Convert(NewRecord().Set("level", NEVER).Set("msg", "Hello World!"))
-	suite.Assert().Equal(NEVER.String(), record["level"])
+	suite.Assert().Equal(NEVER.String(), record["severity"])
+	suite.Assert().Equal(NEVER, record["level"])
 
 	record = converter.Convert(NewRecord().Set("level", TRACE).Set("msg", "Hello World!"))
-	suite.Assert().Equal(TRACE.String(), record["level"])
+	suite.Assert().Equal(TRACE.String(), record["severity"])
+	suite.Assert().Equal(TRACE, record["level"])
 
 	record = converter.Convert(NewRecord().Set("level", DEBUG).Set("msg", "Hello World!"))
-	suite.Assert().Equal(DEBUG.String(), record["level"])
+	suite.Assert().Equal(DEBUG.String(), record["severity"])
+	suite.Assert().Equal(DEBUG, record["level"])
+
+	record = converter.Convert(NewRecord().Set("level", INFO).Set("msg", "Hello World!"))
+	suite.Assert().Equal(INFO.String(), record["severity"])
+	suite.Assert().Equal(INFO, record["level"])
 
 	record = converter.Convert(NewRecord().Set("level", WARN).Set("msg", "Hello World!"))
-	suite.Assert().Equal(WARN.String(), record["level"])
+	suite.Assert().Equal(WARN.String(), record["severity"])
+	suite.Assert().Equal(WARN, record["level"])
 
 	record = converter.Convert(NewRecord().Set("level", ERROR).Set("msg", "Hello World!"))
-	suite.Assert().Equal(ERROR.String(), record["level"])
+	suite.Assert().Equal(ERROR.String(), record["severity"])
+	suite.Assert().Equal(ERROR, record["level"])
 
 	record = converter.Convert(NewRecord().Set("level", FATAL).Set("msg", "Hello World!"))
-	suite.Assert().Equal(FATAL.String(), record["level"])
+	suite.Assert().Equal(FATAL.String(), record["severity"])
+	suite.Assert().Equal(FATAL, record["level"])
 
 	record = converter.Convert(NewRecord().Set("level", ALWAYS).Set("msg", "Hello World!"))
-	suite.Assert().Equal(ALWAYS.String(), record["level"])
-
-	record = converter.Convert(NewRecord().Set("msg", "Hello World!"))
-	suite.Assert().Equal(INFO.String(), record["level"])
+	suite.Assert().Equal(ALWAYS.String(), record["severity"])
+	suite.Assert().Equal(ALWAYS, record["level"])
 }
