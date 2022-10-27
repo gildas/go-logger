@@ -99,7 +99,9 @@ func (stream *StderrStream) Write(record Record) error {
 	if stream.Converter == nil {
 		stream.Converter = GetConverterFromEnvironment()
 	}
-	if err := stream.Encoder.Encode(stream.Converter.Convert(record)); err != nil {
+	if err := stream.Encoder.Encode(stream.Converter.Convert(record)); errors.Is(err, errors.JSONUnmarshalError) {
+		return err
+	} else if err != nil {
 		return errors.JSONMarshalError.Wrap(err)
 	}
 	return nil

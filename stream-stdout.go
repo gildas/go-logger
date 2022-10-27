@@ -114,7 +114,9 @@ func (stream *StdoutStream) Write(record Record) error {
 			go stream.flushJob()
 		}
 	}
-	if err := stream.Encoder.Encode(stream.Converter.Convert(record)); err != nil {
+	if err := stream.Encoder.Encode(stream.Converter.Convert(record)); errors.Is(err, errors.JSONUnmarshalError) {
+		return err
+	} else if err != nil {
 		return errors.JSONMarshalError.Wrap(err)
 	}
 	if GetLevelFromRecord(record) >= ERROR && stream.output != nil {
