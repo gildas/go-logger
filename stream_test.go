@@ -89,6 +89,7 @@ func (suite *StreamSuite) TestCanCreateStreamFromDestination() {
 	stream = logger.CreateStream(logger.NewLevelSet(logger.INFO), "stackdriver")
 	suite.Require().NotNil(stream, "Failed to create a Google Stackdriver stream")
 	suite.Assert().IsType(&logger.StackDriverStream{}, stream)
+	suite.Assert().Equal("Stream to Google StackDriver, Filter: INFO", fmt.Sprintf("%s", stream))
 	suite.Assert().False(stream.ShouldLogSourceInfo(), "Should not log source info")
 	stream.Close()
 
@@ -475,6 +476,11 @@ func (suite *StreamSuite) TestFailsWritingWithBogusRecordValue() {
 	suite.Require().NotNil(err, "Should have failed writing to stream")
 	suite.Assert().ErrorIs(err, errors.JSONMarshalError, "error should be a JSON Marshal error")
 	suite.Assert().Contains(err.Error(), "Failed to Marshal BogusValue")
+
+	streamStackDriver := &logger.StackDriverStream{Parent: "go-logger-test", KeyFilename: "gcloud-key.json", Key: &BogusValue{}}
+	err = streamStackDriver.Write(logger.NewRecord().Set("key", &BogusValue{}))
+	suite.Require().NotNil(err, "Should have failed writing to stream")
+	suite.Assert().ErrorIs(err, errors.JSONMarshalError, "error should be a JSON Marshal error")
 }
 
 func (suite *StreamSuite) TestFailsWritingWithBogusRecordValue2() {
@@ -496,7 +502,12 @@ func (suite *StreamSuite) TestFailsWritingWithBogusRecordValue2() {
 	suite.Require().NotNil(err, "Should have failed writing to stream")
 	suite.Assert().ErrorIs(err, errors.JSONMarshalError, "error should be a JSON Marshal error")
 	suite.Assert().ErrorIs(err, errors.ArgumentInvalid, "error should be an Argument Invalid error")
-	suite.T().Logf("Error: %s", err.Error())
+
+	streamStackDriver := &logger.StackDriverStream{Parent: "go-logger-test", KeyFilename: "gcloud-key.json", Key: &BogusValue2{}}
+	err = streamStackDriver.Write(logger.NewRecord().Set("key", &BogusValue2{}))
+	suite.Require().NotNil(err, "Should have failed writing to stream")
+	suite.Assert().ErrorIs(err, errors.JSONMarshalError, "error should be a JSON Marshal error")
+	suite.Assert().ErrorIs(err, errors.ArgumentInvalid, "error should be an Argument Invalid error")
 }
 
 func (suite *StreamSuite) TestCanFilterMore() {
