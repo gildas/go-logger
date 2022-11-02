@@ -26,7 +26,9 @@ func NewLevelSet(defaultLevel Level) (levels LevelSet) {
 func ParseLevelsFromEnvironment() (levels LevelSet) {
 	levels = ParseLevels(core.GetEnvAsString("LOG_LEVEL", "INFO"))
 	if core.GetEnvAsBool("DEBUG", false) {
-		levels.Set(DEBUG, "any", "any")
+		if levels.Get("any", "any") > DEBUG {
+			levels.Set(DEBUG, "any", "any")
+		}
 	}
 	return
 }
