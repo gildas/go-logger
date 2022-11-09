@@ -72,10 +72,11 @@ func (stream *MultiStream) ShouldLogSourceInfo() bool {
 //
 // implements logger.Streamer
 func (stream *MultiStream) Write(record Record) error {
-	errs := errors.MultiError{}
+	var errs errors.MultiError
+
 	for _, s := range stream.streams {
 		if err := s.Write(record); err != nil {
-			_ = errs.Append(err)
+			errs.Append(err)
 		}
 	}
 	return errs.AsError()
