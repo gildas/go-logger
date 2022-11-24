@@ -1007,3 +1007,28 @@ func (suite *LoggerSuite) TestCanLogWithMultipleLevelsPerTopic() {
 		"v":        "0",
 	})
 }
+
+func (suite *LoggerSuite) TestCanLogErrorWithStack() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		err := errors.NotImplemented.WithStack()
+		log.Errorf("Houston, we have a problem", err)
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	lines = lines[0 : len(lines)-1] // remove the last empty line
+	suite.Require().Len(lines, 1, "There should be 1 line in the log output, found %d", len(lines))
+	suite.LogLineEqual(lines[0], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "50",
+		"err":      `map\[code:501 id:error.notimplemented text:Not Implemented type:error\]`,
+		"msg":      `Houston, we have a problem, Error: Not Implemented\ngithub\.com.*`,
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
+}
