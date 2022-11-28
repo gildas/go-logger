@@ -63,6 +63,24 @@ func (v *BogusValue2) MarshalJSON() ([]byte, error) {
 	return nil, errors.JSONMarshalError.Wrap(errors.ArgumentInvalid.With("value", "self"))
 }
 
+type User struct {
+	ID     string         `json:"id"`
+	Name   string         `json:"name"`
+	logger *logger.Logger `json:"-"`
+}
+
+func (user User) Redact() interface{} {
+	return User{user.ID, logger.Redact(user.Name), user.logger}
+}
+
+func (user User) GetLogger() *logger.Logger {
+	return user.logger
+}
+
+func (user User) String() string {
+	return user.Name
+}
+
 // Load loads an object from a file and marshals it
 func Load(filename string, object interface{}) (err error) {
 	var payload []byte

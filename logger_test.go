@@ -80,6 +80,24 @@ func (suite *LoggerSuite) TestCanLoadAndSaveWithContext() {
 	suite.Assert().NotNil(err, "Failed to retrieve a Logger from a context")
 }
 
+func (suite *LoggerSuite) TestCanLoadFromContextWithLoggerSource() {
+	log := logger.Create("test")
+	suite.Require().NotNil(log, "cannot create a logger.Logger")
+	restored, err := logger.FromContext(context.Background(), log)
+	suite.Require().NoError(err, "Failed to retrieve a Logger from a context")
+	suite.Assert().Equal(log, restored, "Logger should be the same")
+	restored, err = logger.FromContext(context.Background(), *log)
+	suite.Require().NoError(err, "Failed to retrieve a Logger from a context")
+	suite.Assert().Equal(log, restored, "Logger should be the same")
+}
+
+func (suite *LoggerSuite) TestCanLoadFromContextWithObjectSource() {
+	user := &User{"123", "John Doe", logger.Create("test")}
+	restored, err := logger.FromContext(context.Background(), user)
+	suite.Require().NoError(err, "Failed to retrieve a Logger from a context")
+	suite.Assert().Equal(user.GetLogger(), restored, "Logger should be the same")
+}
+
 func (suite *LoggerSuite) TestShouldFailLoadingFromContextWithoutLogger() {
 	_, err := logger.FromContext(context.Background())
 	suite.Require().NotNil(err, "Context should not contain a Logger")

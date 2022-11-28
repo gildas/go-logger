@@ -5,17 +5,8 @@ import (
 	"github.com/gildas/go-logger"
 )
 
-type Customer struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
-
-func (customer Customer) Redact() interface{} {
-	return Customer{customer.ID, "REDACTED"}
-}
-
 func (suite *LoggerSuite) TestCanRedactSensitiveStruct() {
-	customer := Customer{"12345678", "John Doe"}
+	customer := User{"12345678", "John Doe", nil}
 	output := CaptureStdout(func() {
 		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
 		log.Record("customer", customer).Infof("message")
