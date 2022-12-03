@@ -10,8 +10,11 @@ func NewRedactor(regex string) (*Redactor, error) {
 }
 
 func (redactor Redactor) Redact(value string) (string, bool) {
-	redacted := ((*regexp.Regexp)(&redactor)).ReplaceAllString(value, "REDACTED")
-	return redacted, true
+	// TODO: Find a way to not run the regex twice
+	if (*regexp.Regexp)(&redactor).MatchString(value) {
+		return (*regexp.Regexp)(&redactor).ReplaceAllString(value, "REDACTED"), true
+	}
+	return value, false
 }
 
 // String return a String representation of a Message
