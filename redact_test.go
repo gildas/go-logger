@@ -50,3 +50,16 @@ func (suite *LoggerSuite) TestCanRedactMessage() {
 		"v":        "0",
 	})
 }
+
+func (suite *LoggerSuite) TestCanRedactAsString() {
+	suite.Assert().Equal("", logger.Redact(nil))
+	suite.Assert().Equal("", logger.Redact(""))
+	redacted := logger.Redact("John Doe")
+	suite.Assert().Equal("REDACTED", redacted)
+	redacted = logger.Redact(User{"12345678", "John Doe", nil})
+	suite.Assert().Equal("REDACTED", redacted)
+	suite.Assert().Equal("", logger.RedactWithHash(nil))
+	suite.Assert().Equal("REDACTED-6cea57c2fb", logger.RedactWithHash("John Doe"))
+	suite.Assert().Equal("Name-6cea57c2fb", logger.RedactWithPrefixedHash("Name", "John Doe"))
+}
+
