@@ -128,25 +128,134 @@ func (suite *LoggerSuite) TestCanRedactAsString() {
 	suite.Assert().Equal("Name-6cea57c2fb", logger.RedactWithPrefixedHash("Name", "John Doe"))
 }
 
+func (suite *LoggerSuite) TestCanRedactCreditCardCard() {
+	redactor := logger.CreditCardRedactor
+	redacted, ok := redactor.Redact("message with 30569309025904")
+	suite.Assert().Truef(ok, "Redactor %T should have matched", redactor)
+	suite.Assert().Equal("message with REDACTED", redacted)
+	redacted, ok = redactor.Redact("message with nothing")
+	suite.Assert().Falsef(ok, "Redactor %T should not have matched", redactor)
+	suite.Assert().Equal("message with nothing", redacted)
+}
+
 func (suite *LoggerSuite) TestCanRedactAMEXCard() {
-	output := CaptureStdout(func() {
-		log := logger.Create(
-			"test",
-			&logger.StdoutStream{Unbuffered: true},
-			logger.AMEXRedactor,
-		)
-		log.Infof("message with sensitive (371234567890123) data")
-	})
-	suite.LogLineEqual(output, map[string]string{
-		"hostname": `[a-zA-Z_0-9\-\.]+`,
-		"level":    "30",
-		"msg":      `message with sensitive \(REDACTED\) data`,
-		"name":     "test",
-		"pid":      "[0-9]+",
-		"scope":    "main",
-		"tid":      "[0-9]+",
-		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
-		"topic":    "main",
-		"v":        "0",
-	})
+	redactor := logger.AMEXRedactor
+	redacted, ok := redactor.Redact("message with 370000000100018")
+	suite.Assert().Truef(ok, "Redactor %T should have matched", redactor)
+	suite.Assert().Equal("message with REDACTED", redacted)
+	redacted, ok = redactor.Redact("message with nothing")
+	suite.Assert().Falsef(ok, "Redactor %T should not have matched", redactor)
+	suite.Assert().Equal("message with nothing", redacted)
+}
+
+func (suite *LoggerSuite) TestCanRedactVISACard() {
+	redactor := logger.VISARedactor
+	redacted, ok := redactor.Redact("message with 4111111111111111")
+	suite.Assert().Truef(ok, "Redactor %T should have matched", redactor)
+	suite.Assert().Equal("message with REDACTED", redacted)
+	redacted, ok = redactor.Redact("message with nothing")
+	suite.Assert().Falsef(ok, "Redactor %T should not have matched", redactor)
+	suite.Assert().Equal("message with nothing", redacted)
+}
+
+func (suite *LoggerSuite) TestCanRedactDinersClubCard() {
+	redactor := logger.DinersClubRedactor
+	redacted, ok := redactor.Redact("message with 30569309025904")
+	suite.Assert().Truef(ok, "Redactor %T should have matched", redactor)
+	suite.Assert().Equal("message with REDACTED", redacted)
+	redacted, ok = redactor.Redact("message with nothing")
+	suite.Assert().Falsef(ok, "Redactor %T should not have matched", redactor)
+	suite.Assert().Equal("message with nothing", redacted)
+}
+
+func (suite *LoggerSuite) TestCanRedactDiscoverCard() {
+	redactor := logger.DiscoverRedactor
+	redacted, ok := redactor.Redact("message with 6011000990139424")
+	suite.Assert().Truef(ok, "Redactor %T should have matched", redactor)
+	suite.Assert().Equal("message with REDACTED", redacted)
+	redacted, ok = redactor.Redact("message with nothing")
+	suite.Assert().Falsef(ok, "Redactor %T should not have matched", redactor)
+	suite.Assert().Equal("message with nothing", redacted)
+}
+
+func (suite *LoggerSuite) TestCanRedactMasterCardCard() {
+	redactor := logger.MasterCardRedactor
+	redacted, ok := redactor.Redact("message with 5105105105105100")
+	suite.Assert().Truef(ok, "Redactor %T should have matched", redactor)
+	suite.Assert().Equal("message with REDACTED", redacted)
+	redacted, ok = redactor.Redact("message with nothing")
+	suite.Assert().Falsef(ok, "Redactor %T should not have matched", redactor)
+	suite.Assert().Equal("message with nothing", redacted)
+}
+
+func (suite *LoggerSuite) TestCanRedactPhone() {
+	redactor := logger.PhoneRedactor
+	redacted, ok := redactor.Redact("message with +13178723000")
+	suite.Assert().Truef(ok, "Redactor %T should have matched", redactor)
+	suite.Assert().Equal("message with REDACTED", redacted)
+	redacted, ok = redactor.Redact("message with +8112345678")
+	suite.Assert().Truef(ok, "Redactor %T should have matched", redactor)
+	suite.Assert().Equal("message with REDACTED", redacted)
+	redacted, ok = redactor.Redact("message with nothing")
+	suite.Assert().Falsef(ok, "Redactor %T should not have matched", redactor)
+	suite.Assert().Equal("message with nothing", redacted)
+}
+
+func (suite *LoggerSuite) TestCanRedactEmail() {
+	redactor := logger.EmailRedactor
+	redacted, ok := redactor.Redact("message with john.doe@acme.com")
+	suite.Assert().Truef(ok, "Redactor %T should have matched", redactor)
+	suite.Assert().Equal("message with REDACTED", redacted)
+	redacted, ok = redactor.Redact("message with nothing")
+	suite.Assert().Falsef(ok, "Redactor %T should not have matched", redactor)
+	suite.Assert().Equal("message with nothing", redacted)
+}
+
+func (suite *LoggerSuite) TestCanRedactIP() {
+	redactor := logger.IPRedactor
+	redacted, ok := redactor.Redact("message with 192.168.1.1")
+	suite.Assert().Truef(ok, "Redactor %T should have matched", redactor)
+	suite.Assert().Equal("message with REDACTED", redacted)
+	redacted, ok = redactor.Redact("message with 2001:db8:3333:4444:5555:6666:7777:8888")
+	suite.Assert().Truef(ok, "Redactor %T should have matched", redactor)
+	suite.Assert().Equal("message with REDACTED", redacted)
+	redacted, ok = redactor.Redact("message with nothing")
+	suite.Assert().Falsef(ok, "Redactor %T should not have matched", redactor)
+	suite.Assert().Equal("message with nothing", redacted)
+}
+
+func (suite *LoggerSuite) TestCanRedactIPV4() {
+	redactor := logger.IPV4Redactor
+	redacted, ok := redactor.Redact("message with 192.168.1.1")
+	suite.Assert().Truef(ok, "Redactor %T should have matched", redactor)
+	suite.Assert().Equal("message with REDACTED", redacted)
+	redacted, ok = redactor.Redact("message with nothing")
+	suite.Assert().Falsef(ok, "Redactor %T should not have matched", redactor)
+	suite.Assert().Equal("message with nothing", redacted)
+}
+
+func (suite *LoggerSuite) TestCanRedactIPV6() {
+	redactor := logger.IPV6Redactor
+	redacted, ok := redactor.Redact("message with 2600:::")
+	suite.Assert().Truef(ok, "Redactor %T should have matched", redactor)
+	suite.Assert().Equal("message with REDACTED", redacted)
+	redacted, ok = redactor.Redact("message with 2001:db8:3333:4444:5555:6666:7777:8888")
+	suite.Assert().Truef(ok, "Redactor %T should have matched", redactor)
+	suite.Assert().Equal("message with REDACTED", redacted)
+	// redacted, ok = redactor.Redact("message with 2001:db8:3333:4444:5555:6666:1.2.3.4")
+	// suite.Assert().Truef(ok, "Redactor %T should have matched", redactor)
+	// suite.Assert().Equal("message with REDACTED", redacted)
+	redacted, ok = redactor.Redact("message with nothing")
+	suite.Assert().Falsef(ok, "Redactor %T should not have matched", redactor)
+	suite.Assert().Equal("message with nothing", redacted)
+}
+
+func (suite *LoggerSuite) TestCanRedactMAC() {
+	redactor := logger.MACRedactor
+	redacted, ok := redactor.Redact("message with 2C:54:91:88:C9:E3")
+	suite.Assert().Truef(ok, "Redactor %T should have matched", redactor)
+	suite.Assert().Equal("message with REDACTED", redacted)
+	redacted, ok = redactor.Redact("message with nothing")
+	suite.Assert().Falsef(ok, "Redactor %T should not have matched", redactor)
+	suite.Assert().Equal("message with nothing", redacted)
 }
