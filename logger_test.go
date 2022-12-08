@@ -17,7 +17,6 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/gildas/go-core"
 	"github.com/gildas/go-errors"
 	"github.com/gildas/go-logger"
 )
@@ -79,6 +78,24 @@ func (suite *LoggerSuite) TestCanLoadAndSaveWithContext() {
 	suite.Assert().NotNil(restored, "cannot retrieve a logger.Logger from a context")
 	_, err = logger.FromContext(context.Background())
 	suite.Assert().NotNil(err, "Failed to retrieve a Logger from a context")
+}
+
+func (suite *LoggerSuite) TestCanLoadFromContextWithLoggerSource() {
+	log := logger.Create("test")
+	suite.Require().NotNil(log, "cannot create a logger.Logger")
+	restored, err := logger.FromContext(context.Background(), log)
+	suite.Require().NoError(err, "Failed to retrieve a Logger from a context")
+	suite.Assert().Equal(log, restored, "Logger should be the same")
+	restored, err = logger.FromContext(context.Background(), *log)
+	suite.Require().NoError(err, "Failed to retrieve a Logger from a context")
+	suite.Assert().Equal(log, restored, "Logger should be the same")
+}
+
+func (suite *LoggerSuite) TestCanLoadFromContextWithObjectSource() {
+	user := &User{"123", "John Doe", logger.Create("test")}
+	restored, err := logger.FromContext(context.Background(), user)
+	suite.Require().NoError(err, "Failed to retrieve a Logger from a context")
+	suite.Assert().Equal(user.GetLogger(), restored, "Logger should be the same")
 }
 
 func (suite *LoggerSuite) TestShouldFailLoadingFromContextWithoutLogger() {
@@ -663,61 +680,6 @@ func (suite *LoggerSuite) TestCanLogMemoryWithMessageWithLevelAndMessage() {
 	})
 }
 
-type Customer struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
-
-func (customer Customer) Redact() interface{} {
-	return Customer{customer.ID, "REDACTED"}
-}
-
-func (suite *LoggerSuite) TestCanRedactSensitiveStruct() {
-	customer := Customer{"12345678", "John Doe"}
-	output := CaptureStdout(func() {
-		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
-		log.Record("customer", customer).Infof("message")
-	})
-	suite.LogLineEqual(output, map[string]string{
-		"customer": `map\[id:12345678 name:REDACTED\]`,
-		"hostname": `[a-zA-Z_0-9\-\.]+`,
-		"level":    "30",
-		"msg":      "message",
-		"name":     "test",
-		"pid":      "[0-9]+",
-		"scope":    "main",
-		"tid":      "[0-9]+",
-		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
-		"topic":    "main",
-		"v":        "0",
-	})
-}
-
-func (suite *LoggerSuite) TestCanRedactMessage() {
-	redactor := core.Must(logger.NewRedactor(`\+[0-9]{11}`))
-	suite.Require().NotEmpty(redactor.String())
-	output := CaptureStdout(func() {
-		log := logger.Create(
-			"test",
-			&logger.StdoutStream{Unbuffered: true},
-			redactor,
-		)
-		log.Infof("message with sensitive (+13178723000) data")
-	})
-	suite.LogLineEqual(output, map[string]string{
-		"hostname": `[a-zA-Z_0-9\-\.]+`,
-		"level":    "30",
-		"msg":      `message with sensitive \(REDACTED\) data`,
-		"name":     "test",
-		"pid":      "[0-9]+",
-		"scope":    "main",
-		"tid":      "[0-9]+",
-		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
-		"topic":    "main",
-		"v":        "0",
-	})
-}
-
 func (suite *LoggerSuite) TestCanFilterMore() {
 	log := logger.Create("TEST")
 	log.FilterMore()
@@ -1060,6 +1022,31 @@ func (suite *LoggerSuite) TestCanLogWithMultipleLevelsPerTopic() {
 		"tid":      "[0-9]+",
 		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
 		"topic":    "topic1",
+		"v":        "0",
+	})
+}
+
+func (suite *LoggerSuite) TestCanLogErrorWithStack() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		err := errors.NotImplemented.WithStack()
+		log.Errorf("Houston, we have a problem", err)
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	lines = lines[0 : len(lines)-1] // remove the last empty line
+	suite.Require().Len(lines, 1, "There should be 1 line in the log output, found %d", len(lines))
+	suite.LogLineEqual(lines[0], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "50",
+		"err":      `map\[code:501 id:error.notimplemented text:Not Implemented type:error\]`,
+		"msg":      `Houston, we have a problem, Error: Not Implemented\ngithub\.com.*`,
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
 		"v":        "0",
 	})
 }

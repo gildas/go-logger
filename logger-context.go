@@ -11,10 +11,25 @@ type key int
 const contextKey key = iota + 12583
 
 // FromContext retrieves the Logger stored in the context
-func FromContext(context context.Context) (*Logger, error) {
+//
+// Sources are either LoggerCarrier implemenations or Logger/*Logger objects.
+//
+// The first source that is a match is returned.
+func FromContext(context context.Context, sources ...interface{}) (*Logger, error) {
 	if context != nil {
 		if logger, ok := context.Value(contextKey).(*Logger); ok {
 			return logger, nil
+		}
+	}
+	for _, source := range sources {
+		if logger, ok := source.(*Logger); ok {
+			return logger, nil
+		}
+		if logger, ok := source.(Logger); ok {
+			return &logger, nil
+		}
+		if carrier, ok := source.(LoggerCarrier); ok {
+			return carrier.GetLogger(), nil
 		}
 	}
 	return nil, errors.ArgumentMissing.With("Logger")

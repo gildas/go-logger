@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strings"
 	"time"
@@ -224,14 +223,13 @@ func (log *Logger) Errorf(msg string, args ...interface{}) {
 	logWithErr := log
 
 	if len(args) > 0 {
-		errorInterface := reflect.TypeOf((*error)(nil)).Elem()
 		last := args[len(args)-1]
 
 		if last == nil {
 			logWithErr.send(ERROR, msg, args[:len(args)-1]...)
 			return
-		} else if reflect.TypeOf(last).Implements(errorInterface) {
-			logWithErr = log.Record("err", last)
+		} else if err, ok := last.(error); ok {
+			logWithErr = log.Record("err", err)
 			msg = msg + ", Error: %+v"
 		}
 	}
@@ -245,14 +243,13 @@ func (log *Logger) Fatalf(msg string, args ...interface{}) {
 	logWithErr := log
 
 	if len(args) > 0 {
-		errorInterface := reflect.TypeOf((*error)(nil)).Elem()
 		last := args[len(args)-1]
 
 		if last == nil {
 			logWithErr.send(FATAL, msg, args[:len(args)-1]...)
 			return
-		} else if reflect.TypeOf(last).Implements(errorInterface) {
-			logWithErr = log.Record("err", last)
+		} else if err, ok := last.(error); ok {
+			logWithErr = log.Record("err", err)
 			msg = msg + ", Error: %+v"
 		}
 	}
