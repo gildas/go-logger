@@ -91,6 +91,9 @@ func CreateStream(levels LevelSet, destinations ...string) Streamer {
 		}
 		streams = append(streams, stream)
 	}
+	if len(streams) == 0 {
+		return &NilStream{}
+	}
 	if len(streams) == 1 {
 		return streams[0]
 	}
