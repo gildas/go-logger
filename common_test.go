@@ -101,14 +101,14 @@ func RequireEqualJSON(t *testing.T, filename string, payload []byte) {
 }
 
 // CreateLogger creates a new logger in a temp destination
-func CreateLogger(t *testing.T, filename string, wantLocal bool) (*logger.Logger, func()) {
+func CreateLogger(filename string, wantLocal bool) (*logger.Logger, func()) {
 	var folder string
 	var teardown func()
 
 	if wantLocal {
-		folder, teardown = CreateLogDir(t)
+		folder, teardown = CreateLogDir()
 	} else {
-		folder, teardown = CreateTempDir(t)
+		folder, teardown = CreateTempDir()
 	}
 	path := filepath.Join(folder, filename)
 	log := logger.Create("test", "file://"+path)
@@ -119,21 +119,22 @@ func CreateLogger(t *testing.T, filename string, wantLocal bool) (*logger.Logger
 }
 
 // CreateTempDir creates a temporary directory
+//
 // return the temp folder and a func to delete it when done
-func CreateTempDir(t *testing.T) (string, func()) {
+func CreateTempDir() (string, func()) {
 	dir, err := os.MkdirTemp("", "go_logger")
 	if err != nil {
-		t.Fatalf("Unable to create a temp folder for log files. Error: %s\n", err)
+		panic(fmt.Sprintf("Unable to create a temp folder for log files. Error: %s\n", err))
 	}
 	return dir, func() { os.RemoveAll(dir) }
 }
 
 // CreateLogDir creates a local log directory
-func CreateLogDir(t *testing.T) (string, func()) {
+func CreateLogDir() (string, func()) {
 	dir := filepath.Join(".", "log")
 	err := os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
-		t.Fatalf("Unable to create log folder for log files. Error: %s\n", err)
+		panic(fmt.Sprintf("Unable to create log folder for log files. Error: %s\n", err))
 	}
 	return dir, func() {}
 }

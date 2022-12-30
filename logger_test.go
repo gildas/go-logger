@@ -229,7 +229,7 @@ func (suite *LoggerSuite) TestCanSetLevelsPerTopicAndScope() {
 }
 
 func (suite *LoggerSuite) TestCanLogAtTrace() {
-	log, teardown := CreateLogger(suite.T(), "test.log", true)
+	log, teardown := CreateLogger("test.log", true)
 	defer teardown()
 
 	suite.Require().NotNil(log, "cannot create a logger.Logger")
@@ -237,7 +237,7 @@ func (suite *LoggerSuite) TestCanLogAtTrace() {
 }
 
 func (suite *LoggerSuite) TestCanLogAtDebug() {
-	log, teardown := CreateLogger(suite.T(), "test.log", true)
+	log, teardown := CreateLogger("test.log", true)
 	defer teardown()
 
 	suite.Require().NotNil(log, "cannot create a logger.Logger")
@@ -245,7 +245,7 @@ func (suite *LoggerSuite) TestCanLogAtDebug() {
 }
 
 func (suite *LoggerSuite) TestCanLogAtInfo() {
-	log, teardown := CreateLogger(suite.T(), "test.log", true)
+	log, teardown := CreateLogger("test.log", true)
 	defer teardown()
 
 	suite.Require().NotNil(log, "cannot create a logger.Logger")
@@ -253,7 +253,7 @@ func (suite *LoggerSuite) TestCanLogAtInfo() {
 }
 
 func (suite *LoggerSuite) TestCanLogAtWarn() {
-	log, teardown := CreateLogger(suite.T(), "test.log", true)
+	log, teardown := CreateLogger("test.log", true)
 	defer teardown()
 
 	suite.Require().NotNil(log, "cannot create a logger.Logger")
@@ -261,7 +261,7 @@ func (suite *LoggerSuite) TestCanLogAtWarn() {
 }
 
 func (suite *LoggerSuite) TestCanLogErrorWithDetails() {
-	log, teardown := CreateLogger(suite.T(), "test.log", true)
+	log, teardown := CreateLogger("test.log", true)
 	defer teardown()
 
 	suite.Require().NotNil(log, "cannot create a logger.Logger")
@@ -271,7 +271,7 @@ func (suite *LoggerSuite) TestCanLogErrorWithDetails() {
 }
 
 func (suite *LoggerSuite) TestCanLogAtFatal() {
-	log, teardown := CreateLogger(suite.T(), "test.log", true)
+	log, teardown := CreateLogger("test.log", true)
 	defer teardown()
 
 	suite.Require().NotNil(log, "cannot create a logger.Logger")
@@ -280,7 +280,7 @@ func (suite *LoggerSuite) TestCanLogAtFatal() {
 }
 
 func (suite *LoggerSuite) TestCanLogNested() {
-	log, teardown := CreateLogger(suite.T(), "test.log", true)
+	log, teardown := CreateLogger("test.log", true)
 	defer teardown()
 
 	suite.Require().NotNil(log, "cannot create a logger.Logger")
@@ -308,7 +308,7 @@ func (suite *LoggerSuite) TestCanLogNested() {
 }
 
 func (suite *LoggerSuite) TestCanLogWithFilter() {
-	folder, teardown := CreateTempDir(suite.T())
+	folder, teardown := CreateTempDir()
 	defer teardown()
 	path := filepath.Join(folder, "test.log")
 	stream := &logger.FileStream{Path: path, FilterLevels: logger.NewLevelSet(logger.INFO), Unbuffered: true}
@@ -581,7 +581,7 @@ func (suite *LoggerSuite) TestCanUseWithStandardLogWithLevel() {
 }
 
 func (suite *LoggerSuite) TestCanLogAtErrorWithNilError() {
-	log, teardown := CreateLogger(suite.T(), "test.log", true)
+	log, teardown := CreateLogger("test.log", true)
 	defer func() {
 		suite.Assert().Nil(recover(), "logger.Errorf did panic")
 		teardown()
@@ -592,7 +592,7 @@ func (suite *LoggerSuite) TestCanLogAtErrorWithNilError() {
 }
 
 func (suite *LoggerSuite) TestCanLogAtFatalWithNilError() {
-	log, teardown := CreateLogger(suite.T(), "test.log", true)
+	log, teardown := CreateLogger("test.log", true)
 	defer func() {
 		suite.Assert().Nil(recover(), "logger.Fatalf did panic")
 		teardown()

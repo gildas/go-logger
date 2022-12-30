@@ -183,7 +183,7 @@ func (suite *StreamSuite) TestCanCreateMultiStream() {
 func (suite *StreamSuite) TestCanStreamToFile() {
 	os.Setenv("LOG_FLUSHFREQUENCY", "10ms")
 	defer os.Unsetenv("LOG_FLUSHFREQUENCY")
-	folder, teardown := CreateTempDir(suite.T())
+	folder, teardown := CreateTempDir()
 	defer teardown()
 	stream := &logger.FileStream{Path: filepath.Join(folder, "test.log")}
 
