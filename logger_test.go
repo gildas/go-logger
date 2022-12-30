@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strconv"
@@ -317,7 +318,7 @@ func (suite *LoggerSuite) TestCanLogWithFilter() {
 	log.Record("stuff", "other").Record("thing", "shiny").Debugf("Log at DEBUG")
 	log.Flush()
 
-	content, err := ioutil.ReadFile(stream.Path)
+	content, err := os.ReadFile(stream.Path)
 	suite.Require().Nil(err, "Failed to read %s", stream.Path)
 
 	record := &logger.Record{}
@@ -364,7 +365,7 @@ func (suite *LoggerSuite) TestLoggerHttpHandlerWithSuccess() {
 		res := w.Result()
 		suite.Assert().Equal(http.StatusOK, res.StatusCode)
 		defer res.Body.Close()
-		data, err := ioutil.ReadAll(res.Body)
+		data, err := io.ReadAll(res.Body)
 		suite.Require().NoError(err, "Failed to read response body")
 		suite.Assert().Contains(string(data), "test")
 	})

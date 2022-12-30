@@ -3,7 +3,6 @@ package logger_test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -197,7 +196,7 @@ func (suite *StreamSuite) TestCanStreamToFile() {
 	payload, err := json.Marshal(record)
 	suite.Require().Nil(err, "Failed to marshar Record")
 
-	content, err := ioutil.ReadFile(stream.Path)
+	content, err := os.ReadFile(stream.Path)
 	suite.Require().Nil(err, "Failed to read %s", stream.Path)
 	suite.Assert().JSONEq(string(payload), string(content))
 	stream.Close()

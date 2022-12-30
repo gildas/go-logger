@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -85,7 +84,7 @@ func (user User) String() string {
 func Load(filename string, object interface{}) (err error) {
 	var payload []byte
 
-	if payload, err = ioutil.ReadFile(filepath.Join(".", "testdata", filename)); err != nil {
+	if payload, err = os.ReadFile(filepath.Join(".", "testdata", filename)); err != nil {
 		return
 	}
 	if err = json.Unmarshal(payload, object); err != nil {
@@ -96,7 +95,7 @@ func Load(filename string, object interface{}) (err error) {
 
 // RequireEqualJSON tests if an unmarshaled object matches the JSON stored in the given file
 func RequireEqualJSON(t *testing.T, filename string, payload []byte) {
-	expected, err := ioutil.ReadFile(filepath.Join(".", "testdata", filename))
+	expected, err := os.ReadFile(filepath.Join(".", "testdata", filename))
 	require.Nil(t, err, "Failed to load %s", filename)
 	require.JSONEq(t, string(expected), string(payload))
 }
@@ -122,7 +121,7 @@ func CreateLogger(t *testing.T, filename string, wantLocal bool) (*logger.Logger
 // CreateTempDir creates a temporary directory
 // return the temp folder and a func to delete it when done
 func CreateTempDir(t *testing.T) (string, func()) {
-	dir, err := ioutil.TempDir("", "go_logger")
+	dir, err := os.MkdirTemp("", "go_logger")
 	if err != nil {
 		t.Fatalf("Unable to create a temp folder for log files. Error: %s\n", err)
 	}
