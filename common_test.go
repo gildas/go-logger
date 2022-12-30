@@ -144,11 +144,10 @@ func CaptureStderr(f func()) string {
 	if err != nil {
 		panic(err)
 	}
-	stderr := os.Stderr
-	os.Stderr = writer
-	defer func() {
+	defer func(stderr *os.File) {
 		os.Stderr = stderr
-	}()
+	}(os.Stderr)
+	os.Stderr = writer
 
 	f()
 	writer.Close()
@@ -163,11 +162,10 @@ func CaptureStdout(f func()) string {
 	if err != nil {
 		panic(err)
 	}
-	stdout := os.Stdout
-	os.Stdout = writer
-	defer func() {
+	defer func(stdout *os.File) {
 		os.Stdout = stdout
-	}()
+	}(os.Stdout)
+	os.Stdout = writer
 
 	f()
 	writer.Close()
