@@ -207,7 +207,7 @@ func (suite *LoggerSuite) LogLineEqual(line string, records map[string]string) {
 			default:
 				suite.Failf(fmt.Sprintf("The value of the key %s cannot be casted to string", key), "Type: %s", reflect.TypeOf(value))
 			}
-			suite.Assert().Truef(rex.MatchString(stringvalue), "Key %s: the value %v does not match the regex %s", key, value, rex)
+			suite.Assert().Truef(rex.MatchString(stringvalue), `Key "%s": the value %v does not match the regex /%s/`, key, value, rex)
 		}
 	}
 
