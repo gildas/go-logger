@@ -229,54 +229,145 @@ func (suite *LoggerSuite) TestCanSetLevelsPerTopicAndScope() {
 }
 
 func (suite *LoggerSuite) TestCanLogAtTrace() {
-	log, teardown := CreateLogger("test.log", true)
-	defer teardown()
-
-	suite.Require().NotNil(log, "cannot create a logger.Logger")
-	log.Tracef("test of file destination")
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.Tracef("test of file destination")
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	lines = lines[0 : len(lines)-1] // remove the last empty line
+	suite.Require().Len(lines, 1, "There should be 1 line in the log output, found %d", len(lines))
+	suite.LogLineEqual(lines[0], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "10",
+		"msg":      `test of file destination`,
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
 }
 
 func (suite *LoggerSuite) TestCanLogAtDebug() {
-	log, teardown := CreateLogger("test.log", true)
-	defer teardown()
-
-	suite.Require().NotNil(log, "cannot create a logger.Logger")
-	log.Debugf("test of file destination")
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.Debugf("test of file destination")
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	lines = lines[0 : len(lines)-1] // remove the last empty line
+	suite.Require().Len(lines, 1, "There should be 1 line in the log output, found %d", len(lines))
+	suite.LogLineEqual(lines[0], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "20",
+		"msg":      `test of file destination`,
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
 }
 
 func (suite *LoggerSuite) TestCanLogAtInfo() {
-	log, teardown := CreateLogger("test.log", true)
-	defer teardown()
-
-	suite.Require().NotNil(log, "cannot create a logger.Logger")
-	log.Infof("test of file destination")
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.Infof("test of file destination")
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	lines = lines[0 : len(lines)-1] // remove the last empty line
+	suite.Require().Len(lines, 1, "There should be 1 line in the log output, found %d", len(lines))
+	suite.LogLineEqual(lines[0], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      `test of file destination`,
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
 }
 
 func (suite *LoggerSuite) TestCanLogAtWarn() {
-	log, teardown := CreateLogger("test.log", true)
-	defer teardown()
-
-	suite.Require().NotNil(log, "cannot create a logger.Logger")
-	log.Warnf("test of file destination")
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.Warnf("test of file destination")
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	lines = lines[0 : len(lines)-1] // remove the last empty line
+	suite.Require().Len(lines, 1, "There should be 1 line in the log output, found %d", len(lines))
+	suite.LogLineEqual(lines[0], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "40",
+		"msg":      `test of file destination`,
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
 }
 
 func (suite *LoggerSuite) TestCanLogErrorWithDetails() {
-	log, teardown := CreateLogger("test.log", true)
-	defer teardown()
-
-	suite.Require().NotNil(log, "cannot create a logger.Logger")
-
-	err := &ErrorForTest{Errno: "ENOFOUND", Code: 12}
-	log.Errorf("Got an error with number: %d", 2, err)
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		err := &ErrorForTest{Errno: "ENOFOUND", Code: 12}
+		log.Errorf("Got an error with number: %d", 2, err)
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	lines = lines[0 : len(lines)-1] // remove the last empty line
+	suite.Require().Len(lines, 1, "There should be 1 line in the log output, found %d", len(lines))
+	suite.LogLineEqual(lines[0], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "50",
+		"err":      `map\[Code:12 Errno:ENOFOUND\]`,
+		"msg":      `Got an error with number: 2`,
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
 }
 
 func (suite *LoggerSuite) TestCanLogAtFatal() {
-	log, teardown := CreateLogger("test.log", true)
-	defer teardown()
-
-	suite.Require().NotNil(log, "cannot create a logger.Logger")
-	err := &ErrorForTest{"testerror", 400}
-	log.Fatalf("test of file destination", err)
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		err := &ErrorForTest{"testerror", 400}
+		log.Fatalf("test of file destination", err)
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	lines = lines[0 : len(lines)-1] // remove the last empty line
+	suite.Require().Len(lines, 1, "There should be 1 line in the log output, found %d", len(lines))
+	suite.LogLineEqual(lines[0], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "60",
+		"err":      `map\[Code:400 Errno:testerror\]`,
+		"msg":      `test of file destination`,
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
 }
 
 func (suite *LoggerSuite) TestCanLogNested() {
