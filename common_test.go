@@ -139,6 +139,17 @@ func CreateLogDir() (string, func()) {
 	return dir, func() {}
 }
 
+// CreateTempFile creates a temporary file
+//
+// return the temp file and a func to delete it when done
+func CreateTempFile() (*os.File, func()) {
+	file, err := os.CreateTemp("", "go_logger")
+	if err != nil {
+		panic(fmt.Sprintf("Unable to create a temp file for log files. Error: %s\n", err))
+	}
+	return file, func() { file.Close(); os.Remove(file.Name()) }
+}
+
 func CaptureStderr(f func()) string {
 	reader, writer, err := os.Pipe()
 	if err != nil {
