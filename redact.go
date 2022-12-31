@@ -3,7 +3,6 @@ package logger
 import (
 	"crypto/sha256"
 	"fmt"
-	"strings"
 )
 
 func Redact(value interface{}) string {
@@ -24,7 +23,9 @@ func RedactWithPrefixedHash(prefix string, value interface{}) string {
 	if value == nil {
 		return ""
 	}
-	var redacted strings.Builder
+	redacted := bufferPool.Get()
+	defer bufferPool.Put(redacted)
+
 	redacted.WriteString(prefix)
 	redacted.WriteString("-")
 	redacted.WriteString(fmt.Sprintf("%x", sha256.Sum256([]byte(fmt.Sprintf("%s", value))))[:10])

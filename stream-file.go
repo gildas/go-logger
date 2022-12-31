@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strings"
 	"sync"
 	"time"
 
@@ -161,7 +160,8 @@ func (stream *FileStream) Close() {
 //
 // implements fmt.Stringer
 func (stream *FileStream) String() string {
-	var format strings.Builder
+	format := bufferPool.Get()
+	defer bufferPool.Put(format)
 
 	if stream.Unbuffered {
 		format.WriteString("Unbuffered ")
