@@ -235,67 +235,51 @@ func (suite *StreamSuite) TestStackDriverStreamCanSetFilterLevel() {
 	suite.Assert().Equal(logger.WARN, stream.FilterLevels.GetDefault())
 }
 
-func ExampleStdoutStream() {
+func (suite *StreamSuite) TestCanStreamToStdout() {
 	os.Setenv("LOG_FLUSHFREQUENCY", "10ms")
 	defer os.Unsetenv("LOG_FLUSHFREQUENCY")
 	stream := &logger.StdoutStream{}
-
-	if err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "Me")); err != nil {
-		os.Stdout.WriteString(err.Error() + "\n")
-	}
-	if stream.ShouldWrite(logger.TRACE, "", "") {
-		os.Stdout.WriteString("This should not be seen, stream Filter: " + stream.FilterLevels.String() + "\n")
-	}
-	if err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.ERROR)); err != nil {
-		os.Stdout.WriteString(err.Error() + "\n")
-	}
-	stream.Flush()
-	time.Sleep(11 * time.Millisecond)
-	stream.Close()
-	// Output:
-	// {"bello":"banana","だれ":"Me"}
-	// {"bello":"banana","level":50}
-}
-
-func ExampleStdoutStream_Unbuffered() {
-	stream := &logger.StdoutStream{Unbuffered: true}
-
-	if err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "Me")); err != nil {
-		os.Stdout.WriteString(err.Error() + "\n")
-	}
-	if stream.ShouldWrite(logger.TRACE, "", "") {
-		os.Stdout.WriteString("This should not be seen, stream Filter: " + stream.FilterLevels.String() + "\n")
-	}
-	// Output: {"bello":"banana","だれ":"Me"}
-}
-
-func ExampleStderrStream() {
-	output := CaptureStderr(func() {
-		stream := &logger.StderrStream{}
-
-		if err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "Me")); err != nil {
-			os.Stderr.WriteString(err.Error() + "\n")
-		}
-		if stream.ShouldWrite(logger.TRACE, "", "") {
-			os.Stderr.WriteString("This should not be seen, stream Filter: " + stream.FilterLevels.String() + "\n")
-		}
+	output := CaptureStdout(func() {
+		err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "私"))
+		suite.Require().Nil(err)
 		stream.Flush()
+		time.Sleep(11 * time.Millisecond)
+		stream.Close()
 	})
-	fmt.Println(output)
-	// Output: {"bello":"banana","だれ":"Me"}
+	lines := strings.Split(output, `\n`)
+	suite.Require().Len(lines, 1, "Should have written 1 line")
+	suite.Assert().JSONEq(string(`{"bello":"banana","だれ":"私"}`), lines[0])
 }
 
-func ExampleNilStream() {
-	stream := &logger.NilStream{}
+func (suite *StreamSuite) TestCanStreamToUnbufferedStdout() {
+	stream := &logger.StdoutStream{Unbuffered: true}
+	output := CaptureStdout(func() {
+		err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "私"))
+		suite.Require().Nil(err)
+	})
+	lines := strings.Split(output, `\n`)
+	suite.Require().Len(lines, 1, "Should have written 1 line")
+	suite.Assert().JSONEq(string(`{"bello":"banana","だれ":"私"}`), lines[0])
+}
 
-	if err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "Me")); err != nil {
-		os.Stdout.WriteString(err.Error() + "\n")
-	}
-	if stream.ShouldWrite(logger.ALWAYS, "", "") {
-		os.Stdout.WriteString("This should not be seen\n")
-	}
-	stream.Flush()
-	// Output:
+func (suite *StreamSuite) TestCanStreamToStderr() {
+	stream := &logger.StderrStream{}
+	output := CaptureStderr(func() {
+		err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "私"))
+		suite.Require().Nil(err)
+	})
+	lines := strings.Split(output, `\n`)
+	suite.Require().Len(lines, 1, "Should have written 1 line")
+	suite.Assert().JSONEq(string(`{"bello":"banana","だれ":"私"}`), lines[0])
+}
+
+func (suite *StreamSuite) TestCanStreamToNil() {
+	stream := &logger.NilStream{}
+	output := CaptureStdout(func() {
+		err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "私"))
+		suite.Require().Nil(err)
+	})
+	suite.Assert().Empty(output, "Should not have written anything")
 }
 
 func (suite *StreamSuite) TestCanStreamToStackDriver() {
@@ -362,7 +346,7 @@ func (suite *StreamSuite) TestCanStreamToMultiStream() {
 		suite.Assert().Nil(err, "Failed to write to stream")
 		stream.Flush()
 	})
-	suite.Assert().Equal("{\"bello\":\"banana\",\"level\":50}\n", output)
+	suite.Assert().JSONEq(`{"bello":"banana","level":50}`, output)
 }
 
 func (suite *StreamSuite) TestCanGetFlushFrequencyFromEnvironment() {
