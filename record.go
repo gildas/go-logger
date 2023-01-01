@@ -18,6 +18,17 @@ func NewRecord() Record {
 	return Record(make(map[string]interface{}))
 }
 
+// NewPooledRecord creates a new empty record
+func NewPooledRecord() (record Record, release func()) {
+	record = Record(mapPool.Get())
+	return record, func() { record.Close() }
+}
+
+// Close returns the record to the pool
+func (record Record) Close() {
+	mapPool.Put(record)
+}
+
 // Set sets the key and value if not yet set
 func (record Record) Set(key string, value interface{}) Record {
 	if value == nil {
