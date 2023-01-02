@@ -1,7 +1,6 @@
 package logger_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -180,28 +179,6 @@ func (suite *StreamSuite) TestCanCreateMultiStream() {
 	suite.Assert().True(stream.ShouldLogSourceInfo(), "Should log source info")
 }
 
-func (suite *StreamSuite) TestCanStreamToFile() {
-	os.Setenv("LOG_FLUSHFREQUENCY", "10ms")
-	defer os.Unsetenv("LOG_FLUSHFREQUENCY")
-	folder, teardown := CreateTempDir()
-	defer teardown()
-	stream := &logger.FileStream{Path: filepath.Join(folder, "test.log")}
-
-	record := logger.NewRecord().Set("bello", "banana").Set("だれ", "Me")
-	err := stream.Write(record)
-	suite.Require().Nil(err)
-	time.Sleep(11 * time.Millisecond)
-	stream.Flush()
-
-	payload, err := json.Marshal(record)
-	suite.Require().Nil(err, "Failed to marshar Record")
-
-	content, err := os.ReadFile(stream.Path)
-	suite.Require().Nil(err, "Failed to read %s", stream.Path)
-	suite.Assert().JSONEq(string(payload), string(content))
-	stream.Close()
-}
-
 func (suite *StreamSuite) TestFileStreamCanSetFilterLevel() {
 	stream := &logger.FileStream{}
 	suite.Assert().Equal(logger.UNSET, stream.FilterLevels.GetDefault())
@@ -235,6 +212,50 @@ func (suite *StreamSuite) TestStackDriverStreamCanSetFilterLevel() {
 	suite.Assert().Equal(logger.WARN, stream.FilterLevels.GetDefault())
 }
 
+func (suite *StreamSuite) TestCanStreamToFile() {
+	var err error
+	os.Setenv("LOG_FLUSHFREQUENCY", "10ms")
+	defer os.Unsetenv("LOG_FLUSHFREQUENCY")
+	folder, teardown := CreateTempDir()
+	defer teardown()
+	stream := &logger.FileStream{Path: filepath.Join(folder, "test.log")}
+	defer stream.Close()
+
+	err = stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "私"))
+	suite.Require().NoError(err)
+	err = stream.Write(logger.NewRecord().Set("key1", "value1").Set("key2", "value2"))
+	suite.Require().NoError(err)
+	time.Sleep(11 * time.Millisecond)
+	stream.Flush()
+
+	content, err := os.ReadFile(stream.Path)
+	suite.Require().NoError(err, "Failed to read %s", stream.Path)
+	lines := strings.Split(string(content), "\n")
+	suite.Require().Len(lines, 3, "Should have written 2 lines")
+	suite.Assert().JSONEq(string(`{"bello":"banana","だれ":"私"}`), lines[0])
+	suite.Assert().JSONEq(string(`{"key1":"value1","key2":"value2"}`), lines[1])
+}
+
+func (suite *StreamSuite) TestCanStreamToUnbufferedFile() {
+	var err error
+	folder, teardown := CreateTempDir()
+	defer teardown()
+	stream := &logger.FileStream{Path: filepath.Join(folder, "test.log"), Unbuffered: true}
+	defer stream.Close()
+
+	err = stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "私"))
+	suite.Require().NoError(err)
+	err = stream.Write(logger.NewRecord().Set("key1", "value1").Set("key2", "value2"))
+	suite.Require().NoError(err)
+
+	content, err := os.ReadFile(stream.Path)
+	suite.Require().NoError(err, "Failed to read %s", stream.Path)
+	lines := strings.Split(string(content), "\n")
+	suite.Require().Len(lines, 3, "Should have written 2 lines")
+	suite.Assert().JSONEq(string(`{"bello":"banana","だれ":"私"}`), lines[0])
+	suite.Assert().JSONEq(string(`{"key1":"value1","key2":"value2"}`), lines[1])
+}
+
 func (suite *StreamSuite) TestCanStreamToStdout() {
 	os.Setenv("LOG_FLUSHFREQUENCY", "10ms")
 	defer os.Unsetenv("LOG_FLUSHFREQUENCY")
@@ -246,8 +267,8 @@ func (suite *StreamSuite) TestCanStreamToStdout() {
 		time.Sleep(11 * time.Millisecond)
 		stream.Close()
 	})
-	lines := strings.Split(output, `\n`)
-	suite.Require().Len(lines, 1, "Should have written 1 line")
+	lines := strings.Split(output, "\n")
+	suite.Require().Len(lines, 2, "Should have written 1 line")
 	suite.Assert().JSONEq(string(`{"bello":"banana","だれ":"私"}`), lines[0])
 }
 
@@ -257,8 +278,8 @@ func (suite *StreamSuite) TestCanStreamToUnbufferedStdout() {
 		err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "私"))
 		suite.Require().Nil(err)
 	})
-	lines := strings.Split(output, `\n`)
-	suite.Require().Len(lines, 1, "Should have written 1 line")
+	lines := strings.Split(output, "\n")
+	suite.Require().Len(lines, 2, "Should have written 1 line")
 	suite.Assert().JSONEq(string(`{"bello":"banana","だれ":"私"}`), lines[0])
 }
 
@@ -268,8 +289,8 @@ func (suite *StreamSuite) TestCanStreamToStderr() {
 		err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "私"))
 		suite.Require().Nil(err)
 	})
-	lines := strings.Split(output, `\n`)
-	suite.Require().Len(lines, 1, "Should have written 1 line")
+	lines := strings.Split(output, "\n")
+	suite.Require().Len(lines, 2, "Should have written 1 line")
 	suite.Assert().JSONEq(string(`{"bello":"banana","だれ":"私"}`), lines[0])
 }
 

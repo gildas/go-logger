@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"sync"
@@ -11,7 +10,6 @@ import (
 
 // StderrStream is the Stream that writes to the standard error
 type StderrStream struct {
-	*json.Encoder
 	Converter    Converter
 	FilterLevels LevelSet
 	SourceInfo   bool
@@ -71,19 +69,23 @@ func (stream *StderrStream) FilterLess() {
 func (stream *StderrStream) Write(record Record) error {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
-	if stream.Encoder == nil {
-		if stream.Converter == nil {
-			stream.Converter = GetConverterFromEnvironment()
-		}
-		if len(stream.FilterLevels) == 0 {
-			stream.FilterLevels = ParseLevelsFromEnvironment()
-		}
-		stream.Encoder = json.NewEncoder(os.Stderr)
+	if stream.Converter == nil {
+		stream.Converter = GetConverterFromEnvironment()
 	}
-	if err := stream.Encoder.Encode(stream.Converter.Convert(record)); errors.Is(err, errors.JSONMarshalError) {
+	if len(stream.FilterLevels) == 0 {
+		stream.FilterLevels = ParseLevelsFromEnvironment()
+	}
+	payload, err := stream.Converter.Convert(record).MarshalJSON()
+	if errors.Is(err, errors.JSONMarshalError) {
 		return err
 	} else if err != nil {
 		return errors.JSONMarshalError.Wrap(err)
+	}
+	if _, err = os.Stderr.Write(payload); err != nil {
+		return errors.WithStack(err)
+	}
+	if _, err = os.Stderr.Write([]byte("\n")); err != nil {
+		return errors.WithStack(err)
 	}
 	return nil
 }
