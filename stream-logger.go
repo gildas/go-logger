@@ -84,7 +84,7 @@ func (log *Logger) Close() {
 
 // String gets a string version
 //
-//   implements fmt.Stringer
+//	implements fmt.Stringer
 func (log Logger) String() string {
 	return fmt.Sprintf("Logger(%s)", log.stream)
 }

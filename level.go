@@ -81,7 +81,7 @@ func GetLevelFromRecord(record Record) Level {
 
 // Next returns the Level that follows the current one
 //
-// If level is ALWAYS, it will return ALWAYS
+// # If level is ALWAYS, it will return ALWAYS
 //
 // Example: TRACE.Next() will return DEBUG
 func (level Level) Next() Level {
@@ -93,7 +93,7 @@ func (level Level) Next() Level {
 
 // Previous returns the Level that precedes the current one
 //
-// If level is NEVER, it will return NEVER
+// # If level is NEVER, it will return NEVER
 //
 // Example: DEBUG.Previous() will return TRACE
 func (level Level) Previous() Level {

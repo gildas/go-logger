@@ -112,8 +112,8 @@ func (log *Logger) Recordf(key, value string, args ...interface{}) *Logger {
 
 // Records adds key, value pairs as Record objects
 //
-//   The key should be castable to a string.
-//   If the last value is missing, its key is ignored
+//	The key should be castable to a string.
+//	If the last value is missing, its key is ignored
 //
 // E.g.: log.Records("key1", value1, "key2", value2)
 func (log *Logger) Records(params ...interface{}) *Logger {

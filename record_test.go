@@ -109,11 +109,11 @@ func (suite *RecordSuite) TestCanMarshalBasicValues() {
 	suite.Require().NoError(err, "Error while marshaling record")
 	suite.Assert().JSONEq(expected, string(payload))
 
-	payload, err = json.Marshal(logger.NewRecord().Set("key", complex64(123 + 4i)))
+	payload, err = json.Marshal(logger.NewRecord().Set("key", complex64(123+4i)))
 	suite.Require().NoError(err, "Error while marshaling record")
 	suite.Assert().JSONEq(`{"key": "(123+4i)"}`, string(payload))
 
-	payload, err = json.Marshal(logger.NewRecord().Set("key", complex128(123 + 4i)))
+	payload, err = json.Marshal(logger.NewRecord().Set("key", complex128(123+4i)))
 	suite.Require().NoError(err, "Error while marshaling record")
 	suite.Assert().JSONEq(`{"key": "(123+4i)"}`, string(payload))
 }

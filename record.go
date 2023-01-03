@@ -94,100 +94,100 @@ func (record *Record) UnmarshalJSON(payload []byte) error {
 }
 
 func jsonValue(object interface{}, buffer *bytes.Buffer) error {
-		switch value := object.(type) {
-		case func() interface{}:
-			object = value()
-		case Redactable:
-			object = value.Redact()
+	switch value := object.(type) {
+	case func() interface{}:
+		object = value()
+	case Redactable:
+		object = value.Redact()
+	}
+	// This looks ugly, but it goes way faster than reflection (that is used by json.Marshal)
+	switch value := object.(type) {
+	case bool:
+		buffer.WriteString(strconv.FormatBool(value))
+	case *bool:
+		buffer.WriteString(strconv.FormatBool(*value))
+	case complex64:
+		buffer.WriteString(`"`)
+		buffer.WriteString(strconv.FormatComplex(complex128(value), 'g', -1, 64))
+		buffer.WriteString(`"`)
+	case *complex64:
+		buffer.WriteString(`"`)
+		buffer.WriteString(strconv.FormatComplex(complex128(*value), 'g', -1, 64))
+		buffer.WriteString(`"`)
+	case complex128:
+		buffer.WriteString(`"`)
+		buffer.WriteString(strconv.FormatComplex(value, 'g', -1, 128))
+		buffer.WriteString(`"`)
+	case *complex128:
+		buffer.WriteString(`"`)
+		buffer.WriteString(strconv.FormatComplex(*value, 'g', -1, 128))
+		buffer.WriteString(`"`)
+	case float32:
+		buffer.WriteString(strconv.FormatFloat(float64(value), 'g', -1, 32))
+	case *float32:
+		buffer.WriteString(strconv.FormatFloat(float64(*value), 'g', -1, 32))
+	case float64:
+		buffer.WriteString(strconv.FormatFloat(value, 'g', -1, 64))
+	case *float64:
+		buffer.WriteString(strconv.FormatFloat(*value, 'g', -1, 64))
+	case Level:
+		buffer.WriteString(strconv.FormatInt(int64(value), 10))
+	case int:
+		buffer.WriteString(strconv.FormatInt(int64(value), 10))
+	case *int:
+		buffer.WriteString(strconv.FormatInt(int64(*value), 10))
+	case int8:
+		buffer.WriteString(strconv.FormatInt(int64(value), 10))
+	case *int8:
+		buffer.WriteString(strconv.FormatInt(int64(*value), 10))
+	case int16:
+		buffer.WriteString(strconv.FormatInt(int64(value), 10))
+	case *int16:
+		buffer.WriteString(strconv.FormatInt(int64(*value), 10))
+	case int32:
+		buffer.WriteString(strconv.FormatInt(int64(value), 10))
+	case *int32:
+		buffer.WriteString(strconv.FormatInt(int64(*value), 10))
+	case int64:
+		buffer.WriteString(strconv.FormatInt(value, 10))
+	case *int64:
+		buffer.WriteString(strconv.FormatInt(*value, 10))
+	case string:
+		buffer.WriteString(`"`)
+		jsonEscape(value, buffer)
+		buffer.WriteString(`"`)
+	case *string:
+		buffer.WriteString(`"`)
+		jsonEscape(*value, buffer)
+		buffer.WriteString(`"`)
+	case uint:
+		buffer.WriteString(strconv.FormatUint(uint64(value), 10))
+	case *uint:
+		buffer.WriteString(strconv.FormatUint(uint64(*value), 10))
+	case uint8:
+		buffer.WriteString(strconv.FormatUint(uint64(value), 10))
+	case *uint8:
+		buffer.WriteString(strconv.FormatUint(uint64(*value), 10))
+	case uint16:
+		buffer.WriteString(strconv.FormatUint(uint64(value), 10))
+	case *uint16:
+		buffer.WriteString(strconv.FormatUint(uint64(*value), 10))
+	case uint32:
+		buffer.WriteString(strconv.FormatUint(uint64(value), 10))
+	case *uint32:
+		buffer.WriteString(strconv.FormatUint(uint64(*value), 10))
+	case uint64:
+		buffer.WriteString(strconv.FormatUint(value, 10))
+	case *uint64:
+		buffer.WriteString(strconv.FormatUint(*value, 10))
+	default:
+		payload, err := json.Marshal(object)
+		if err != nil {
+			return err
 		}
-		// This looks ugly, but it goes way faster than reflection (that is used by json.Marshal)
-		switch value := object.(type) {
-		case bool:
-			buffer.WriteString(strconv.FormatBool(value))
-		case *bool:
-			buffer.WriteString(strconv.FormatBool(*value))
-		case complex64:
-			buffer.WriteString(`"`)
-			buffer.WriteString(strconv.FormatComplex(complex128(value), 'g', -1, 64))
-			buffer.WriteString(`"`)
-		case *complex64:
-			buffer.WriteString(`"`)
-			buffer.WriteString(strconv.FormatComplex(complex128(*value), 'g', -1, 64))
-			buffer.WriteString(`"`)
-		case complex128:
-			buffer.WriteString(`"`)
-			buffer.WriteString(strconv.FormatComplex(value, 'g', -1, 128))
-			buffer.WriteString(`"`)
-		case *complex128:
-			buffer.WriteString(`"`)
-			buffer.WriteString(strconv.FormatComplex(*value, 'g', -1, 128))
-			buffer.WriteString(`"`)
-		case float32:
-			buffer.WriteString(strconv.FormatFloat(float64(value), 'g', -1, 32))
-		case *float32:
-			buffer.WriteString(strconv.FormatFloat(float64(*value), 'g', -1, 32))
-		case float64:
-			buffer.WriteString(strconv.FormatFloat(value, 'g', -1, 64))
-		case *float64:
-			buffer.WriteString(strconv.FormatFloat(*value, 'g', -1, 64))
-		case Level:
-			buffer.WriteString(strconv.FormatInt(int64(value), 10))
-		case int:
-			buffer.WriteString(strconv.FormatInt(int64(value), 10))
-		case *int:
-			buffer.WriteString(strconv.FormatInt(int64(*value), 10))
-		case int8:
-			buffer.WriteString(strconv.FormatInt(int64(value), 10))
-		case *int8:
-			buffer.WriteString(strconv.FormatInt(int64(*value), 10))
-		case int16:
-			buffer.WriteString(strconv.FormatInt(int64(value), 10))
-		case *int16:
-			buffer.WriteString(strconv.FormatInt(int64(*value), 10))
-		case int32:
-			buffer.WriteString(strconv.FormatInt(int64(value), 10))
-		case *int32:
-			buffer.WriteString(strconv.FormatInt(int64(*value), 10))
-		case int64:
-			buffer.WriteString(strconv.FormatInt(value, 10))
-		case *int64:
-			buffer.WriteString(strconv.FormatInt(*value, 10))
-		case string:
-			buffer.WriteString(`"`)
-			jsonEscape(value, buffer)
-			buffer.WriteString(`"`)
-		case *string:
-			buffer.WriteString(`"`)
-			jsonEscape(*value, buffer)
-			buffer.WriteString(`"`)
-		case uint:
-			buffer.WriteString(strconv.FormatUint(uint64(value), 10))
-		case *uint:
-			buffer.WriteString(strconv.FormatUint(uint64(*value), 10))
-		case uint8:
-			buffer.WriteString(strconv.FormatUint(uint64(value), 10))
-		case *uint8:
-			buffer.WriteString(strconv.FormatUint(uint64(*value), 10))
-		case uint16:
-			buffer.WriteString(strconv.FormatUint(uint64(value), 10))
-		case *uint16:
-			buffer.WriteString(strconv.FormatUint(uint64(*value), 10))
-		case uint32:
-			buffer.WriteString(strconv.FormatUint(uint64(value), 10))
-		case *uint32:
-			buffer.WriteString(strconv.FormatUint(uint64(*value), 10))
-		case uint64:
-			buffer.WriteString(strconv.FormatUint(value, 10))
-		case *uint64:
-			buffer.WriteString(strconv.FormatUint(*value, 10))
-		default:
-			payload, err := json.Marshal(object)
-			if err != nil {
-				return err
-			}
-			buffer.Write(payload)
-		}
-		return nil
+		buffer.Write(payload)
+	}
+	return nil
 }
 
 func jsonEscape(value string, buffer *bytes.Buffer) {
