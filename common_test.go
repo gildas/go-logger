@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -85,7 +84,7 @@ func (user User) String() string {
 func Load(filename string, object interface{}) (err error) {
 	var payload []byte
 
-	if payload, err = ioutil.ReadFile(filepath.Join(".", "testdata", filename)); err != nil {
+	if payload, err = os.ReadFile(filepath.Join(".", "testdata", filename)); err != nil {
 		return
 	}
 	if err = json.Unmarshal(payload, object); err != nil {
@@ -96,20 +95,20 @@ func Load(filename string, object interface{}) (err error) {
 
 // RequireEqualJSON tests if an unmarshaled object matches the JSON stored in the given file
 func RequireEqualJSON(t *testing.T, filename string, payload []byte) {
-	expected, err := ioutil.ReadFile(filepath.Join(".", "testdata", filename))
+	expected, err := os.ReadFile(filepath.Join(".", "testdata", filename))
 	require.Nil(t, err, "Failed to load %s", filename)
 	require.JSONEq(t, string(expected), string(payload))
 }
 
 // CreateLogger creates a new logger in a temp destination
-func CreateLogger(t *testing.T, filename string, wantLocal bool) (*logger.Logger, func()) {
+func CreateLogger(filename string, wantLocal bool) (*logger.Logger, func()) {
 	var folder string
 	var teardown func()
 
 	if wantLocal {
-		folder, teardown = CreateLogDir(t)
+		folder, teardown = CreateLogDir()
 	} else {
-		folder, teardown = CreateTempDir(t)
+		folder, teardown = CreateTempDir()
 	}
 	path := filepath.Join(folder, filename)
 	log := logger.Create("test", "file://"+path)
@@ -120,23 +119,35 @@ func CreateLogger(t *testing.T, filename string, wantLocal bool) (*logger.Logger
 }
 
 // CreateTempDir creates a temporary directory
+//
 // return the temp folder and a func to delete it when done
-func CreateTempDir(t *testing.T) (string, func()) {
-	dir, err := ioutil.TempDir("", "go_logger")
+func CreateTempDir() (string, func()) {
+	dir, err := os.MkdirTemp("", "go_logger")
 	if err != nil {
-		t.Fatalf("Unable to create a temp folder for log files. Error: %s\n", err)
+		panic(fmt.Sprintf("Unable to create a temp folder for log files. Error: %s\n", err))
 	}
 	return dir, func() { os.RemoveAll(dir) }
 }
 
 // CreateLogDir creates a local log directory
-func CreateLogDir(t *testing.T) (string, func()) {
+func CreateLogDir() (string, func()) {
 	dir := filepath.Join(".", "log")
 	err := os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
-		t.Fatalf("Unable to create log folder for log files. Error: %s\n", err)
+		panic(fmt.Sprintf("Unable to create log folder for log files. Error: %s\n", err))
 	}
 	return dir, func() {}
+}
+
+// CreateTempFile creates a temporary file
+//
+// return the temp file and a func to delete it when done
+func CreateTempFile() (*os.File, func()) {
+	file, err := os.CreateTemp("", "go_logger")
+	if err != nil {
+		panic(fmt.Sprintf("Unable to create a temp file for log files. Error: %s\n", err))
+	}
+	return file, func() { file.Close(); os.Remove(file.Name()) }
 }
 
 func CaptureStderr(f func()) string {
@@ -144,11 +155,10 @@ func CaptureStderr(f func()) string {
 	if err != nil {
 		panic(err)
 	}
-	stderr := os.Stderr
-	os.Stderr = writer
-	defer func() {
+	defer func(stderr *os.File) {
 		os.Stderr = stderr
-	}()
+	}(os.Stderr)
+	os.Stderr = writer
 
 	f()
 	writer.Close()
@@ -163,11 +173,10 @@ func CaptureStdout(f func()) string {
 	if err != nil {
 		panic(err)
 	}
-	stdout := os.Stdout
-	os.Stdout = writer
-	defer func() {
+	defer func(stdout *os.File) {
 		os.Stdout = stdout
-	}()
+	}(os.Stdout)
+	os.Stdout = writer
 
 	f()
 	writer.Close()
@@ -207,7 +216,7 @@ func (suite *LoggerSuite) LogLineEqual(line string, records map[string]string) {
 			default:
 				suite.Failf(fmt.Sprintf("The value of the key %s cannot be casted to string", key), "Type: %s", reflect.TypeOf(value))
 			}
-			suite.Assert().Truef(rex.MatchString(stringvalue), "Key %s: the value %v does not match the regex %s", key, value, rex)
+			suite.Assert().Truef(rex.MatchString(stringvalue), `Key "%s": the value %v does not match the regex /%s/`, key, value, rex)
 		}
 	}
 

@@ -2,10 +2,9 @@ package logger
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
+	"io"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -14,12 +13,12 @@ import (
 
 // StdoutStream is the Stream that writes to the standard output
 type StdoutStream struct {
-	*json.Encoder
 	Converter      Converter
 	FilterLevels   LevelSet
 	Unbuffered     bool
 	SourceInfo     bool
 	output         *bufio.Writer
+	writer         io.Writer
 	flushFrequency time.Duration
 	mutex          sync.Mutex
 }
@@ -77,7 +76,7 @@ func (stream *StdoutStream) FilterLess() {
 func (stream *StdoutStream) Write(record Record) error {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
-	if stream.Encoder == nil {
+	if stream.writer == nil {
 		if stream.Converter == nil {
 			stream.Converter = GetConverterFromEnvironment()
 		}
@@ -86,18 +85,25 @@ func (stream *StdoutStream) Write(record Record) error {
 		}
 		if stream.Unbuffered {
 			stream.output = nil
-			stream.Encoder = json.NewEncoder(os.Stdout)
+			stream.writer = os.Stdout
 		} else {
 			stream.output = bufio.NewWriter(os.Stdout)
-			stream.Encoder = json.NewEncoder(stream.output)
+			stream.writer = stream.output
 			stream.flushFrequency = GetFlushFrequencyFromEnvironment()
 			go stream.flushJob()
 		}
 	}
-	if err := stream.Encoder.Encode(stream.Converter.Convert(record)); errors.Is(err, errors.JSONMarshalError) {
+	payload, err := stream.Converter.Convert(record).MarshalJSON()
+	if errors.Is(err, errors.JSONMarshalError) {
 		return err
 	} else if err != nil {
 		return errors.JSONMarshalError.Wrap(err)
+	}
+	if _, err = stream.writer.Write(payload); err != nil {
+		return errors.WithStack(err)
+	}
+	if _, err = stream.writer.Write([]byte("\n")); err != nil {
+		return errors.WithStack(err)
 	}
 	if GetLevelFromRecord(record) >= ERROR && stream.output != nil {
 		stream.output.Flush() // calling stream.Flush would Lock the mutex again and end up with a dead-lock
@@ -145,7 +151,8 @@ func (stream *StdoutStream) Close() {
 //
 // implements fmt.Stringer
 func (stream *StdoutStream) String() string {
-	var format strings.Builder
+	format := bufferPool.Get()
+	defer bufferPool.Put(format)
 
 	if stream.Unbuffered {
 		format.WriteString("Unbuffered ")

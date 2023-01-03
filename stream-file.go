@@ -2,11 +2,10 @@ package logger
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path"
-	"strings"
 	"sync"
 	"time"
 
@@ -16,7 +15,6 @@ import (
 // FileStream is the Stream that writes to a file
 //   Any record with a level < FilterLevel will be written
 type FileStream struct {
-	*json.Encoder
 	Path           string
 	Converter      Converter
 	FilterLevels   LevelSet
@@ -24,6 +22,7 @@ type FileStream struct {
 	SourceInfo     bool
 	file           *os.File
 	output         *bufio.Writer
+	writer         io.Writer
 	flushFrequency time.Duration
 	mutex          sync.Mutex
 }
@@ -99,18 +98,25 @@ func (stream *FileStream) Write(record Record) (err error) {
 		}
 		if stream.Unbuffered {
 			stream.output = nil
-			stream.Encoder = json.NewEncoder(stream.file)
+			stream.writer = stream.file
 		} else {
 			stream.output = bufio.NewWriter(stream.file)
-			stream.Encoder = json.NewEncoder(stream.output)
+			stream.writer = stream.output
 			stream.flushFrequency = GetFlushFrequencyFromEnvironment()
 			go stream.flushJob()
 		}
 	}
-	if err := stream.Encoder.Encode(stream.Converter.Convert(record)); errors.Is(err, errors.JSONMarshalError) {
+	payload, err := stream.Converter.Convert(record).MarshalJSON()
+	if errors.Is(err, errors.JSONMarshalError) {
 		return err
 	} else if err != nil {
 		return errors.JSONMarshalError.Wrap(err)
+	}
+	if _, err = stream.writer.Write(payload); err != nil {
+		return errors.WithStack(err)
+	}
+	if _, err = stream.writer.Write([]byte("\n")); err != nil {
+		return errors.WithStack(err)
 	}
 	if GetLevelFromRecord(record) >= ERROR && stream.output != nil {
 		stream.output.Flush() // calling stream.Flush would Lock the mutex again and end up with a dead-lock
@@ -161,7 +167,8 @@ func (stream *FileStream) Close() {
 //
 // implements fmt.Stringer
 func (stream *FileStream) String() string {
-	var format strings.Builder
+	format := bufferPool.Get()
+	defer bufferPool.Put(format)
 
 	if stream.Unbuffered {
 		format.WriteString("Unbuffered ")
