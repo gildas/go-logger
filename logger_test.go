@@ -425,7 +425,32 @@ func ExampleLogger_Write_failsWithBogusStream() {
 		log.Infof("test")
 	})
 	fmt.Println(output)
-	// Output: Logger error: This Stream is Bogus
+	// Output:
+	// Logger error: Runtime Error
+	// Caused by:
+	//	This Stream is Bogus
+	//github.com/gildas/go-logger.(*Logger).send
+	//	/home/gildas/Documents/go/src/github.com/gildas/go-logger/logger.go:335
+	//github.com/gildas/go-logger.(*Logger).Infof
+	//	/home/gildas/Documents/go/src/github.com/gildas/go-logger/logger.go:216
+	//github.com/gildas/go-logger_test.ExampleLogger_Write_failsWithBogusStream.func1
+	//	/home/gildas/Documents/go/src/github.com/gildas/go-logger/logger_test.go:425
+	//github.com/gildas/go-logger_test.CaptureStderr
+	//	/home/gildas/Documents/go/src/github.com/gildas/go-logger/common_test.go:163
+	//github.com/gildas/go-logger_test.ExampleLogger_Write_failsWithBogusStream
+	//	/home/gildas/Documents/go/src/github.com/gildas/go-logger/logger_test.go:422
+	//testing.runExample
+	//	/snap/go/current/src/testing/run_example.go:63
+	//testing.runExamples
+	//	/snap/go/current/src/testing/example.go:44
+	//testing.(*M).Run
+	//	/snap/go/current/src/testing/testing.go:1908
+	//main.main
+	//	_testmain.go:110
+	//runtime.main
+	//	/snap/go/current/src/runtime/proc.go:250
+	//runtime.goexit
+	//	/snap/go/current/src/runtime/asm_amd64.s:1598
 }
 
 func (suite *LoggerSuite) TestLoggerHttpHandlerWithSuccess() {

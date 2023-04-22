@@ -56,7 +56,7 @@ func (stream *MultiStream) FilterLess() {
 
 // ShouldLogSourceInfo tells if the source info should be logged
 //
-// If at least one stream returns true, the stream should write the record
+// # If at least one stream returns true, the stream should write the record
 //
 // implements logger.Streamer
 func (stream *MultiStream) ShouldLogSourceInfo() bool {
@@ -84,7 +84,7 @@ func (stream *MultiStream) Write(record Record) error {
 
 // ShouldWrite tells if the given level should be written to this stream
 //
-// If at least one stream returns true, the stream should write the record
+// # If at least one stream returns true, the stream should write the record
 //
 // implements logger.Streamer
 func (stream *MultiStream) ShouldWrite(level Level, topic, scope string) bool {

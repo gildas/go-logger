@@ -13,7 +13,8 @@ import (
 )
 
 // FileStream is the Stream that writes to a file
-//   Any record with a level < FilterLevel will be written
+//
+//	Any record with a level < FilterLevel will be written
 type FileStream struct {
 	Path           string
 	Converter      Converter
