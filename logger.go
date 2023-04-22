@@ -7,6 +7,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/gildas/go-errors"
 )
 
 // Logger is a Logger that creates Bunyan's compatible logs (see: https://github.com/trentm/node-bunyan)
@@ -330,7 +332,7 @@ func (log *Logger) send(level Level, msg string, args ...interface{}) {
 		}
 		record["msg"] = message
 		if err := log.Write(record); err != nil {
-			fmt.Fprintf(os.Stderr, "Logger error: %s\n", err)
+			fmt.Fprintf(os.Stderr, "Logger error: %+v\n", errors.RuntimeError.Wrap(err))
 		}
 	}
 }
