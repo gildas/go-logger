@@ -418,39 +418,19 @@ func (suite *LoggerSuite) TestCanLogWithFilter() {
 	//suite.Assert().Contains(record, "bello")
 }
 
-func ExampleLogger_Write_failsWithBogusStream() {
+func (suite *LoggerSuite) TestShouldFailWithBogusStream() {
 	output := CaptureStderr(func() {
 		log := logger.Create("test", &BogusStream{})
 
 		log.Infof("test")
 	})
-	fmt.Println(output)
-	// Output:
-	// Logger error: Runtime Error
-	// Caused by:
-	//	This Stream is Bogus
-	//github.com/gildas/go-logger.(*Logger).send
-	//	/home/gildas/Documents/go/src/github.com/gildas/go-logger/logger.go:335
-	//github.com/gildas/go-logger.(*Logger).Infof
-	//	/home/gildas/Documents/go/src/github.com/gildas/go-logger/logger.go:216
-	//github.com/gildas/go-logger_test.ExampleLogger_Write_failsWithBogusStream.func1
-	//	/home/gildas/Documents/go/src/github.com/gildas/go-logger/logger_test.go:425
-	//github.com/gildas/go-logger_test.CaptureStderr
-	//	/home/gildas/Documents/go/src/github.com/gildas/go-logger/common_test.go:163
-	//github.com/gildas/go-logger_test.ExampleLogger_Write_failsWithBogusStream
-	//	/home/gildas/Documents/go/src/github.com/gildas/go-logger/logger_test.go:422
-	//testing.runExample
-	//	/snap/go/current/src/testing/run_example.go:63
-	//testing.runExamples
-	//	/snap/go/current/src/testing/example.go:44
-	//testing.(*M).Run
-	//	/snap/go/current/src/testing/testing.go:1908
-	//main.main
-	//	_testmain.go:110
-	//runtime.main
-	//	/snap/go/current/src/runtime/proc.go:250
-	//runtime.goexit
-	//	/snap/go/current/src/runtime/asm_amd64.s:1598
+	lines := strings.Split(output, "\n")
+	suite.Require().Len(lines, 24, "There should be 4 lines in the log output, found %d", len(lines))
+	suite.Assert().Equal("Logger error: Runtime Error", lines[0])
+	suite.Assert().Equal("Caused by:", lines[1])
+	suite.Assert().Equal("\tThis Stream is Bogus", lines[2])
+	suite.Assert().Equal("github.com/gildas/go-logger.(*Logger).send", lines[3])
+	suite.Assert().Equal("github.com/gildas/go-logger.(*Logger).Infof", lines[5])
 }
 
 func (suite *LoggerSuite) TestLoggerHttpHandlerWithSuccess() {
