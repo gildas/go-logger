@@ -1,6 +1,6 @@
 module github.com/gildas/go-logger
 
-go 1.18
+go 1.20
 
 require (
 	cloud.google.com/go/logging v1.7.0
