@@ -423,6 +423,7 @@ func (suite *StreamSuite) TestFailsWritingToStackDriverWithInvalidKey() {
 	defer stream.Close()
 	err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.WARN).Set("time", time.Now()).Set("msg", "Hello with key filename"))
 	suite.Require().NotNil(err, "Should have failed writing to stream")
+	suite.T().Logf("Expected error: %s", err.Error())
 	suite.Assert().Contains(err.Error(), "json: unsupported type")
 }
 

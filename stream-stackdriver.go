@@ -94,7 +94,12 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 		stream.Converter = &StackDriverConverter{}
 		options := []googleoption.ClientOption{}
 		if stream.Key != nil {
-			payload, _ := json.Marshal(stream.Key)
+			payload, err := json.Marshal(stream.Key)
+			if errors.Is(err, errors.JSONMarshalError) {
+				return err
+			} else if err != nil {
+				return errors.JSONMarshalError.Wrap(err)
+			}
 			options = append(options, googleoption.WithCredentialsJSON(payload))
 		} else if len(stream.KeyFilename) != 0 {
 			options = append(options, googleoption.WithCredentialsFile(stream.KeyFilename))
