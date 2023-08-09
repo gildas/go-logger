@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/gildas/go-errors"
 	"github.com/gildas/go-logger"
 	"github.com/stretchr/testify/require"
 )
@@ -50,16 +49,28 @@ func (stream *BogusStream) Close() {
 type BogusValue struct {
 }
 
-func (v *BogusValue) MarshalJSON() ([]byte, error) {
+func (v BogusValue) MarshalJSON() ([]byte, error) {
 	return nil, fmt.Errorf("Failed to Marshal BogusValue")
 }
 
-// BogusValue2 is a bogus value that fails to marshal with an errors.JSONMarshalError
-type BogusValue2 struct {
+// NonMarshableError is an error that fails to marshal
+type NonMarshableError struct {
+	Message string
+	Channel chan int
 }
 
-func (v *BogusValue2) MarshalJSON() ([]byte, error) {
-	return nil, errors.JSONMarshalError.Wrap(errors.ArgumentInvalid.With("value", "self"))
+func (err NonMarshableError) Error() string {
+	return err.Message
+}
+
+// NonMarshableObject is an object that fails to marshal but implements fmt.Stringer
+type NonMarshableObject struct {
+	Message string
+	Channel chan int
+}
+
+func (object NonMarshableObject) String() string {
+	return object.Message
 }
 
 type User struct {

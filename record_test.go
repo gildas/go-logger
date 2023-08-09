@@ -10,24 +10,6 @@ import (
 	"github.com/gildas/go-logger"
 )
 
-type NonMarshableError struct {
-	Message string
-	Channel chan int
-}
-
-func (err NonMarshableError) Error() string {
-	return err.Message
-}
-
-type NonMarshableObject struct {
-	Message string
-	Channel chan int
-}
-
-func (object NonMarshableObject) String() string {
-	return object.Message
-}
-
 type RecordSuite struct {
 	suite.Suite
 }
@@ -232,6 +214,13 @@ func (suite *RecordSuite) TestCanMarshalNonMarshableError() {
 func (suite *RecordSuite) TestCanMarshalNonMarshableObject() {
 	expected := `{"key": "banana"}`
 	payload, err := json.Marshal(logger.NewRecord().Set("key", NonMarshableObject{Message: "banana", Channel: make(chan int)}))
+	suite.Require().NoError(err, "Error while marshaling record")
+	suite.Assert().JSONEq(expected, string(payload))
+}
+
+func (suite *RecordSuite) TestCanMarshalBogusValue() {
+	expected := `{"key": "logger_test.BogusValue{}"}`
+	payload, err := json.Marshal(logger.NewRecord().Set("key", BogusValue{}))
 	suite.Require().NoError(err, "Error while marshaling record")
 	suite.Assert().JSONEq(expected, string(payload))
 }

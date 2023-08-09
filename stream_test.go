@@ -461,59 +461,6 @@ func (suite *StreamSuite) TestFailsWritingtoMultiStreamWithBogusStream() {
 	suite.T().Logf("(Expected) Error: %s", err.Error())
 }
 
-func (suite *StreamSuite) TestFailsWritingWithBogusRecordValue() {
-	var err error
-	streamStderr := &logger.StderrStream{}
-	err = streamStderr.Write(logger.NewRecord().Set("key", &BogusValue{}))
-	suite.Require().NotNil(err, "Should have failed writing to stream")
-	suite.Assert().ErrorIs(err, errors.JSONMarshalError, "error should be a JSON Marshal error")
-	suite.Assert().Contains(err.Error(), "Failed to Marshal BogusValue")
-
-	streamStdout := &logger.StdoutStream{}
-	err = streamStdout.Write(logger.NewRecord().Set("key", &BogusValue{}))
-	suite.Require().NotNil(err, "Should have failed writing to stream")
-	suite.Assert().ErrorIs(err, errors.JSONMarshalError, "error should be a JSON Marshal error")
-	suite.Assert().Contains(err.Error(), "Failed to Marshal BogusValue")
-
-	streamFile := &logger.FileStream{Path: "/tmp/test.log"}
-	err = streamFile.Write(logger.NewRecord().Set("key", &BogusValue{}))
-	suite.Require().NotNil(err, "Should have failed writing to stream")
-	suite.Assert().ErrorIs(err, errors.JSONMarshalError, "error should be a JSON Marshal error")
-	suite.Assert().Contains(err.Error(), "Failed to Marshal BogusValue")
-
-	streamStackDriver := &logger.StackDriverStream{Parent: "go-logger-test", KeyFilename: "gcloud-key.json", Key: &BogusValue{}}
-	err = streamStackDriver.Write(logger.NewRecord().Set("key", &BogusValue{}))
-	suite.Require().NotNil(err, "Should have failed writing to stream")
-	suite.Assert().ErrorIs(err, errors.JSONMarshalError, "error should be a JSON Marshal error")
-}
-
-func (suite *StreamSuite) TestFailsWritingWithBogusRecordValue2() {
-	var err error
-	streamStderr := &logger.StderrStream{}
-	err = streamStderr.Write(logger.NewRecord().Set("key", &BogusValue2{}))
-	suite.Require().NotNil(err, "Should have failed writing to stream")
-	suite.Assert().ErrorIs(err, errors.JSONMarshalError, "error should be a JSON Marshal error")
-	suite.Assert().ErrorIs(err, errors.ArgumentInvalid, "error should be an Argument Invalid error")
-
-	streamStdout := &logger.StdoutStream{}
-	err = streamStdout.Write(logger.NewRecord().Set("key", &BogusValue2{}))
-	suite.Require().NotNil(err, "Should have failed writing to stream")
-	suite.Assert().ErrorIs(err, errors.JSONMarshalError, "error should be a JSON Marshal error")
-	suite.Assert().ErrorIs(err, errors.ArgumentInvalid, "error should be an Argument Invalid error")
-
-	streamFile := &logger.FileStream{Path: "/tmp/test.log"}
-	err = streamFile.Write(logger.NewRecord().Set("key", &BogusValue2{}))
-	suite.Require().NotNil(err, "Should have failed writing to stream")
-	suite.Assert().ErrorIs(err, errors.JSONMarshalError, "error should be a JSON Marshal error")
-	suite.Assert().ErrorIs(err, errors.ArgumentInvalid, "error should be an Argument Invalid error")
-
-	streamStackDriver := &logger.StackDriverStream{Parent: "go-logger-test", KeyFilename: "gcloud-key.json", Key: &BogusValue2{}}
-	err = streamStackDriver.Write(logger.NewRecord().Set("key", &BogusValue2{}))
-	suite.Require().NotNil(err, "Should have failed writing to stream")
-	suite.Assert().ErrorIs(err, errors.JSONMarshalError, "error should be a JSON Marshal error")
-	suite.Assert().ErrorIs(err, errors.ArgumentInvalid, "error should be an Argument Invalid error")
-}
-
 func (suite *StreamSuite) TestCanFilterMore() {
 	streamFile := &logger.FileStream{FilterLevels: logger.NewLevelSet(logger.INFO)}
 	streamFile.FilterMore()

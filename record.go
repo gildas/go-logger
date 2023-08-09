@@ -198,7 +198,7 @@ func jsonValue(object interface{}, buffer *bytes.Buffer) {
 			if stringer, ok := object.(fmt.Stringer); ok {
 				buffer.WriteString(stringer.String())
 			} else {
-				buffer.WriteString(fmt.Sprintf("%v", object))
+				buffer.WriteString(fmt.Sprintf("%+#v", object))
 			}
 			buffer.WriteString(`"`)
 		}
