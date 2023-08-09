@@ -140,16 +140,19 @@ func (suite *StreamSuite) TestCanCreateStreamFromEnvironment() {
 func (suite *StreamSuite) TestCanCreateStderrStream() {
 	stream := &logger.StderrStream{}
 	suite.Assert().Equal("Stream to stderr", stream.String())
+	stream.Flush()
 }
 
 func (suite *StreamSuite) TestCanCreateStdoutStream() {
 	stream := &logger.StdoutStream{}
 	suite.Assert().Equal("Stream to stdout", stream.String())
+	stream.Flush()
 }
 
 func (suite *StreamSuite) TestCanCreateUnbufferedStdoutStream() {
 	stream := &logger.StdoutStream{Unbuffered: true, FilterLevels: logger.NewLevelSet(logger.INFO)}
 	suite.Assert().Equal("Unbuffered Stream to stdout, Filter: INFO", stream.String())
+	stream.Flush()
 }
 
 func (suite *StreamSuite) TestCanCreateFileStream() {
@@ -425,6 +428,13 @@ func (suite *StreamSuite) TestFailsWritingToStackDriverWithInvalidKey() {
 	suite.Require().NotNil(err, "Should have failed writing to stream")
 	suite.T().Logf("Expected error: %s", err.Error())
 	suite.Assert().Contains(err.Error(), "json: unsupported type")
+
+	stream = &logger.StackDriverStream{LogID: "test", Key: BogusValue{}}
+	defer stream.Close()
+	err = stream.Write(logger.NewRecord().Set("bello", "banana").Set("level", logger.WARN).Set("time", time.Now()).Set("msg", "Hello with key filename"))
+	suite.Require().NotNil(err, "Should have failed writing to stream")
+	suite.T().Logf("Expected error: %s", err.Error())
+	suite.Assert().Contains(err.Error(), "Not Implemented")
 }
 
 func (suite *StreamSuite) TestFailsWritingToFileStreamWithInvalidFile() {

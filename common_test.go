@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/gildas/go-errors"
 	"github.com/gildas/go-logger"
 	"github.com/stretchr/testify/require"
 )
@@ -50,7 +51,7 @@ type BogusValue struct {
 }
 
 func (v BogusValue) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("Failed to Marshal BogusValue")
+	return nil, errors.Join(errors.JSONMarshalError, errors.NotImplemented)
 }
 
 // NonMarshableError is an error that fails to marshal
