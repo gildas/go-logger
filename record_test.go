@@ -197,6 +197,34 @@ func (suite *RecordSuite) TestCanMarshalPointerToBasicValues() {
 	suite.Assert().JSONEq(`{"key": "(123+4i)"}`, string(payload))
 }
 
+func (suite *RecordSuite) TestCanMarshalError() {
+	expected := `{"key": {"code": 500, "id": "error.runtime", "text": "banana", "type": "error"}}`
+	payload, err := json.Marshal(logger.NewRecord().Set("key", errors.New("banana")))
+	suite.Require().NoError(err, "Error while marshaling record")
+	suite.Assert().JSONEq(expected, string(payload))
+}
+
+func (suite *RecordSuite) TestCanMarshalNonMarshableError() {
+	expected := `{"key": "banana"}`
+	payload, err := json.Marshal(logger.NewRecord().Set("key", NonMarshableError{Message: "banana", Channel: make(chan int)}))
+	suite.Require().NoError(err, "Error while marshaling record")
+	suite.Assert().JSONEq(expected, string(payload))
+}
+
+func (suite *RecordSuite) TestCanMarshalNonMarshableObject() {
+	expected := `{"key": "banana"}`
+	payload, err := json.Marshal(logger.NewRecord().Set("key", NonMarshableObject{Message: "banana", Channel: make(chan int)}))
+	suite.Require().NoError(err, "Error while marshaling record")
+	suite.Assert().JSONEq(expected, string(payload))
+}
+
+func (suite *RecordSuite) TestCanMarshalBogusValue() {
+	expected := `{"key": "logger_test.BogusValue{}"}`
+	payload, err := json.Marshal(logger.NewRecord().Set("key", BogusValue{}))
+	suite.Require().NoError(err, "Error while marshaling record")
+	suite.Assert().JSONEq(expected, string(payload))
+}
+
 func (suite *RecordSuite) TestCanUnmarshal() {
 	source := `{"bello": "banana", "だれ": "私"}`
 	record := logger.NewRecord()

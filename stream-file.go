@@ -107,12 +107,7 @@ func (stream *FileStream) Write(record Record) (err error) {
 			go stream.flushJob()
 		}
 	}
-	payload, err := stream.Converter.Convert(record).MarshalJSON()
-	if errors.Is(err, errors.JSONMarshalError) {
-		return err
-	} else if err != nil {
-		return errors.JSONMarshalError.Wrap(err)
-	}
+	payload, _ := stream.Converter.Convert(record).MarshalJSON()
 	if _, err = stream.writer.Write(payload); err != nil {
 		return errors.WithStack(err)
 	}

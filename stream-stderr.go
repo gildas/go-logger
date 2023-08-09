@@ -66,7 +66,7 @@ func (stream *StderrStream) FilterLess() {
 // Write writes the given Record
 //
 // implements logger.Streamer
-func (stream *StderrStream) Write(record Record) error {
+func (stream *StderrStream) Write(record Record) (err error) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.Converter == nil {
@@ -75,12 +75,7 @@ func (stream *StderrStream) Write(record Record) error {
 	if len(stream.FilterLevels) == 0 {
 		stream.FilterLevels = ParseLevelsFromEnvironment()
 	}
-	payload, err := stream.Converter.Convert(record).MarshalJSON()
-	if errors.Is(err, errors.JSONMarshalError) {
-		return err
-	} else if err != nil {
-		return errors.JSONMarshalError.Wrap(err)
-	}
+	payload, _ := stream.Converter.Convert(record).MarshalJSON()
 	if _, err = os.Stderr.Write(payload); err != nil {
 		return errors.WithStack(err)
 	}
