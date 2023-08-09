@@ -3,6 +3,7 @@ package logger
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"github.com/gildas/go-errors"
@@ -75,9 +76,7 @@ func (record Record) MarshalJSON() ([]byte, error) {
 		buffer.WriteString(`"`)
 		buffer.WriteString(key)
 		buffer.WriteString(`":`)
-		if err := jsonValue(raw, buffer); err != nil {
-			return nil, err
-		}
+		jsonValue(raw, buffer)
 	}
 	buffer.WriteString("}")
 	return buffer.Bytes(), nil
@@ -93,7 +92,7 @@ func (record *Record) UnmarshalJSON(payload []byte) error {
 	return nil
 }
 
-func jsonValue(object interface{}, buffer *bytes.Buffer) error {
+func jsonValue(object interface{}, buffer *bytes.Buffer) {
 	switch value := object.(type) {
 	case func() interface{}:
 		object = value()
@@ -109,7 +108,7 @@ func jsonValue(object interface{}, buffer *bytes.Buffer) error {
 			buffer.WriteString(`"`)
 		}
 		buffer.Write(payload)
-		return nil
+		return
 	}
 
 	switch value := object.(type) {
@@ -192,13 +191,18 @@ func jsonValue(object interface{}, buffer *bytes.Buffer) error {
 	case *uint64:
 		buffer.WriteString(strconv.FormatUint(*value, 10))
 	default:
-		payload, err := json.Marshal(object)
-		if err != nil {
-			return err
+		if payload, err := json.Marshal(object); err == nil {
+			buffer.Write(payload)
+		} else {
+			buffer.WriteString(`"`)
+			if stringer, ok := object.(fmt.Stringer); ok {
+				buffer.WriteString(stringer.String())
+			} else {
+				buffer.WriteString(fmt.Sprintf("%v", object))
+			}
+			buffer.WriteString(`"`)
 		}
-		buffer.Write(payload)
 	}
-	return nil
 }
 
 func jsonEscape(value string, buffer *bytes.Buffer) {

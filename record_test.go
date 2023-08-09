@@ -19,6 +19,15 @@ func (err NonMarshableError) Error() string {
 	return err.Message
 }
 
+type NonMarshableObject struct {
+	Message string
+	Channel chan int
+}
+
+func (object NonMarshableObject) String() string {
+	return object.Message
+}
+
 type RecordSuite struct {
 	suite.Suite
 }
@@ -216,6 +225,13 @@ func (suite *RecordSuite) TestCanMarshalError() {
 func (suite *RecordSuite) TestCanMarshalNonMarshableError() {
 	expected := `{"key": "banana"}`
 	payload, err := json.Marshal(logger.NewRecord().Set("key", NonMarshableError{Message: "banana", Channel: make(chan int)}))
+	suite.Require().NoError(err, "Error while marshaling record")
+	suite.Assert().JSONEq(expected, string(payload))
+}
+
+func (suite *RecordSuite) TestCanMarshalNonMarshableObject() {
+	expected := `{"key": "banana"}`
+	payload, err := json.Marshal(logger.NewRecord().Set("key", NonMarshableObject{Message: "banana", Channel: make(chan int)}))
 	suite.Require().NoError(err, "Error while marshaling record")
 	suite.Assert().JSONEq(expected, string(payload))
 }
