@@ -10,6 +10,15 @@ import (
 	"github.com/gildas/go-logger"
 )
 
+type NonMarshableError struct {
+	Message string
+	Channel chan int
+}
+
+func (err NonMarshableError) Error() string {
+	return err.Message
+}
+
 type RecordSuite struct {
 	suite.Suite
 }
@@ -195,6 +204,20 @@ func (suite *RecordSuite) TestCanMarshalPointerToBasicValues() {
 	payload, err = json.Marshal(logger.NewRecord().Set("key", &c128value))
 	suite.Require().NoError(err, "Error while marshaling record")
 	suite.Assert().JSONEq(`{"key": "(123+4i)"}`, string(payload))
+}
+
+func (suite *RecordSuite) TestCanMarshalError() {
+	expected := `{"key": {"code": 500, "id": "error.runtime", "text": "banana", "type": "error"}}`
+	payload, err := json.Marshal(logger.NewRecord().Set("key", errors.New("banana")))
+	suite.Require().NoError(err, "Error while marshaling record")
+	suite.Assert().JSONEq(expected, string(payload))
+}
+
+func (suite *RecordSuite) TestCanMarshalNonMarshableError() {
+	expected := `{"key": "banana"}`
+	payload, err := json.Marshal(logger.NewRecord().Set("key", NonMarshableError{Message: "banana", Channel: make(chan int)}))
+	suite.Require().NoError(err, "Error while marshaling record")
+	suite.Assert().JSONEq(expected, string(payload))
 }
 
 func (suite *RecordSuite) TestCanUnmarshal() {

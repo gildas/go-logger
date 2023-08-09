@@ -101,6 +101,17 @@ func jsonValue(object interface{}, buffer *bytes.Buffer) error {
 		object = value.Redact()
 	}
 	// This looks ugly, but it goes way faster than reflection (that is used by json.Marshal)
+	if errorobject, ok := object.(error); ok {
+		payload, err := json.Marshal(errorobject)
+		if err != nil {
+			buffer.WriteString(`"`)
+			buffer.Write([]byte(errorobject.Error()))
+			buffer.WriteString(`"`)
+		}
+		buffer.Write(payload)
+		return nil
+	}
+
 	switch value := object.(type) {
 	case bool:
 		buffer.WriteString(strconv.FormatBool(value))
