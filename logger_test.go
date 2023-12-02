@@ -197,6 +197,7 @@ func (suite *LoggerSuite) TestCanSetLevelsPerTopic() {
 	log.SetFilterLevel(logger.INFO)
 	suite.Assert().True(log.ShouldWrite(logger.INFO, "main", ""), "Logger should write INFO messages for main topic before it is configured")
 	suite.Assert().False(log.ShouldWrite(logger.DEBUG, "main", ""), "Logger should not write DEBUG messages for main topic before it is configured")
+	suite.Assert().Equal(logger.NewLevelSet(logger.INFO), log.GetFilterLevels())
 
 	log.SetFilterLevel(logger.DEBUG, "main")
 
