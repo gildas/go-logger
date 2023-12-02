@@ -100,6 +100,50 @@ func CreateIfNil(logger *Logger, name string) *Logger {
 	return Create(name, &NilStream{})
 }
 
+// AddDestinations adds destinations to the Logger
+func (log *Logger) AddDestinations(destinations ...any) {
+	streams := []Streamer{}
+
+	for _, raw := range destinations {
+		switch destination := raw.(type) {
+		case string:
+			streams = append(streams, CreateStream(log.GetFilterLevels(), destination))
+		case Streamer:
+			streams = append(streams, destination)
+		}
+	}
+
+	if len(streams) > 0 {
+		if multi, ok := log.stream.(*MultiStream); ok {
+			multi.streams = append(multi.streams, streams...)
+		} else {
+			log.stream = &MultiStream{streams: append([]Streamer{log.stream}, streams...)}
+		}
+	}
+}
+
+// ResetDestinations resets the destinations to the Logger
+//
+// If no destinations are given, nothing happens
+func (log *Logger) ResetDestinations(destinations ...any) {
+	streams := []Streamer{}
+
+	for _, raw := range destinations {
+		switch destination := raw.(type) {
+		case string:
+			streams = append(streams, CreateStream(log.GetFilterLevels(), destination))
+		case Streamer:
+			streams = append(streams, destination)
+		}
+	}
+
+	if len(streams) > 1 {
+		log.stream = &MultiStream{streams: streams}
+	} else if len(streams) == 1 {
+		log.stream = streams[0]
+	}
+}
+
 // Record adds the given Record to the Log
 func (log *Logger) Record(key string, value interface{}) *Logger {
 	// This func requires Logger to be a Stream

@@ -7,6 +7,18 @@ type MultiStream struct {
 	streams []Streamer
 }
 
+// GetFilterLevels gets the filter levels
+//
+// # If the multi stream contains at least one stream, it returns the filter levels of the first stream
+//
+// implements logger.Streamer
+func (stream *MultiStream) GetFilterLevels() LevelSet {
+	if len(stream.streams) == 0 {
+		return LevelSet{}
+	}
+	return stream.streams[0].GetFilterLevels()
+}
+
 // SetFilterLevel sets the filter level
 //
 // If present, the first parameter is the topic.

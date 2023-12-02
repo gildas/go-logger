@@ -271,6 +271,47 @@ func (suite *InternalLoggerSuite) TestCanSetFilterLevel() {
 	suite.Assert().Equal(WARN, log.stream.(*StdoutStream).FilterLevels.GetDefault(), "FilterLevel should be WARN")
 }
 
+func (suite *InternalLoggerSuite) TestCanResetDestinationsWithManyDestinations() {
+	log := Create("test", &StdoutStream{Unbuffered: true})
+	log.ResetDestinations("stderr", &FileStream{Path: "test.log"})
+	suite.Require().IsType(&MultiStream{}, log.stream)
+	suite.Require().Equal(2, len(log.stream.(*MultiStream).streams))
+	suite.Assert().IsType(&StderrStream{}, log.stream.(*MultiStream).streams[0])
+	suite.Assert().IsType(&FileStream{}, log.stream.(*MultiStream).streams[1])
+}
+
+func (suite *InternalLoggerSuite) TestCanResetDestinationsWithOneDestination() {
+	log := Create("test", &StdoutStream{Unbuffered: true})
+	log.ResetDestinations("stderr")
+	suite.Assert().IsType(&StderrStream{}, log.stream)
+}
+
+func (suite *InternalLoggerSuite) TestCanResetDestinationsWithNoDestination() {
+	log := Create("test", &StdoutStream{Unbuffered: true})
+	log.ResetDestinations()
+	suite.Assert().IsType(&StdoutStream{}, log.stream)
+}
+
+func (suite *InternalLoggerSuite) TestCanAddDestination() {
+	log := Create("test", &StdoutStream{Unbuffered: true})
+	log.AddDestinations("stderr")
+	suite.Require().IsType(&MultiStream{}, log.stream)
+	suite.Require().Equal(2, len(log.stream.(*MultiStream).streams))
+	suite.Assert().IsType(&StdoutStream{}, log.stream.(*MultiStream).streams[0])
+	suite.Assert().IsType(&StderrStream{}, log.stream.(*MultiStream).streams[1])
+}
+
+func (suite *InternalLoggerSuite) TestCanAddDestinations() {
+	log := Create("test", &StdoutStream{Unbuffered: true}, &StackDriverStream{})
+	log.AddDestinations(&StderrStream{}, &FileStream{Path: "test.log"})
+	suite.Require().IsType(&MultiStream{}, log.stream)
+	suite.Require().Equal(4, len(log.stream.(*MultiStream).streams))
+	suite.Assert().IsType(&StdoutStream{}, log.stream.(*MultiStream).streams[0])
+	suite.Assert().IsType(&StackDriverStream{}, log.stream.(*MultiStream).streams[1])
+	suite.Assert().IsType(&StderrStream{}, log.stream.(*MultiStream).streams[2])
+	suite.Assert().IsType(&FileStream{}, log.stream.(*MultiStream).streams[3])
+}
+
 func (suite *InternalLoggerSuite) TestCanConvertBytesToString() {
 	suite.Assert().Equal("12B", bytesToString(uint64(12)))
 	suite.Assert().Equal("12.00KiB", bytesToString(uint64(12*1024)))
