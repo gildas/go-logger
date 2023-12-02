@@ -28,6 +28,13 @@ type FileStream struct {
 	mutex          sync.Mutex
 }
 
+// GetFilterLevels gets the filter levels
+//
+// implements logger.Streamer
+func (stream *FileStream) GetFilterLevels() LevelSet {
+	return stream.FilterLevels
+}
+
 // SetFilterLevel sets the filter level
 //
 // If present, the first parameter is the topic.

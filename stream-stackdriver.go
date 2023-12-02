@@ -29,6 +29,13 @@ type StackDriverStream struct {
 	target       *logging.Logger
 }
 
+// GetFilterLevels gets the filter levels
+//
+// implements logger.Streamer
+func (stream *StackDriverStream) GetFilterLevels() LevelSet {
+	return stream.FilterLevels
+}
+
 // SetFilterLevel sets the filter level
 //
 // If present, the first parameter is the topic.

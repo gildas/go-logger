@@ -20,6 +20,11 @@ import (
 type BogusStream struct {
 }
 
+// GetFilterLevels gets the filter level
+func (stream *BogusStream) GetFilterLevels() logger.LevelSet {
+	return logger.LevelSet{}
+}
+
 // SetFilterLevel sets the filter level
 func (stream *BogusStream) SetFilterLevel(level logger.Level) {
 }

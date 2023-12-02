@@ -24,6 +24,9 @@ type Streamer interface {
 
 	// Close closes the stream
 	Close()
+
+	// GetFilterLevels gets the FilterLevels
+	GetFilterLevels() LevelSet
 }
 
 // GetFlushFrequencyFromEnvironment fetches the flush frequency from the environment

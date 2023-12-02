@@ -4,6 +4,13 @@ package logger
 type NilStream struct {
 }
 
+// GetFilterLevels gets the filter levels
+//
+// implements logger.Streamer
+func (stream *NilStream) GetFilterLevels() LevelSet {
+	return LevelSet{}
+}
+
 // SetFilterLevel sets the filter level
 //
 // If present, the first parameter is the topic.

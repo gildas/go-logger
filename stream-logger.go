@@ -13,6 +13,13 @@ func (log *Logger) Write(record Record) error {
 	return log.stream.Write(record)
 }
 
+// GetFilterLevels gets the filter levels of the streamer
+//
+// implements logger.Streamer
+func (log *Logger) GetFilterLevels() LevelSet {
+	return log.stream.GetFilterLevels()
+}
+
 // SetFilterLevel sets the filter level of the streamer
 //
 // If present, the first parameter is the topic.

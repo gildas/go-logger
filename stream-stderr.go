@@ -16,6 +16,13 @@ type StderrStream struct {
 	mutex        sync.Mutex
 }
 
+// GetFilterLevels gets the filter levels
+//
+// implements logger.Streamer
+func (stream *StderrStream) GetFilterLevels() LevelSet {
+	return stream.FilterLevels
+}
+
 // SetFilterLevel sets the filter level
 //
 // If present, the first parameter is the topic.
