@@ -27,7 +27,9 @@ jobs:
         env:
           GOOGLE_PROJECT_ID: ${{ secrets.GOOGLE_PROJECT_ID }}
           GOOGLE_APPLICATION_CREDENTIALS: "${{ github.workspace }}/gcloud-key.json"
-      - name: Upload Coverage Report
+      - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.out
+          flags: unittests
