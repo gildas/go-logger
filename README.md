@@ -1,8 +1,8 @@
 # go-logger
 
 ![GoVersion](https://img.shields.io/github/go-mod/go-version/gildas/go-logger)
-[![GoDoc](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/gildas/go-logger) 
-[![License](https://img.shields.io/github/license/gildas/go-logger)](https://github.com/gildas/go-logger/blob/master/LICENSE) 
+[![GoDoc](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/gildas/go-logger)
+[![License](https://img.shields.io/github/license/gildas/go-logger)](https://github.com/gildas/go-logger/blob/master/LICENSE)
 [![Report](https://goreportcard.com/badge/github.com/gildas/go-logger)](https://goreportcard.com/report/github.com/gildas/go-logger)  
 
 ![master](https://img.shields.io/badge/branch-master-informational)
@@ -92,6 +92,7 @@ func (s Stuff) DoSomething(other *OtherStuff) error {
 The call to `Record(key, value)` creates a new `Logger` object. So, they are like Russian dolls when it comes down to actually writing the log message to the output stream. In other words, `Record` objects are collected from their parent's `Logger` back to the original `Logger`.  
 
 For example:  
+
 ```go
 var Log   = logger.Create("test")
 var child = Log.Record("key1", "value1").Record("key2", "value2")
@@ -116,6 +117,7 @@ The `Child` method will create one `Logger` that has a `Record` containing a top
 The `Records` method will create one `Logger` that has 2 keys (*key2* and *key3*) with their values.
 
 For example, with these methods:  
+
 ```go
 var Log    = logger.Create("test")
 var child1 = Log.Child("topic", "scope", "key2", "value2", "key3", "value3")
@@ -161,6 +163,7 @@ var Log = logger.Create("myapp", &logger.FileStream{Path: "/path/to/myapp.log"},
 ```
 
 A few notes:
+
 - the `StackDriverStream` needs a `LogID` parameter or the value of the environment variable `GOOGLE_PROJECT_ID`. (see [Google's StackDriver documentation](https://godoc.org/cloud.google.com/go/logging#NewClient) for the description of that parameter).
 - `NilStream` is a `Stream` that does not write anything, all messages are lost.
 - `MultiStream` is a `Stream` than can write to several streams.
@@ -176,6 +179,7 @@ var Log = logger.Create("myapp",
     NewRecord().Set("key", "value"),
 )
 ```
+
 ### Setting the LevelSet
 
 All `Stream` types, except `NilStream` and `MultiStream` can use a `LevelSet`. When set, `Record` objects that have a `Level` below the `LevelSet` are not written to the `Stream`. This allows to log only stuff above *WARN* for instance.
@@ -211,6 +215,7 @@ log.FilterLess()
 ### StackDriver Stream
 
 If you plan to log to Google's StackDriver from a Google Cloud Kubernetes or a Google Cloud Instance, you do not need the StackDriver Stream and should use the Stdout Stream with the StackDriver Converter, since the standard output of your application will be captured automatically by Google to feed StackDriver:  
+
 ```go
 var Log = logger.Create("myapp", "gcp") // "google" or "googlecloud" are valid aliases
 var Log = logger.Create("myapp", &logger.StdoutStream{Converter: &logger.StackDriverConverter{}})
@@ -219,27 +224,29 @@ var Log = logger.Create("myapp", &logger.StdoutStream{Converter: &logger.StackDr
 To be able to use the StackDriver Stream from outside Google Cloud, you have some configuration to do first.
 
 On your workstation, you need to get the key filename:  
+
 1. Authenticate with Google Cloud  
-```console
-gcloud auth login
-```
+  ```console
+  gcloud auth login
+  ```
 2. Create a Service Account (`logger-account` is just an example of a service account name)  
-```console
-gcloud iam service-acccount create logger-account
-```
+  ```console
+  gcloud iam service-acccount create logger-account
+  ```
 3. Associate the Service Account to the Project you want to use  
-```console
-gcloud projects add-iam-policy-binding my-logging-project \
-  --member "serviceAccount:logger-account@my-logging-project.iam.gserviceaccount.com" \
-  --role "roles/logging.logWriter"
-```
+  ```console
+  gcloud projects add-iam-policy-binding my-logging-project \
+    --member "serviceAccount:logger-account@my-logging-project.iam.gserviceaccount.com" \
+    --role "roles/logging.logWriter"
+  ```
 4. Retrieve the key filename  
-```console
-gcloud iam service-accounts keys create /path/to/key.json \
-  --iam-account logger-account@my-logging-project.iam.gserviceaccount.com
-```
+  ```console
+  gcloud iam service-accounts keys create /path/to/key.json \
+    --iam-account logger-account@my-logging-project.iam.gserviceaccount.com
+  ```
 
 You can either set the `GOOGLE_APPLICATION_CREDENTIAL` and `GOOGLE_PROJECT_ID` environment variables with the path of the obtained key and Google Project ID or provide them to the StackDriver stream:  
+
 ```go
 var log = logger.Create("myapp", &logger.StackDriverStream{})
 ```
@@ -272,7 +279,7 @@ func MyFunc() {
 ```
 
 **Note**: Since this feature can be expensive to compute, it is turned of by default.  
-To turn it on, you need to either specify the option in the Stream object, set the environment variable `LOG_SOURCEINFO` to _true_. It is also turned on if the environment variable `DEBUG` is _true_.
+To turn it on, you need to either specify the option in the Stream object, set the environment variable `LOG_SOURCEINFO` to *true*. It is also turned on if the environment variable `DEBUG` is *true*.
 
 ### Timing your funcs
 
@@ -320,6 +327,7 @@ The following convenience methods can be used when creating a `Logger` from anot
 ```go
 var log = logger.CreateIfNil(OtherLogger, "myapp")
 ```
+
 ```go
 var log = logger.Create("myapp", OtherLogger)
 ```
@@ -341,6 +349,7 @@ var log = logger.Must(logger.FromContext(context))
 The `Logger` can redact records as needed by simply implementing the `logger.Redactable` interface in the data that is logged.
 
 For example:
+
 ```go
 type Customer {
   ID   uuid.UUID `json:"id"`
@@ -400,7 +409,7 @@ You can also write your own `Converter` by implementing the `logger.Converter` i
 
 ```go
 type MyConverter struct {
-	// ...
+  // ...
 }
 
 func (converter *MyConverter) Convert(record Record) Record {
@@ -414,12 +423,13 @@ var Log = logger.Create("myapp", &logger.StdoutStream{Converter: &MyConverter{}}
 ## Standard Log Compatibility
 
 To use a `Logger` with the standard go `log` library, you can simply call the `AsStandardLog()` method. You can optionally give a `Level`:  
+
 ```go
 package main
 
 import (
   "net/http"
-	"github.com/gildas/go-logger"
+  "github.com/gildas/go-logger"
 )
 
 func main() {
@@ -438,13 +448,14 @@ func main() {
 ```
 
 You can also give an `io.Writer` to the standard `log` constructor:  
+
 ```go
 package main
 
 import (
   "log"
   "net/http"
-	"github.com/gildas/go-logger"
+  "github.com/gildas/go-logger"
 )
 
 func main() {
@@ -498,18 +509,21 @@ func main() {
 }
 ```
 
-When the http request handler (_MyHandler_) starts, the following records are logged:  
+When the http request handler (*MyHandler*) starts, the following records are logged:  
+
 - `reqid`, contains the request Header X-Request-Id if present, or a random UUID
 - `path`, contains the URL Path of the request
 - `remote`, contains the remote address of the request
 - The `topic` is set to "route" and the `scope` to the path of the request URL
 
-When the http request handler (_MyHandler_) ends, the following additional records are logged:  
+When the http request handler (*MyHandler*) ends, the following additional records are logged:  
+
 - `duration`, contains the duration in seconds (**float64**) of the handler execution
 
 ## Environment Variables
 
 The `Logger` can be configured completely by environment variables if needed. These are:  
+
 - `LOG_DESTINATION`, default: `StdoutStream`  
   The `Stream`s to write logs to. It can be a comma-separated list (for a `MultiStream`)
 - `LOG_LEVEL`, default: *INFO*  
@@ -527,7 +541,7 @@ The `Logger` can be configured completely by environment variables if needed. Th
 - `DEBUG`, default: none  
   If set to "1", this will set the default level to filter to *DEBUG*
 
-# Thanks
+## Thanks
 
 Special thanks to [@chakrit](https://github.com/chakrit) for his [chakrit/go-bunyan](https://github.com/chakrit/go-bunyan) that inspired me. In fact earlier versions were wrappers around his library.  
 
