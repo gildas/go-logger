@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	cloud.google.com/go/logging v1.9.0
-	github.com/gildas/go-core v0.5.6
+	github.com/gildas/go-core v0.5.7
 	github.com/gildas/go-errors v0.3.6
 	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.8.4
