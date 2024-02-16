@@ -1,6 +1,10 @@
 # Thanks to:
 # https://github.com/mvdan/github-actions-golang
-on: [push, pull_request]
+on:
+  push:
+    branches: [ dev, master ]
+  pull_request:
+    branches: [ dev, master ]
 name: Test
 jobs:
   test:
@@ -11,11 +15,11 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
       - name: Checkout package
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Download credentials
         run: |
           echo "$GOOGLE_CLOUD_KEY" > gcloud-key.json
@@ -28,7 +32,7 @@ jobs:
           GOOGLE_PROJECT_ID: ${{ secrets.GOOGLE_PROJECT_ID }}
           GOOGLE_APPLICATION_CREDENTIALS: "${{ github.workspace }}/gcloud-key.json"
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.out
