@@ -158,3 +158,10 @@ func (suite *LevelSetSuite) TestCanTellIfLevelIsWritable() {
 	suite.Assert().True(levels.ShouldWrite(logger.INFO, "topic4", "scope4"), "Should write INFO for topic4, scope4")
 	suite.Assert().False(levels.ShouldWrite(logger.DEBUG, "topic4", "scope4"), "Should not write DEBUG for topic4, scope4")
 }
+
+func (suite *LevelSetSuite) TestCanParseLowerCase() {
+	settings := "warn"
+	levels := logger.ParseLevels(settings)
+	suite.Require().Len(levels, 1, "Levels should have 1 entry")
+	suite.Assert().Equal(logger.WARN, levels.Get("any", "any"), "Default Level Should be WARN")
+}

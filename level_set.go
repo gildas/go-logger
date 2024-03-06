@@ -44,7 +44,7 @@ func ParseLevels(settings string) (levels LevelSet) {
 	// Pattern to match a list of topic/scope levels
 	// See: https://regex101.com/r/GFjOje/1
 	var (
-		pattern     = regexp.MustCompile(`\s*(?P<LEVEL>[A-Z]+)(?::\{(?P<TOPIC>\w+)?(?::(?P<SCOPES>\w+\s*(?:,\s*\w+)?))?\})?\s*(?:;\s*|$)`)
+		pattern     = regexp.MustCompile(`\s*(?P<LEVEL>[a-zA-Z]+)(?::\{(?P<TOPIC>\w+)?(?::(?P<SCOPES>\w+\s*(?:,\s*\w+)?))?\})?\s*(?:;\s*|$)`)
 		matches     = pattern.FindAllStringSubmatch(settings, -1)
 		levelGroup  = pattern.SubexpIndex("LEVEL")
 		topicGroup  = pattern.SubexpIndex("TOPIC")
