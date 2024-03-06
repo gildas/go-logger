@@ -1,3 +1,4 @@
+//go:build linux || darwin
 // +build linux darwin
 
 package main
@@ -22,7 +23,7 @@ func generateSomeLogs(logger *logger.Logger) (stop chan struct{}) {
 			case <-stop:
 				logger.Infof("Stopping...")
 				return
-			case <-time.After(5*time.Second):
+			case <-time.After(5 * time.Second):
 				logger.Fatalf("Something went very wrong")
 				logger.Errorf("Something went wrong")
 				logger.Warnf("You should pay attention")
