@@ -1,11 +1,14 @@
 package logger
 
 import (
+	"bufio"
 	"context"
 	"html"
+	"net"
 	"net/http"
 	"time"
 
+	"github.com/gildas/go-errors"
 	"github.com/google/uuid"
 )
 
@@ -36,6 +39,18 @@ type responseWriter struct {
 func (w *responseWriter) WriteHeader(statusCode int) {
 	w.statusCode = statusCode
 	w.ResponseWriter.WriteHeader(statusCode)
+}
+
+// Hijack implements the http.Hijacker interface
+//
+// Hijack lets the caller take over the connection.
+//
+// This is used by websockets (among others)
+func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if hijacker, ok := w.ResponseWriter.(http.Hijacker); ok {
+		return hijacker.Hijack()
+	}
+	return nil, nil, errors.Join(errors.New("ResponseWrite does not implement http.Hijaker"), errors.InvalidType.With("responseWriter", "Hijacker"))
 }
 
 /*
