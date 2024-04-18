@@ -125,7 +125,7 @@ func (l *Logger) HttpHandler() func(http.Handler) http.Handler {
 			reqLogger.
 				Record("agent", r.UserAgent()).
 				Record("verb", r.Method).
-				Infof("request start: %s %s", r.Method, html.EscapeString(r.URL.Path))
+				Infof("⏳ request start: %s %s", r.Method, html.EscapeString(r.URL.Path))
 
 			// Wrap the response writer to capture the status code
 			writer := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
@@ -141,13 +141,13 @@ func (l *Logger) HttpHandler() func(http.Handler) http.Handler {
 					Record("duration", duration.Seconds()).
 					Record("http_status", writer.statusCode).
 					Record("written", writer.written).
-					Errorf("request finish: %s %s in %s", r.Method, html.EscapeString(r.URL.Path), duration)
+					Errorf("❌ request finish: %s %s in %s", r.Method, html.EscapeString(r.URL.Path), duration)
 			} else {
 				reqLogger.
 					Record("duration", duration.Seconds()).
 					Record("http_status", writer.statusCode).
 					Record("written", writer.written).
-					Infof("request finish: %s %s in %s", r.Method, html.EscapeString(r.URL.Path), duration)
+					Infof("✅ request finish: %s %s in %s", r.Method, html.EscapeString(r.URL.Path), duration)
 			}
 		})
 	}
