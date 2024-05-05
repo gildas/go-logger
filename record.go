@@ -12,48 +12,74 @@ import (
 // Record is the map that contains all records of a log entry
 //
 // If the value at a key is a func() interface the func will be called when the record is marshaled
-type Record map[string]interface{}
+type Record struct {
+	Data map[string]interface{}
+	KeysToRedact []string
+}
 
 // NewRecord creates a new empty record
-func NewRecord() Record {
-	return Record(make(map[string]interface{}))
+func NewRecord() *Record {
+	return &Record {
+		Data: make(map[string]interface{}),
+		KeysToRedact: nil,
+	}
+}
+
+// Reset resets the record
+func (record *Record) Reset() {
+	for key := range record.Data {
+		delete(record.Data, key)
+	}
+	record.KeysToRedact = nil
 }
 
 // NewPooledRecord creates a new empty record
-func NewPooledRecord() (record Record, release func()) {
-	record = Record(mapPool.Get())
+func NewPooledRecord() (record *Record, release func()) {
+	record = mapPool.Get()
 	return record, func() { record.Close() }
 }
 
 // Close returns the record to the pool
-func (record Record) Close() {
+func (record *Record) Close() {
 	mapPool.Put(record)
 }
 
+// Get gets the value at a key
+func (record *Record) Get(key string) interface{} {
+	return record.Data[key]
+}
+
 // Set sets the key and value if not yet set
-func (record Record) Set(key string, value interface{}) Record {
+func (record *Record) Set(key string, value interface{}) *Record {
 	if value == nil {
 		return record
 	}
-	if _, ok := record[key]; !ok {
-		record[key] = value
+	if _, ok := record.Data[key]; !ok {
+		record.Data[key] = value
 	}
+	return record
+}
+
+// AddKeysToRedact adds keys to redact
+func (record *Record) AddKeysToRedact(keys ...string) *Record {
+	record.KeysToRedact = append(record.KeysToRedact, keys...)
 	return record
 }
 
 // Merge merges a source Record into this Record
 //
 // values already set in this record cannot be overridden
-func (record Record) Merge(source Record) Record {
-	for key, value := range source {
+func (record *Record) Merge(source *Record) *Record {
+	for key, value := range source.Data {
 		record.Set(key, value)
 	}
+	record.KeysToRedact = append(record.KeysToRedact, source.KeysToRedact...)
 	return record
 }
 
 // MarshalJSON marshals this into JSON
 func (record Record) MarshalJSON() ([]byte, error) {
-	if len(record) == 0 {
+	if len(record.Data) == 0 {
 		return []byte("null"), nil
 	}
 
@@ -64,7 +90,7 @@ func (record Record) MarshalJSON() ([]byte, error) {
 	defer bufferPool.Put(buffer)
 
 	buffer.WriteString("{")
-	for key, raw := range record {
+	for key, raw := range record.Data {
 		if raw == nil {
 			continue
 		}
@@ -76,7 +102,7 @@ func (record Record) MarshalJSON() ([]byte, error) {
 		buffer.WriteString(`"`)
 		buffer.WriteString(key)
 		buffer.WriteString(`":`)
-		jsonValue(raw, buffer)
+		jsonValue(raw, buffer, record.KeysToRedact...)
 	}
 	buffer.WriteString("}")
 	return buffer.Bytes(), nil
@@ -88,14 +114,19 @@ func (record *Record) UnmarshalJSON(payload []byte) error {
 	if err := json.Unmarshal(payload, &placeholder); err != nil {
 		return errors.JSONUnmarshalError.Wrap(err)
 	}
-	*record = Record(placeholder)
+	*record = Record{
+		Data: placeholder,
+		KeysToRedact: nil,
+	}
 	return nil
 }
 
-func jsonValue(object interface{}, buffer *bytes.Buffer) {
+func jsonValue(object interface{}, buffer *bytes.Buffer, keyToRedact ...string) {
 	switch value := object.(type) {
 	case func() interface{}:
 		object = value()
+	case RedactableWithKeys:
+		object = value.Redact(keyToRedact...)
 	case Redactable:
 		object = value.Redact()
 	}
