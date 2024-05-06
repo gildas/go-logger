@@ -83,7 +83,7 @@ func (stream *MultiStream) ShouldLogSourceInfo() bool {
 // Write writes the given Record
 //
 // implements logger.Streamer
-func (stream *MultiStream) Write(record Record) error {
+func (stream *MultiStream) Write(record *Record) error {
 	var errs errors.MultiError
 
 	for _, s := range stream.streams {

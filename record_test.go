@@ -27,7 +27,7 @@ func (suite *RecordSuite) TestCanMarshal() {
 	me := "私"
 	record := logger.NewRecord().Set("bello", "banana").Set("だれ", &me)
 
-	suite.Require().Len(record, 2)
+	suite.Require().Len(record.Data, 2)
 
 	payload, err := json.Marshal(record)
 	suite.Require().NoError(err, "Error while marshaling record")
@@ -38,9 +38,16 @@ func (suite *RecordSuite) TestCanMarshal() {
 	suite.Assert().JSONEq("null", string(payload))
 }
 
+func (suite *RecordSuite) TestCanMarshalEmpty() {
+	record := logger.NewRecord()
+	payload, err := json.Marshal(record)
+	suite.Require().NoError(err, "Error while marshaling record")
+	suite.Assert().JSONEq(`null`, string(payload))
+}
+
 func (suite *RecordSuite) TestCanMarshalNilValue() {
 	record := logger.NewRecord()
-	record["empty"] = nil
+	record.Data["empty"] = nil
 	payload, err := json.Marshal(record)
 	suite.Require().NoError(err, "Error while marshaling record")
 	suite.Assert().JSONEq(`{}`, string(payload))
@@ -230,12 +237,14 @@ func (suite *RecordSuite) TestCanUnmarshal() {
 	record := logger.NewRecord()
 	err := json.Unmarshal([]byte(source), &record)
 	suite.Require().NoError(err, "Error while unmarshaling record")
-	suite.Require().Len(record, 2)
-	suite.Assert().Contains(record, "bello")
-	suite.Assert().Contains(record, "だれ")
-	value, ok := record["bello"].(string)
+	suite.Require().Len(record.Data, 2)
+	suite.Assert().Contains(record.Data, "bello")
+	suite.Assert().Contains(record.Data, "だれ")
+	value, found := record.Find("bello")
+	suite.Require().True(found, `Record["bello"] should be found`)
+	str, ok := value.(string)
 	suite.Require().True(ok, `Record["bello"] should be a string`)
-	suite.Assert().Equal("banana", value, `Record["key"] should be "banana"`)
+	suite.Assert().Equal("banana", str, `Record["bello"] should be "banana"`)
 }
 
 func (suite *RecordSuite) TestFailsUnmarshalInvalidJSON() {
@@ -249,39 +258,62 @@ func (suite *RecordSuite) TestFailsUnmarshalInvalidJSON() {
 func (suite *RecordSuite) TestCanSet() {
 	record := logger.NewRecord().Set("key", "value")
 	suite.Require().NotNil(record, "Failed to create a Record")
-	suite.Require().Len(record, 1)
-	suite.Assert().Contains(record, "key")
-	value, ok := record["key"].(string)
+	suite.Require().Len(record.Data, 1)
+	suite.Assert().Contains(record.Data, "key")
+	value, ok := record.Find("key")
+	suite.Require().True(ok, `Record["key"] should be found`)
+	str, ok := value.(string)
 	suite.Require().True(ok, `Record["key"] should be a string`)
-	suite.Assert().Equal("value", value, `Record["key"] should be "value"`)
+	suite.Assert().Equal("value", str, `Record["key"] should be "value"`)
 	record.Set("nilvalue", nil)
-	suite.Assert().NotContains(record, "nilvalue")
+	suite.Assert().NotContains(record.Data, "nilvalue")
 }
 
 func (suite *RecordSuite) TestCannotOverwrite() {
 	record := logger.NewRecord().Set("key", "value")
 	suite.Require().NotNil(record, "Failed to create a Record")
-	suite.Require().Len(record, 1)
-	suite.Assert().Contains(record, "key")
-	value, ok := record["key"].(string)
+	suite.Require().Len(record.Data, 1)
+	suite.Assert().Contains(record.Data, "key")
+	value, found := record.Find("key")
+	suite.Require().True(found, `Record["key"] should be a string`)
+	str, ok := value.(string)
 	suite.Require().True(ok, `Record["key"] should be a string`)
-	suite.Assert().Equal("value", value, `Record["key"] should be "value"`)
+	suite.Assert().Equal("value", str, `Record["key"] should be "value"`)
 
 	record.Set("key", "value2")
-	value, ok = record["key"].(string)
+	value, found = record.Find("key")
+	suite.Require().True(found, `Record["key"] should be found`)
+	str, ok = value.(string)
 	suite.Require().True(ok, `Record["key"] should be a string`)
-	suite.Assert().NotEqual("value2", value, `Record["key"] should not be "value2"`)
+	suite.Assert().NotEqual("value2", str, `Record["key"] should not be "value2"`)
 }
 
 func (suite *RecordSuite) TestCanMerge() {
 	record := logger.NewRecord().Set("bello", "banana").Set("だれ", "私")
 	source := logger.NewRecord().Set("bello", "beebop").Set("Para Me", "okido")
 	record.Merge(source)
-	suite.Require().Len(record, 3)
-	suite.Assert().Contains(record, "bello")
-	suite.Assert().Contains(record, "だれ")
-	suite.Assert().Contains(record, "Para Me")
+	suite.Require().Len(record.Data, 3)
+	suite.Assert().Contains(record.Data, "bello")
+	suite.Assert().Contains(record.Data, "だれ")
+	suite.Assert().Contains(record.Data, "Para Me")
 
 	record.Merge(nil)
-	suite.Require().Len(record, 3)
+	suite.Require().Len(record.Data, 3)
+}
+
+func (suite *RecordSuite) TestCannotFindValueFromNilRecord() {
+	var record *logger.Record
+	value, found := record.Find("key")
+	suite.Require().False(found, `Record["key"] should not be found`)
+	suite.Assert().Nil(value, `Record["key"] should be nil`)
+}
+
+func (suite *RecordSuite) TestCanAddKeysToRedact() {
+	record := logger.NewRecord()
+	record.AddKeysToRedact("key1", "key2", "key3")
+	suite.Assert().Len(record.KeysToRedact, 3)
+	suite.Assert().Contains(record.KeysToRedact, "key1")
+	suite.Assert().Contains(record.KeysToRedact, "key2")
+	suite.Assert().Contains(record.KeysToRedact, "key3")
+	suite.Assert().NotContains(record.KeysToRedact, "key4")
 }

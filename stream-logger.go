@@ -7,7 +7,7 @@ import (
 // Write writes the given Record
 //
 // implements logger.Streamer
-func (log *Logger) Write(record Record) error {
+func (log *Logger) Write(record *Record) error {
 	// implements logger.Stream
 	record.Merge(log.record)
 	return log.stream.Write(record)

@@ -88,3 +88,20 @@ func (suite *LevelSuite) TestCanGetPreviousLevel() {
 	level = logger.NEVER
 	suite.Assert().Equal(logger.NEVER, level.Previous())
 }
+
+func (suite *LevelSuite) TestCanGetLevelFromRecord() {
+	record := logger.NewRecord().Set("level", logger.INFO)
+	level := logger.GetLevelFromRecord(record)
+	suite.Assert().Equal(logger.INFO, level)
+}
+
+func (suite *LevelSuite) TestCanGetLevelFromRecordWithoutLevel() {
+	record := logger.NewRecord().Set("msg", "Hello")
+	level := logger.GetLevelFromRecord(record)
+	suite.Assert().Equal(logger.NEVER, level)
+}
+
+func (suite *LevelSuite) TestCanGetLevelFromNilRecord() {
+	level := logger.GetLevelFromRecord(nil)
+	suite.Assert().Equal(logger.NEVER, level)
+}

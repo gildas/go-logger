@@ -14,7 +14,7 @@ import (
 // Logger is a Logger that creates Bunyan's compatible logs (see: https://github.com/trentm/node-bunyan)
 type Logger struct {
 	stream    Streamer
-	record    Record
+	record    *Record
 	redactors []Redactor
 }
 
@@ -33,7 +33,7 @@ func Create(name string, parameters ...interface{}) (logger *Logger) {
 	var (
 		destinations = []string{}
 		streams      = []Streamer{}
-		records      = []Record{}
+		records      = []*Record{}
 		redactors    = []Redactor{}
 		filterLevels = ParseLevelsFromEnvironment()
 	)
@@ -50,8 +50,10 @@ func Create(name string, parameters ...interface{}) (logger *Logger) {
 			filterLevels.Set(parameter, "any", "any")
 		case Streamer:
 			streams = append(streams, parameter)
-		case Record:
+		case *Record:
 			records = append(records, parameter)
+		case Record:
+			records = append(records, &parameter)
 		case Redactor:
 			redactors = append(redactors, parameter)
 		case *Redactor:
@@ -84,7 +86,7 @@ func Create(name string, parameters ...interface{}) (logger *Logger) {
 	}
 
 	for _, record := range records {
-		for key, value := range record {
+		for key, value := range record.Data {
 			logger.record.Set(key, value)
 		}
 	}
@@ -151,6 +153,13 @@ func (log *Logger) Record(key string, value interface{}) *Logger {
 	return &Logger{log, NewRecord().Set(key, value), log.redactors}
 }
 
+// RecordWithKeysToRedact adds the given Record to the Log
+func (log *Logger) RecordWithKeysToRedact(key string, value interface{}, keyToRedact ...string) *Logger {
+	// This func requires Logger to be a Stream
+	//   that allows us to nest Loggers
+	return &Logger{log, NewRecord().Set(key, value).AddKeysToRedact(keyToRedact...), log.redactors}
+}
+
 // Recordf adds the given Record with formatted arguments
 func (log *Logger) Recordf(key, value string, args ...interface{}) *Logger {
 	return log.Record(key, fmt.Sprintf(value, args...))
@@ -182,7 +191,7 @@ func (log *Logger) Records(params ...interface{}) *Logger {
 // Topic sets the Topic of this Logger
 func (log *Logger) Topic(topic interface{}) *Logger {
 	if topic == nil {
-		topic = log.record["topic"]
+		topic = log.record.Get("topic")
 	}
 	return log.Record("topic", topic)
 }
@@ -190,7 +199,7 @@ func (log *Logger) Topic(topic interface{}) *Logger {
 // Scope sets the Scope if this Logger
 func (log *Logger) Scope(scope interface{}) *Logger {
 	if scope == nil {
-		scope = log.record["scope"]
+		scope = log.record.Get("scope")
 	}
 	return log.Record("scope", scope)
 }
@@ -199,10 +208,10 @@ func (log *Logger) Scope(scope interface{}) *Logger {
 func (log *Logger) Child(topic, scope interface{}, params ...interface{}) *Logger {
 	var key string
 	if topic == nil {
-		topic = log.record["topic"]
+		topic = log.record.Get("topic")
 	}
 	if scope == nil {
-		scope = log.record["scope"]
+		scope = log.record.Get("scope")
 	}
 	record := NewRecord().Set("topic", topic).Set("scope", scope)
 	newlog := &Logger{log, record, log.redactors}
@@ -231,7 +240,7 @@ func (log *Logger) Child(topic, scope interface{}, params ...interface{}) *Logge
 
 // GetRecord returns the Record field value for a given key
 func (log *Logger) GetRecord(key string) interface{} {
-	if value, found := log.record[key]; found {
+	if value, found := log.record.Find(key); found {
 		return value
 	}
 	if parent, ok := log.stream.(*Logger); ok {
@@ -345,13 +354,13 @@ func (log *Logger) Memory() {
 	log.Memorylf(TRACE, "")
 }
 
-// send writes a message to the Sink
+// send writes a message to the Stream
 func (log *Logger) send(level Level, msg string, args ...interface{}) {
 	if log.ShouldWrite(level, log.GetTopic(), log.GetScope()) {
 		record, release := NewPooledRecord()
 		defer release()
-		record["time"] = time.Now().UTC()
-		record["level"] = level
+		record.Set("time", time.Now().UTC())
+		record.Set("level", level)
 		if log.stream.ShouldLogSourceInfo() {
 			if counter, file, line, ok := runtime.Caller(2); ok {
 				funcname := runtime.FuncForPC(counter).Name()
@@ -361,10 +370,10 @@ func (log *Logger) send(level Level, msg string, args ...interface{}) {
 				}
 				i += strings.Index(funcname[i:], ".")
 
-				record["file"] = filepath.Base(file)
-				record["line"] = line
-				record["func"] = funcname[i+1:]
-				record["package"] = funcname[:i]
+				record.Set("file", filepath.Base(file))
+				record.Set("line", line)
+				record.Set("func", funcname[i+1:])
+				record.Set("package", funcname[:i])
 			}
 		}
 		message := fmt.Sprintf(msg, args...)
@@ -374,7 +383,7 @@ func (log *Logger) send(level Level, msg string, args ...interface{}) {
 				break
 			}
 		}
-		record["msg"] = message
+		record.Set("msg", message)
 		if err := log.Write(record); err != nil {
 			fmt.Fprintf(os.Stderr, "Logger error: %+v\n", errors.RuntimeError.Wrap(err))
 		}

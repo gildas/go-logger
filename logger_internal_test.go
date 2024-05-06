@@ -1,14 +1,18 @@
 package logger
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"io"
+	"net"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/gildas/go-errors"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -194,7 +198,8 @@ func (suite *InternalLoggerSuite) TestCanSmartCreateWithLogger() {
 }
 
 func (suite *InternalLoggerSuite) TestCanSmartCreateWithRecord() {
-	log := Create("test", NewRecord().Set("key1", "value1"), NewRecord().Set("key2", "value2"), NewRecord().Set("key1", "shouldnotsee"))
+	record2 := NewRecord().Set("key2", "value2")
+	log := Create("test", NewRecord().Set("key1", "value1"), *record2, NewRecord().Set("key1", "shouldnotsee"))
 	suite.Require().NotNil(log, "Failed to create a Logger with a Record")
 	suite.Assert().IsType(&StdoutStream{}, log.stream)
 	suite.Require().NotNil(log.GetRecord("key1"), "there is no Record \"key1\" in Logger")
@@ -318,6 +323,33 @@ func (suite *InternalLoggerSuite) TestCanConvertBytesToString() {
 	suite.Assert().Equal("12.00MiB", bytesToString(uint64(12*1024*1024)))
 	suite.Assert().Equal("12.00GiB", bytesToString(uint64(12*1024*1024*1024)))
 }
+
+func (suite *InternalLoggerSuite) TestIsHijacker() {
+	w := &responseWriter{
+		ResponseWriter: &hijackerResponse{},
+		statusCode:     200,
+		written:        0,
+	}
+	suite.Assert().Implements((*http.Hijacker)(nil), w)
+	_, _, err := w.Hijack()
+	suite.Require().ErrorIs(err, errors.NotImplemented)
+	w.ResponseWriter = &noopResponse{}
+	suite.Assert().Implements((*http.Hijacker)(nil), w)
+	_, _, err = w.Hijack()
+	suite.Require().ErrorIs(err, errors.InvalidType)
+}
+
+type hijackerResponse struct{}
+func (*hijackerResponse) Header() http.Header        { return nil }
+func (*hijackerResponse) Write([]byte) (int, error)  { return 0, nil }
+func (*hijackerResponse) WriteHeader(statusCode int) {}
+func (*hijackerResponse) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return nil, nil, errors.NotImplemented.WithStack()
+}
+type noopResponse struct{}
+func (*noopResponse) Header() http.Header        { return nil }
+func (*noopResponse) Write([]byte) (int, error)  { return 0, nil }
+func (*noopResponse) WriteHeader(statusCode int) {}
 
 func captureStdout(f func()) string {
 	reader, writer, err := os.Pipe()

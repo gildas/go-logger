@@ -46,7 +46,7 @@ func (stream *NilStream) FilterLess() {
 // Write writes the given Record
 //
 // implements logger.Streamer
-func (stream *NilStream) Write(record Record) error {
+func (stream *NilStream) Write(record *Record) error {
 	// This stream does not write anything...
 	return nil
 }

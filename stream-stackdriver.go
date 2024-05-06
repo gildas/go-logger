@@ -86,7 +86,7 @@ func (stream *StackDriverStream) FilterLess() {
 // Write writes the given Record
 //
 // implements logger.Streamer
-func (stream *StackDriverStream) Write(record Record) (err error) {
+func (stream *StackDriverStream) Write(record *Record) (err error) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.client == nil {
@@ -122,10 +122,10 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 		}
 	}
 	grecord := stream.Converter.Convert(record)
-	stamp, _ := time.Parse(time.RFC3339, grecord["time"].(string))
-	severity := grecord["severity"].(logging.Severity)
-	delete(grecord, "time")
-	delete(grecord, "severity")
+	stamp, _ := time.Parse(time.RFC3339, grecord.Get("time").(string))
+	severity := grecord.Get("severity").(logging.Severity)
+	grecord.Delete("time")
+	grecord.Delete("severity")
 	stream.target.Log(logging.Entry{
 		Timestamp: stamp,
 		Severity:  severity,

@@ -33,7 +33,7 @@ func (stream *BogusStream) SetFilterLevel(level logger.Level) {
 func (stream *BogusStream) SetFilterLevelIfUnset(level logger.Level) {
 }
 
-func (stream *BogusStream) Write(record logger.Record) error {
+func (stream *BogusStream) Write(record *logger.Record) error {
 	return fmt.Errorf("This Stream is Bogus")
 }
 
@@ -95,6 +95,27 @@ func (user User) GetLogger() *logger.Logger {
 
 func (user User) String() string {
 	return user.Name
+}
+
+type Metadata struct {
+	UserID string `json:"userId"`
+	Name string `json:"name"`
+	City string `json:"city"`
+}
+
+func (metadata Metadata) Redact(keyToRedact ...string) interface{} {
+	redacted := metadata
+	for _, key := range keyToRedact {
+		switch key {
+		case "userId":
+			redacted.UserID = logger.Redact(metadata.UserID)
+		case "name":
+			redacted.Name = logger.Redact(metadata.Name)
+		case "city":
+			redacted.City = logger.Redact(metadata.City)
+		}
+	}
+	return &redacted
 }
 
 // Load loads an object from a file and marshals it
