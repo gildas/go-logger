@@ -358,7 +358,7 @@ type Customer {
 
 // implements logger.Redactable
 func (customer Customer) Redact() interface{} {
-  return Customer{customer.Name, "REDACTED"}
+  return Customer{customer.Name, logger.Redact(customer.ID)}
 }
 
 main() {
@@ -366,6 +366,32 @@ main() {
   customer := Customer{uuid, "John Doe"}
 
   log.Record("customer", customer).Infof("Got a customer")
+}
+```
+
+When redacting a field, you can also call `logger.RedactWithHash` which will redact the value with a string like: "REDACTED-<hash>" where `<hash>` is a SHA256 hash of the original value. This is useful when you want to redact a value but still want to be able to identify it in the logs. You can also change the prefix with `logger.RedactWithPrefixedHash`.
+
+For Complex objects, you can also implement the `logger.RedactableWithKeys` interface:
+
+```go
+type Customer {
+  ID   uuid.UUID `json:"id"`
+  Name string    `json:"name"`
+}
+
+// implements logger.RedactableWithKeys
+func (customer Customer) Redact(keyToRedact ...string) interface{} {
+  redacted := customer
+  for _, key := range keyToRedact {
+    switch key {
+    case "name":
+      redacted.Name = logger.RedactWithHash(customer.Name)
+    }
+  }
+}
+
+main() {
+  log.RecordWithKeysToRedact("customer", customer, "name").Infof("Got a customer")
 }
 ```
 
