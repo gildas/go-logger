@@ -104,18 +104,18 @@ type Metadata struct {
 }
 
 func (metadata Metadata) Redact(keyToRedact ...string) interface{} {
-	redact := metadata
+	redacted := metadata
 	for _, key := range keyToRedact {
 		switch key {
 		case "userId":
-			redact.UserID = logger.Redact(metadata.UserID)
+			redacted.UserID = logger.Redact(metadata.UserID)
 		case "name":
-			redact.Name = logger.Redact(metadata.Name)
+			redacted.Name = logger.Redact(metadata.Name)
 		case "city":
-			redact.City = logger.Redact(metadata.City)
+			redacted.City = logger.Redact(metadata.City)
 		}
 	}
-	return &redact
+	return &redacted
 }
 
 // Load loads an object from a file and marshals it
