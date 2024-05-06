@@ -13,14 +13,14 @@ import (
 //
 // If the value at a key is a func() interface the func will be called when the record is marshaled
 type Record struct {
-	Data map[string]interface{}
+	Data         map[string]interface{}
 	KeysToRedact []string
 }
 
 // NewRecord creates a new empty record
 func NewRecord() *Record {
-	return &Record {
-		Data: make(map[string]interface{}),
+	return &Record{
+		Data:         make(map[string]interface{}),
 		KeysToRedact: nil,
 	}
 }
@@ -44,6 +44,15 @@ func (record *Record) Close() {
 	mapPool.Put(record)
 }
 
+// Find gets the value at a key
+func (record *Record) Find(key string) (value interface{}, found bool) {
+	if record == nil {
+		return nil, false
+	}
+	value, found = record.Data[key]
+	return
+}
+
 // Get gets the value at a key
 func (record *Record) Get(key string) interface{} {
 	return record.Data[key]
@@ -60,6 +69,12 @@ func (record *Record) Set(key string, value interface{}) *Record {
 	return record
 }
 
+// Delete deletes a key
+func (record *Record) Delete(key string) *Record {
+	delete(record.Data, key)
+	return record
+}
+
 // AddKeysToRedact adds keys to redact
 func (record *Record) AddKeysToRedact(keys ...string) *Record {
 	record.KeysToRedact = append(record.KeysToRedact, keys...)
@@ -70,6 +85,9 @@ func (record *Record) AddKeysToRedact(keys ...string) *Record {
 //
 // values already set in this record cannot be overridden
 func (record *Record) Merge(source *Record) *Record {
+	if source == nil {
+		return record
+	}
 	for key, value := range source.Data {
 		record.Set(key, value)
 	}
@@ -115,7 +133,7 @@ func (record *Record) UnmarshalJSON(payload []byte) error {
 		return errors.JSONUnmarshalError.Wrap(err)
 	}
 	*record = Record{
-		Data: placeholder,
+		Data:         placeholder,
 		KeysToRedact: nil,
 	}
 	return nil

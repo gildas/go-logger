@@ -70,8 +70,11 @@ func ParseLevel(value string) Level {
 }
 
 // GetLevelFromRecord retrieves the level from the given Record
-func GetLevelFromRecord(record Record) Level {
-	if value, ok := record["level"]; ok {
+func GetLevelFromRecord(record *Record) Level {
+	if record == nil {
+		return NEVER
+	}
+	if value, found := record.Find("level"); found {
 		if level, ok := value.(Level); ok {
 			return level
 		}

@@ -259,3 +259,24 @@ func (suite *LoggerSuite) TestCanRedactMAC() {
 	suite.Assert().Falsef(ok, "Redactor %T should not have matched", redactor)
 	suite.Assert().Equal("message with nothing", redacted)
 }
+
+func (suite *LoggerSuite) TestCanRedactWithKeysToRedact() {
+	metadata := Metadata{"12345678", "Taro Yamamoto", "Tokyo"}
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.RecordWithKeysToRedact("metadata", metadata, "name", "city").Infof("message")
+	})
+	suite.LogLineEqual(output, map[string]string{
+		"metadata": `map\[city:REDACTED name:REDACTED userId:12345678\]`,
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      "message",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
+}

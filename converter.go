@@ -8,7 +8,7 @@ import (
 
 // Converter is used to convert a Record into another format
 type Converter interface {
-	Convert(record Record) Record
+	Convert(record *Record) *Record
 }
 
 // GetConverterFromEnvironment fetches the Converter from the environment

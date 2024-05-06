@@ -33,7 +33,7 @@ func Create(name string, parameters ...interface{}) (logger *Logger) {
 	var (
 		destinations = []string{}
 		streams      = []Streamer{}
-		records      = []Record{}
+		records      = []*Record{}
 		redactors    = []Redactor{}
 		filterLevels = ParseLevelsFromEnvironment()
 	)
@@ -50,8 +50,10 @@ func Create(name string, parameters ...interface{}) (logger *Logger) {
 			filterLevels.Set(parameter, "any", "any")
 		case Streamer:
 			streams = append(streams, parameter)
-		case Record:
+		case *Record:
 			records = append(records, parameter)
+		case Record:
+			records = append(records, &parameter)
 		case Redactor:
 			redactors = append(redactors, parameter)
 		case *Redactor:
@@ -238,7 +240,7 @@ func (log *Logger) Child(topic, scope interface{}, params ...interface{}) *Logge
 
 // GetRecord returns the Record field value for a given key
 func (log *Logger) GetRecord(key string) interface{} {
-	if value := log.record.Get(key); value != nil {
+	if value, found := log.record.Find(key); found {
 		return value
 	}
 	if parent, ok := log.stream.(*Logger); ok {
@@ -352,7 +354,7 @@ func (log *Logger) Memory() {
 	log.Memorylf(TRACE, "")
 }
 
-// send writes a message to the Sink
+// send writes a message to the Stream
 func (log *Logger) send(level Level, msg string, args ...interface{}) {
 	if log.ShouldWrite(level, log.GetTopic(), log.GetScope()) {
 		record, release := NewPooledRecord()

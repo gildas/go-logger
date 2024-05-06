@@ -85,7 +85,7 @@ func (stream *FileStream) FilterLess() {
 // Write writes the given Record
 //
 // implements logger.Streamer
-func (stream *FileStream) Write(record Record) (err error) {
+func (stream *FileStream) Write(record *Record) (err error) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.file == nil {

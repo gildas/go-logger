@@ -10,13 +10,13 @@ var mapPool = NewMapPool()
 func NewMapPool() *MapPool {
 	return &MapPool{
 		New: func() interface{} {
-			return make(map[string]interface{})
+			return NewRecord()
 		},
 	}
 }
 
 // Get selects an arbitrary map from the Pool, removes it from the Pool, and returns it to the caller.
-func (pool *MapPool) Get() (*Record) {
+func (pool *MapPool) Get() *Record {
 	return (*sync.Pool)(pool).Get().(*Record)
 }
 

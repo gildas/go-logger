@@ -80,7 +80,7 @@ func (stream *StdoutStream) FilterLess() {
 // Write writes the given Record
 //
 // implements logger.Streamer
-func (stream *StdoutStream) Write(record Record) error {
+func (stream *StdoutStream) Write(record *Record) error {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.writer == nil {
