@@ -99,8 +99,8 @@ func (user User) String() string {
 
 type Metadata struct {
 	UserID string `json:"userId"`
-	Name string `json:"name"`
-	City string `json:"city"`
+	Name   string `json:"name"`
+	City   string `json:"city"`
 }
 
 func (metadata Metadata) Redact(keyToRedact ...string) interface{} {

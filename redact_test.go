@@ -395,10 +395,11 @@ func (suite *RedactSuite) TestCanMergeWithString() {
 	suite.Assert().Equal("message with nothing", redacted)
 }
 
-	type stringer logger.Redactor
-	func (s stringer) String() string {
-		return logger.Redactor(s).String()
-	}
+type stringer logger.Redactor
+
+func (s stringer) String() string {
+	return logger.Redactor(s).String()
+}
 
 func (suite *RedactSuite) TestCanMergeWithStringer() {
 	expected := `3[47]\d{2}[- ]*\d{6}[- ]*\d{5}|4\d{3}[- ]*\d{4}[- ]*\d{4}[- ]*\d{4}`
