@@ -340,13 +340,16 @@ func (suite *InternalLoggerSuite) TestIsHijacker() {
 }
 
 type hijackerResponse struct{}
+
 func (*hijackerResponse) Header() http.Header        { return nil }
 func (*hijackerResponse) Write([]byte) (int, error)  { return 0, nil }
 func (*hijackerResponse) WriteHeader(statusCode int) {}
 func (*hijackerResponse) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return nil, nil, errors.NotImplemented.WithStack()
 }
+
 type noopResponse struct{}
+
 func (*noopResponse) Header() http.Header        { return nil }
 func (*noopResponse) Write([]byte) (int, error)  { return 0, nil }
 func (*noopResponse) WriteHeader(statusCode int) {}
