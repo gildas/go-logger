@@ -218,9 +218,9 @@ func (log *Logger) Child(topic, scope interface{}, params ...interface{}) *Logge
 	for _, param := range params {
 		switch actual := param.(type) {
 		case *Redactor:
-			newlog.redactors = append(log.redactors, *actual)
+			newlog.redactors = append(newlog.redactors, *actual)
 		case Redactor:
-			newlog.redactors = append(log.redactors, actual)
+			newlog.redactors = append(newlog.redactors, actual)
 		case string:
 			if len(key) == 0 {
 				key = actual
