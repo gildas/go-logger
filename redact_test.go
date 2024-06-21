@@ -346,7 +346,7 @@ func (suite *RedactSuite) TestCanMergeWithRedactor() {
 
 func (suite *RedactSuite) TestCanMergeWithRedactors() {
 	expected := `3[47]\d{2}[- ]*\d{6}[- ]*\d{5}|4\d{3}[- ]*\d{4}[- ]*\d{4}[- ]*\d{4}|(?:5[1-5][0-9]{2}|222[1-9]|22[3-9][0-9]|2[3-6][0-9]{2}|27[01][0-9]|2720)[- ]*\d{4}[- ]*\d{4}[- ]*\d{4}`
-	redactor := logger.AMEXRedactor.Merge(logger.VISARedactor, logger.MasterCardRedactor)
+	redactor := logger.AMEXRedactor.Merge(logger.VISARedactor, *logger.MasterCardRedactor)
 	suite.Assert().Equal(expected, redactor.String())
 	redacted, ok := redactor.Redact("message with 3700 000001 00018")
 	suite.Assert().Truef(ok, "Redactor %T should have matched", redactor)
