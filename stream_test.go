@@ -425,7 +425,7 @@ func (suite *StreamSuite) TestFailsWritingToStackDriverWithNoCredentials() {
 	stream := &logger.StackDriverStream{}
 	err := stream.Write(logger.NewRecord().Set("key", "value"))
 	suite.Require().NotNil(err, "Should have failed writing to stream")
-	suite.Assert().Contains(err.Error(), "google: could not find default credentials")
+	suite.Assert().Contains(err.Error(), "could not find default credentials")
 }
 
 func (suite *StreamSuite) TestFailsWritingToStackDriverWithInvalidKey() {
