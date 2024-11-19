@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// Redact redacts a stringable value
 func Redact(value interface{}) string {
 	if value == nil {
 		return ""
@@ -15,10 +16,21 @@ func Redact(value interface{}) string {
 	return ""
 }
 
+// RedactAll redacts all items in a slice of redactable items
+func RedactAll[T Redactable](items []T) []any {
+	redacted := make([]any, len(items))
+	for i, item := range items {
+		redacted[i] = item.Redact()
+	}
+	return redacted
+}
+
+// RedactWithHash redacts a value with a hash
 func RedactWithHash(value interface{}) string {
 	return RedactWithPrefixedHash("REDACTED", value)
 }
 
+// RedactWithPrefixedHash redacts a value with a prefix and a hash
 func RedactWithPrefixedHash(prefix string, value interface{}) string {
 	if value == nil {
 		return ""

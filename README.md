@@ -46,6 +46,7 @@ More generally, [Record fields](https://github.com/trentm/node-bunyan#log-record
 
 ```go
 Log.Record("myObject", myObject).Infof("Another message about my object")
+Log.Record("?myObject", myObject).Infof("Another message about my object, show myObject even if it is nil")
 Log.Recordf("myObject", "format %s %+v". myObject.ID(), myObject).Infof("This record uses a formatted value")
 
 log := Log.Record("dynamic", func() interface{} { return myObject.Callme() })
@@ -53,6 +54,8 @@ log := Log.Record("dynamic", func() interface{} { return myObject.Callme() })
 log.Infof("This is here")
 log.Infof("That is there")
 ```
+
+In the second example, the prefix `?` tells the `Logger` to log the record if the value is `nil`, empty string, nil UUID, or implements `IsNil() bool` returning true. By default, the `Logger` will not log these values.
 
 In the last example, the code `myObject.Callme()` will be executed each time *log* is used to write a message.
 This is used, as an example, to add a timestamp to the log's `Record`.

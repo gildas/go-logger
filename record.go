@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/gildas/go-errors"
+	"github.com/google/uuid"
 )
 
 // Record is the map that contains all records of a log entry
@@ -109,8 +111,22 @@ func (record Record) MarshalJSON() ([]byte, error) {
 
 	buffer.WriteString("{")
 	for key, raw := range record.Data {
-		if raw == nil {
-			continue
+		showNils := strings.HasPrefix(key, "?")
+		key = strings.TrimPrefix(key, "?")
+
+		if !showNils {
+			if raw == nil {
+				continue
+			}
+			if value, ok := raw.(string); ok && value == "" {
+				continue
+			}
+			if id, ok := raw.(uuid.UUID); ok && id == uuid.Nil {
+				continue
+			}
+			if id, ok := raw.(interface{ IsNil() bool }); ok && id.IsNil() {
+				continue
+			}
 		}
 		if comma {
 			buffer.WriteString(",")

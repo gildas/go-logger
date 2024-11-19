@@ -85,6 +85,10 @@ type User struct {
 	logger *logger.Logger `json:"-"`
 }
 
+func (user User) IsNil() bool {
+	return user.ID == ""
+}
+
 func (user User) Redact() interface{} {
 	return User{user.ID, logger.Redact(user.Name), user.logger}
 }
@@ -250,6 +254,8 @@ func (suite *LoggerSuite) LogLineEqual(line string, records map[string]string) {
 			case fmt.Stringer:
 				stringvalue = actual.String()
 			case map[string]interface{}:
+				stringvalue = fmt.Sprintf("%v", value)
+			case []interface{}:
 				stringvalue = fmt.Sprintf("%v", value)
 			default:
 				suite.Failf(fmt.Sprintf("The value of the key %s cannot be casted to string", key), "Type: %s", reflect.TypeOf(value))
