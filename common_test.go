@@ -255,6 +255,8 @@ func (suite *LoggerSuite) LogLineEqual(line string, records map[string]string) {
 				stringvalue = actual.String()
 			case map[string]interface{}:
 				stringvalue = fmt.Sprintf("%v", value)
+			case []interface{}:
+				stringvalue = fmt.Sprintf("%v", value)
 			default:
 				suite.Failf(fmt.Sprintf("The value of the key %s cannot be casted to string", key), "Type: %s", reflect.TypeOf(value))
 			}
