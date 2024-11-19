@@ -470,7 +470,6 @@ func (suite *LoggerSuite) TestLoggerHttpHandlerWithSuccess() {
 	lines = lines[:len(lines)-1] // remove the last empty line
 	suite.Require().Len(lines, 3, "Expected 3 lines of output")
 	suite.LogLineEqual(lines[0], map[string]string{
-		"agent":    "",
 		"hostname": `[a-zA-Z_0-9\-\.]+`,
 		"level":    "30",
 		"msg":      `request start: GET /`,
@@ -548,7 +547,6 @@ func (suite *LoggerSuite) TestLoggerHttpHandlerWithFailure() {
 	lines = lines[:len(lines)-1] // remove the last empty line
 	suite.Require().Len(lines, 3, "Expected 3 lines of output")
 	suite.LogLineEqual(lines[0], map[string]string{
-		"agent":    "",
 		"hostname": `[a-zA-Z_0-9\-\.]+`,
 		"level":    strconv.Itoa(int(logger.INFO)),
 		"msg":      `request start: GET /`,
