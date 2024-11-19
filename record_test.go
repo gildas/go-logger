@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/gildas/go-errors"
@@ -51,6 +52,50 @@ func (suite *RecordSuite) TestCanMarshalNilValue() {
 	payload, err := json.Marshal(record)
 	suite.Require().NoError(err, "Error while marshaling record")
 	suite.Assert().JSONEq(`{}`, string(payload))
+
+	record.Data["?empty"] = nil
+	payload, err = json.Marshal(record)
+	suite.Require().NoError(err, "Error while marshaling record")
+	suite.Assert().JSONEq(`{"empty": null}`, string(payload))
+}
+
+func (suite *RecordSuite) TestCanMarshalEmptyString() {
+	record := logger.NewRecord()
+	record.Data["empty"] = ""
+	payload, err := json.Marshal(record)
+	suite.Require().NoError(err, "Error while marshaling record")
+	suite.Assert().JSONEq(`{}`, string(payload))
+
+	record.Data["?empty"] = ""
+	payload, err = json.Marshal(record)
+	suite.Require().NoError(err, "Error while marshaling record")
+	suite.Assert().JSONEq(`{"empty": ""}`, string(payload))
+}
+
+func (suite *RecordSuite) TestCanMarshalEmptyUUID() {
+	record := logger.NewRecord()
+	record.Data["empty"] = uuid.Nil
+	payload, err := json.Marshal(record)
+	suite.Require().NoError(err, "Error while marshaling record")
+	suite.Assert().JSONEq(`{}`, string(payload))
+
+	record.Data["?empty"] = uuid.Nil
+	payload, err = json.Marshal(record)
+	suite.Require().NoError(err, "Error while marshaling record")
+	suite.Assert().JSONEq(`{"empty": "00000000-0000-0000-0000-000000000000"}`, string(payload))
+}
+
+func (suite *RecordSuite) TestCanMarshalIsNil() {
+	record := logger.NewRecord()
+	record.Data["empty"] = User{}
+	payload, err := json.Marshal(record)
+	suite.Require().NoError(err, "Error while marshaling record")
+	suite.Assert().JSONEq(`{}`, string(payload))
+
+	record.Data["?empty"] = User{}
+	payload, err = json.Marshal(record)
+	suite.Require().NoError(err, "Error while marshaling record")
+	suite.Assert().JSONEq(`{"empty": {"id": "", "name": ""}}`, string(payload))
 }
 
 func (suite *RecordSuite) TestCanMarshalStringValueWithSpecialCharacters() {

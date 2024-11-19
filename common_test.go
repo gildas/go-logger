@@ -85,6 +85,10 @@ type User struct {
 	logger *logger.Logger `json:"-"`
 }
 
+func (user User) IsNil() bool {
+	return user.ID == ""
+}
+
 func (user User) Redact() interface{} {
 	return User{user.ID, logger.Redact(user.Name), user.logger}
 }
