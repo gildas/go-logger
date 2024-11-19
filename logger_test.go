@@ -826,7 +826,6 @@ func (suite *LoggerSuite) TestCanLogAtDifferentLevelsPerTopicAndEmptyScope() {
 		"msg":      "message",
 		"name":     "test",
 		"pid":      "[0-9]+",
-		"scope":    "",
 		"tid":      "[0-9]+",
 		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
 		"topic":    "hild",
@@ -848,10 +847,8 @@ func (suite *LoggerSuite) TestCanLogWithEmptyTopicAndEmptyScope() {
 		"msg":      "message",
 		"name":     "test",
 		"pid":      "[0-9]+",
-		"scope":    "",
 		"tid":      "[0-9]+",
 		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
-		"topic":    "",
 		"v":        "0",
 	})
 }
