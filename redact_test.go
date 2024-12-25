@@ -48,10 +48,31 @@ func (suite *RedactSuite) TestCanRedactSensitiveSliceOfStruct() {
 	customers := []User{{"12345678", "John Doe", nil}, {"87654321", "Jane Doe", nil}}
 	output := CaptureStdout(func() {
 		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
-		log.Record("customers", logger.RedactAll(customers)).Infof("message")
+		log.Record("customers", logger.RedactSlice(customers)).Infof("message")
 	})
 	suite.LogLineEqual(output, map[string]string{
 		"customers": `\[map\[id:12345678 name:REDACTED\] map\[id:87654321 name:REDACTED\]\]`,
+		"hostname":  `[a-zA-Z_0-9\-\.]+`,
+		"level":     "30",
+		"msg":       "message",
+		"name":      "test",
+		"pid":       "[0-9]+",
+		"scope":     "main",
+		"tid":       "[0-9]+",
+		"time":      `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":     "main",
+		"v":         "0",
+	})
+}
+
+func (suite *RedactSuite) TestCanRedactSensitiveMapOfStruct() {
+	customers := map[string]User{"12345678": {"12345678", "John Doe", nil}, "87654321": {"87654321", "Jane Doe", nil}}
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.Record("customers", logger.RedactMap(customers)).Infof("message")
+	})
+	suite.LogLineEqual(output, map[string]string{
+		"customers": `map\[12345678:map\[id:12345678 name:REDACTED\] 87654321:map\[id:87654321 name:REDACTED\]\]`,
 		"hostname":  `[a-zA-Z_0-9\-\.]+`,
 		"level":     "30",
 		"msg":       "message",

@@ -16,11 +16,19 @@ func Redact(value interface{}) string {
 	return ""
 }
 
-// RedactAll redacts all items in a slice of redactable items
-func RedactAll[T Redactable](items []T) []any {
+// RedactSlice redacts all items in a slice of redactable items
+func RedactSlice[T Redactable](items []T) []any {
 	redacted := make([]any, len(items))
 	for i, item := range items {
 		redacted[i] = item.Redact()
+	}
+	return redacted
+}
+
+func RedactMap[S comparable, T Redactable](items map[S]T) map[S]any {
+	redacted := make(map[S]any, len(items))
+	for key, item := range items {
+		redacted[key] = item.Redact()
 	}
 	return redacted
 }
