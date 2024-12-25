@@ -48,7 +48,7 @@ func (suite *RedactSuite) TestCanRedactSensitiveSliceOfStruct() {
 	customers := []User{{"12345678", "John Doe", nil}, {"87654321", "Jane Doe", nil}}
 	output := CaptureStdout(func() {
 		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
-		log.Record("customers", logger.RedactAll(customers)).Infof("message")
+		log.Record("customers", logger.RedactSlice(customers)).Infof("message")
 	})
 	suite.LogLineEqual(output, map[string]string{
 		"customers": `\[map\[id:12345678 name:REDACTED\] map\[id:87654321 name:REDACTED\]\]`,
