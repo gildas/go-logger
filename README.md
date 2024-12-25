@@ -372,7 +372,7 @@ main() {
 }
 ```
 
-When redacting a field, you can also call `logger.RedactWithHash` which will redact the value with a string like: "REDACTED-<hash>" where `<hash>` is a SHA256 hash of the original value. This is useful when you want to redact a value but still want to be able to identify it in the logs. You can also change the prefix with `logger.RedactWithPrefixedHash`.
+When redacting a field, you can also call `logger.RedactWithHash` which will redact the value with a string like: "REDACTED-&lt;hash&gt;" where `<hash>` is a SHA256 hash of the original value. This is useful when you want to redact a value but still want to be able to identify it in the logs. You can also change the prefix with `logger.RedactWithPrefixedHash`.
 
 For Complex objects, you can also implement the `logger.RedactableWithKeys` interface:
 
@@ -396,6 +396,13 @@ func (customer Customer) Redact(keyToRedact ...string) interface{} {
 main() {
   log.RecordWithKeysToRedact("customer", customer, "name").Infof("Got a customer")
 }
+```
+
+You can also redact slices and maps of objects:
+
+```go
+log.Record("users", logger.RedactSlice(users)).Infof("Got a list of users")
+log.Record("users", logger.RedactMap(users)).Infof("Got a map of users")
 ```
 
 You can also redact the log messages by providing regular expressions, called redactors. Whenever a redactor matches, its matched content is replaced with "REDACTED".

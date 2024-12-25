@@ -25,6 +25,14 @@ func RedactSlice[T Redactable](items []T) []any {
 	return redacted
 }
 
+func RedactMap[S comparable, T Redactable](items map[S]T) map[S]any {
+	redacted := make(map[S]any, len(items))
+	for key, item := range items {
+		redacted[key] = item.Redact()
+	}
+	return redacted
+}
+
 // RedactWithHash redacts a value with a hash
 func RedactWithHash(value interface{}) string {
 	return RedactWithPrefixedHash("REDACTED", value)
