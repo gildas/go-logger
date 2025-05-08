@@ -4,12 +4,12 @@ package logger
 //
 // When the Logger writes the Record contains a Redactable, it will call Redact
 type Redactable interface {
-	Redact() interface{}
+	Redact() any
 }
 
 // RedactableWithKeys can be used by structs that want to redact their fields
 //
 // When the Logger writes the Record contains a RedactableWithKeys, it will call Redact
 type RedactableWithKeys interface {
-	Redact(key ...string) interface{}
+	Redact(key ...string) any
 }

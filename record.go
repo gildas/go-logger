@@ -15,14 +15,14 @@ import (
 //
 // If the value at a key is a func() interface the func will be called when the record is marshaled
 type Record struct {
-	Data         map[string]interface{}
+	Data         map[string]any
 	KeysToRedact []string
 }
 
 // NewRecord creates a new empty record
 func NewRecord() *Record {
 	return &Record{
-		Data:         make(map[string]interface{}),
+		Data:         make(map[string]any),
 		KeysToRedact: nil,
 	}
 }
@@ -47,7 +47,7 @@ func (record *Record) Close() {
 }
 
 // Find gets the value at a key
-func (record *Record) Find(key string) (value interface{}, found bool) {
+func (record *Record) Find(key string) (value any, found bool) {
 	if record == nil {
 		return nil, false
 	}
@@ -56,12 +56,12 @@ func (record *Record) Find(key string) (value interface{}, found bool) {
 }
 
 // Get gets the value at a key
-func (record *Record) Get(key string) interface{} {
+func (record *Record) Get(key string) any {
 	return record.Data[key]
 }
 
 // Set sets the key and value if not yet set
-func (record *Record) Set(key string, value interface{}) *Record {
+func (record *Record) Set(key string, value any) *Record {
 	if value == nil {
 		return record
 	}
@@ -144,7 +144,7 @@ func (record Record) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON unmarshals JSON into this
 func (record *Record) UnmarshalJSON(payload []byte) error {
-	var placeholder map[string]interface{}
+	var placeholder map[string]any
 	if err := json.Unmarshal(payload, &placeholder); err != nil {
 		return errors.JSONUnmarshalError.Wrap(err)
 	}
@@ -155,9 +155,9 @@ func (record *Record) UnmarshalJSON(payload []byte) error {
 	return nil
 }
 
-func jsonValue(object interface{}, buffer *bytes.Buffer, keyToRedact ...string) {
+func jsonValue(object any, buffer *bytes.Buffer, keyToRedact ...string) {
 	switch value := object.(type) {
-	case func() interface{}:
+	case func() any:
 		object = value()
 	case RedactableWithKeys:
 		object = value.Redact(keyToRedact...)

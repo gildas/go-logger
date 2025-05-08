@@ -49,7 +49,7 @@ Log.Record("myObject", myObject).Infof("Another message about my object")
 Log.Record("?myObject", myObject).Infof("Another message about my object, show myObject even if it is nil")
 Log.Recordf("myObject", "format %s %+v". myObject.ID(), myObject).Infof("This record uses a formatted value")
 
-log := Log.Record("dynamic", func() interface{} { return myObject.Callme() })
+log := Log.Record("dynamic", func() any { return myObject.Callme() })
 
 log.Infof("This is here")
 log.Infof("That is there")
@@ -301,7 +301,7 @@ The duration will logged in the `msg` record after the given message. It will al
 There are 3 more variations for funcs that return an error, a value, an error and a value:
 
 ```go
-result := log.TimeFuncV("message shown with the duration", func() interface{} {
+result := log.TimeFuncV("message shown with the duration", func() any {
   log.Info("I am here")
   // ... some stuff that takes time
   time.Sleep(12*time.Second)
@@ -315,7 +315,7 @@ err := log.TimeFuncE("message shown with the duration", func() err {
   return errors.ArgumentMissing.With("path")
 })
 
-result, err := log.TimeFuncVE("message shown with the duration", func() (interface{}, error) {
+result, err := log.TimeFuncVE("message shown with the duration", func() (any, error) {
   log.Info("I am here")
   // ... some stuff that takes time
   time.Sleep(12*time.Second)
@@ -360,7 +360,7 @@ type Customer {
 }
 
 // implements logger.Redactable
-func (customer Customer) Redact() interface{} {
+func (customer Customer) Redact() any {
   return Customer{customer.Name, logger.Redact(customer.ID)}
 }
 
@@ -383,7 +383,7 @@ type Customer {
 }
 
 // implements logger.RedactableWithKeys
-func (customer Customer) Redact(keyToRedact ...string) interface{} {
+func (customer Customer) Redact(keyToRedact ...string) any {
   redacted := customer
   for _, key := range keyToRedact {
     switch key {

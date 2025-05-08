@@ -238,7 +238,7 @@ func (suite *InternalLoggerSuite) TestCanCreateChildWithRecords() {
 	suite.Assert().Nil(log.GetRecord("key2"), "there shoud not be any Record \"key2\" in Parent Logger")
 	lines := strings.Split(output, "\n")
 	suite.Assert().Len(lines, 4, "Output should have 4 lines") // The 4th line is an empty line
-	var content map[string]interface{}
+	var content map[string]any
 	err := json.Unmarshal([]byte(lines[1]), &content)
 	suite.Require().Nil(err, "Failed to parse JSON from the second line (child's output)")
 	suite.Assert().Equal("childtopic", content["topic"], "Topic should be childtopic")
@@ -246,7 +246,7 @@ func (suite *InternalLoggerSuite) TestCanCreateChildWithRecords() {
 	suite.Assert().Equal("value1", content["key1"], "key1 should contain value1")
 	suite.Assert().Equal("value2", content["key2"], "key2 should contain value2")
 
-	content = map[string]interface{}{}
+	content = map[string]any{}
 	err = json.Unmarshal([]byte(lines[2]), &content)
 	suite.Require().Nil(err, "Failed to parse JSON from the third (grandchild's output)")
 	suite.Assert().Equal("grandchildtopic", content["topic"], "Topic should be grandchildtopic")

@@ -15,7 +15,7 @@ const contextKey key = iota + 12583
 // Sources are either LoggerCarrier implemenations or Logger/*Logger objects.
 //
 // The first source that is a match is returned.
-func FromContext(context context.Context, sources ...interface{}) (*Logger, error) {
+func FromContext(context context.Context, sources ...any) (*Logger, error) {
 	if context != nil {
 		if logger, ok := context.Value(contextKey).(*Logger); ok {
 			return logger, nil

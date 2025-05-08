@@ -12,7 +12,7 @@ var bufferPool = NewBufferPool()
 // NewBufferPool creates a new BufferPool
 func NewBufferPool() *BufferPool {
 	return &BufferPool{
-		New: func() interface{} {
+		New: func() any {
 			return &bytes.Buffer{}
 		},
 	}

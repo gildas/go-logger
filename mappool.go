@@ -9,7 +9,7 @@ var mapPool = NewMapPool()
 // NewMapPool creates a new MapPool
 func NewMapPool() *MapPool {
 	return &MapPool{
-		New: func() interface{} {
+		New: func() any {
 			return NewRecord()
 		},
 	}

@@ -29,7 +29,7 @@ func Must(log *Logger, err error) *Logger {
 }
 
 // Create creates a new Logger
-func Create(name string, parameters ...interface{}) (logger *Logger) {
+func Create(name string, parameters ...any) (logger *Logger) {
 	var (
 		destinations = []string{}
 		streams      = []Streamer{}
@@ -68,7 +68,7 @@ func Create(name string, parameters ...interface{}) (logger *Logger) {
 		Set("name", name).
 		Set("hostname", hostname).
 		Set("pid", os.Getpid()).
-		Set("tid", func() interface{} { return gettid() }).
+		Set("tid", func() any { return gettid() }).
 		Set("topic", "main").
 		Set("scope", "main").
 		Set("v", 0)
@@ -147,21 +147,21 @@ func (log *Logger) ResetDestinations(destinations ...any) {
 }
 
 // Record adds the given Record to the Log
-func (log *Logger) Record(key string, value interface{}) *Logger {
+func (log *Logger) Record(key string, value any) *Logger {
 	// This func requires Logger to be a Stream
 	//   that allows us to nest Loggers
 	return &Logger{log, NewRecord().Set(key, value), log.redactors}
 }
 
 // RecordWithKeysToRedact adds the given Record to the Log
-func (log *Logger) RecordWithKeysToRedact(key string, value interface{}, keyToRedact ...string) *Logger {
+func (log *Logger) RecordWithKeysToRedact(key string, value any, keyToRedact ...string) *Logger {
 	// This func requires Logger to be a Stream
 	//   that allows us to nest Loggers
 	return &Logger{log, NewRecord().Set(key, value).AddKeysToRedact(keyToRedact...), log.redactors}
 }
 
 // Recordf adds the given Record with formatted arguments
-func (log *Logger) Recordf(key, value string, args ...interface{}) *Logger {
+func (log *Logger) Recordf(key, value string, args ...any) *Logger {
 	return log.Record(key, fmt.Sprintf(value, args...))
 }
 
@@ -171,7 +171,7 @@ func (log *Logger) Recordf(key, value string, args ...interface{}) *Logger {
 //	If the last value is missing, its key is ignored
 //
 // E.g.: log.Records("key1", value1, "key2", value2)
-func (log *Logger) Records(params ...interface{}) *Logger {
+func (log *Logger) Records(params ...any) *Logger {
 	if len(params) == 0 {
 		return log
 	}
@@ -189,7 +189,7 @@ func (log *Logger) Records(params ...interface{}) *Logger {
 }
 
 // Topic sets the Topic of this Logger
-func (log *Logger) Topic(topic interface{}) *Logger {
+func (log *Logger) Topic(topic any) *Logger {
 	if topic == nil {
 		topic = log.record.Get("topic")
 	}
@@ -197,7 +197,7 @@ func (log *Logger) Topic(topic interface{}) *Logger {
 }
 
 // Scope sets the Scope if this Logger
-func (log *Logger) Scope(scope interface{}) *Logger {
+func (log *Logger) Scope(scope any) *Logger {
 	if scope == nil {
 		scope = log.record.Get("scope")
 	}
@@ -205,7 +205,7 @@ func (log *Logger) Scope(scope interface{}) *Logger {
 }
 
 // Child creates a child Logger with a topic, a scope, and records
-func (log *Logger) Child(topic, scope interface{}, params ...interface{}) *Logger {
+func (log *Logger) Child(topic, scope any, params ...any) *Logger {
 	var key string
 	if topic == nil {
 		topic = log.record.Get("topic")
@@ -239,7 +239,7 @@ func (log *Logger) Child(topic, scope interface{}, params ...interface{}) *Logge
 }
 
 // GetRecord returns the Record field value for a given key
-func (log *Logger) GetRecord(key string) interface{} {
+func (log *Logger) GetRecord(key string) any {
 	if value, found := log.record.Find(key); found {
 		return value
 	}
@@ -260,21 +260,21 @@ func (log *Logger) GetScope() string {
 }
 
 // Tracef traces a message at the TRACE Level
-func (log *Logger) Tracef(msg string, args ...interface{}) { log.send(TRACE, msg, args...) }
+func (log *Logger) Tracef(msg string, args ...any) { log.send(TRACE, msg, args...) }
 
 // Debugf traces a message at the DEBUG Level
-func (log *Logger) Debugf(msg string, args ...interface{}) { log.send(DEBUG, msg, args...) }
+func (log *Logger) Debugf(msg string, args ...any) { log.send(DEBUG, msg, args...) }
 
 // Infof traces a message at the INFO Level
-func (log *Logger) Infof(msg string, args ...interface{}) { log.send(INFO, msg, args...) }
+func (log *Logger) Infof(msg string, args ...any) { log.send(INFO, msg, args...) }
 
 // Warnf traces a message at the WARN Level
-func (log *Logger) Warnf(msg string, args ...interface{}) { log.send(WARN, msg, args...) }
+func (log *Logger) Warnf(msg string, args ...any) { log.send(WARN, msg, args...) }
 
 // Errorf traces a message at the ERROR Level
 //
 // If the last argument is an error, a Record is added and the error string is added to the message
-func (log *Logger) Errorf(msg string, args ...interface{}) {
+func (log *Logger) Errorf(msg string, args ...any) {
 	logWithErr := log
 
 	if len(args) > 0 {
@@ -294,7 +294,7 @@ func (log *Logger) Errorf(msg string, args ...interface{}) {
 // Fatalf traces a message at the FATAL Level
 //
 // If the last argument is an error, a Record is added and the error string is added to the message
-func (log *Logger) Fatalf(msg string, args ...interface{}) {
+func (log *Logger) Fatalf(msg string, args ...any) {
 	logWithErr := log
 
 	if len(args) > 0 {
@@ -312,7 +312,7 @@ func (log *Logger) Fatalf(msg string, args ...interface{}) {
 }
 
 // Memorylf traces memory usage at the given level and with the given message
-func (log *Logger) Memorylf(level Level, msg string, args ...interface{}) {
+func (log *Logger) Memorylf(level Level, msg string, args ...any) {
 	var mem runtime.MemStats
 
 	runtime.ReadMemStats(&mem)
@@ -328,7 +328,7 @@ func (log *Logger) Memorylf(level Level, msg string, args ...interface{}) {
 		)
 	} else {
 		msg = "Heap(Alloc = %s, System = %s), Stack(Alloc = %s, System = %s), NumGC = %d"
-		args = []interface{}{
+		args = []any{
 			bytesToString(mem.HeapAlloc),
 			bytesToString(mem.Sys),
 			bytesToString(mem.StackInuse),
@@ -340,7 +340,7 @@ func (log *Logger) Memorylf(level Level, msg string, args ...interface{}) {
 }
 
 // Memoryf traces memory usage at the TRACE level with a given message
-func (log *Logger) Memoryf(msg string, args ...interface{}) {
+func (log *Logger) Memoryf(msg string, args ...any) {
 	log.Memorylf(TRACE, msg, args...)
 }
 
@@ -355,7 +355,7 @@ func (log *Logger) Memory() {
 }
 
 // send writes a message to the Stream
-func (log *Logger) send(level Level, msg string, args ...interface{}) {
+func (log *Logger) send(level Level, msg string, args ...any) {
 	if log.ShouldWrite(level, log.GetTopic(), log.GetScope()) {
 		record, release := NewPooledRecord()
 		defer release()
