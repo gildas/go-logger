@@ -16,16 +16,17 @@ import (
 //
 //	Any record with a level < FilterLevel will be written
 type FileStream struct {
-	Path           string
-	Converter      Converter
-	FilterLevels   LevelSet
-	Unbuffered     bool
-	SourceInfo     bool
-	file           *os.File
-	output         *bufio.Writer
-	writer         io.Writer
-	flushFrequency time.Duration
-	mutex          sync.Mutex
+	Path              string
+	Converter         Converter
+	FilterLevels      LevelSet
+	Unbuffered        bool
+	SourceInfo        bool
+	file              *os.File
+	output            *bufio.Writer
+	writer            io.Writer
+	flushFrequency    time.Duration
+	environmentPrefix EnvironmentPrefix
+	mutex             sync.Mutex
 }
 
 // GetFilterLevels gets the filter levels
@@ -99,10 +100,10 @@ func (stream *FileStream) Write(record *Record) (err error) {
 			return errors.WithStack(err)
 		}
 		if stream.Converter == nil {
-			stream.Converter = GetConverterFromEnvironment()
+			stream.Converter = GetConverterFromEnvironmentWithPrefix(stream.environmentPrefix)
 		}
 		if len(stream.FilterLevels) == 0 {
-			stream.FilterLevels = ParseLevelsFromEnvironment()
+			stream.FilterLevels = ParseLevelsFromEnvironmentWithPrefix(stream.environmentPrefix)
 		}
 		if stream.Unbuffered {
 			stream.output = nil
@@ -110,7 +111,7 @@ func (stream *FileStream) Write(record *Record) (err error) {
 		} else {
 			stream.output = bufio.NewWriter(stream.file)
 			stream.writer = stream.output
-			stream.flushFrequency = GetFlushFrequencyFromEnvironment()
+			stream.flushFrequency = GetFlushFrequencyFromEnvironmentWithPrefix(stream.environmentPrefix)
 			go stream.flushJob()
 		}
 	}

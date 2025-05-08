@@ -13,10 +13,14 @@ import (
 
 // Logger is a Logger that creates Bunyan's compatible logs (see: https://github.com/trentm/node-bunyan)
 type Logger struct {
-	stream    Streamer
-	record    *Record
-	redactors []Redactor
+	environmentPrefix EnvironmentPrefix
+	stream            Streamer
+	record            *Record
+	redactors         []Redactor
 }
+
+// EnvironmentPrefix describes the prefix used for environment variables
+type EnvironmentPrefix string
 
 // Must returns the given logger or panics if there is an error or if the Logger is nil
 func Must(log *Logger, err error) *Logger {
@@ -36,6 +40,7 @@ func Create(name string, parameters ...any) (logger *Logger) {
 		records      = []*Record{}
 		redactors    = []Redactor{}
 		filterLevels = ParseLevelsFromEnvironment()
+		prefix       = EnvironmentPrefix("")
 	)
 
 	for _, parameter := range parameters {
@@ -46,6 +51,11 @@ func Create(name string, parameters ...any) (logger *Logger) {
 			}
 		case string:
 			destinations = append(destinations, parameter)
+		case EnvironmentPrefix:
+			if len(parameter) > 0 {
+				prefix = parameter
+				filterLevels = ParseLevelsFromEnvironmentWithPrefix(prefix)
+			}
 		case Level:
 			filterLevels.Set(parameter, "any", "any")
 		case Streamer:
@@ -74,15 +84,15 @@ func Create(name string, parameters ...any) (logger *Logger) {
 		Set("v", 0)
 
 	for _, destination := range destinations {
-		streams = append(streams, CreateStream(filterLevels, destination))
+		streams = append(streams, CreateStreamWithPrefix(prefix, filterLevels, destination))
 	}
 
 	if len(streams) == 0 {
-		logger = &Logger{CreateStream(filterLevels), record, []Redactor{}}
+		logger = &Logger{prefix, CreateStreamWithPrefix(prefix, filterLevels), record, []Redactor{}}
 	} else if len(streams) == 1 {
-		logger = &Logger{streams[0], record, []Redactor{}}
+		logger = &Logger{prefix, streams[0], record, []Redactor{}}
 	} else {
-		logger = &Logger{&MultiStream{streams: streams}, record, []Redactor{}}
+		logger = &Logger{prefix, &MultiStream{streams: streams}, record, []Redactor{}}
 	}
 
 	for _, record := range records {
@@ -109,7 +119,7 @@ func (log *Logger) AddDestinations(destinations ...any) {
 	for _, raw := range destinations {
 		switch destination := raw.(type) {
 		case string:
-			streams = append(streams, CreateStream(log.GetFilterLevels(), destination))
+			streams = append(streams, CreateStreamWithPrefix(log.environmentPrefix, log.GetFilterLevels(), destination))
 		case Streamer:
 			streams = append(streams, destination)
 		}
@@ -133,7 +143,7 @@ func (log *Logger) ResetDestinations(destinations ...any) {
 	for _, raw := range destinations {
 		switch destination := raw.(type) {
 		case string:
-			streams = append(streams, CreateStream(log.GetFilterLevels(), destination))
+			streams = append(streams, CreateStreamWithPrefix(log.environmentPrefix, log.GetFilterLevels(), destination))
 		case Streamer:
 			streams = append(streams, destination)
 		}
@@ -150,14 +160,14 @@ func (log *Logger) ResetDestinations(destinations ...any) {
 func (log *Logger) Record(key string, value any) *Logger {
 	// This func requires Logger to be a Stream
 	//   that allows us to nest Loggers
-	return &Logger{log, NewRecord().Set(key, value), log.redactors}
+	return &Logger{log.environmentPrefix, log, NewRecord().Set(key, value), log.redactors}
 }
 
 // RecordWithKeysToRedact adds the given Record to the Log
 func (log *Logger) RecordWithKeysToRedact(key string, value any, keyToRedact ...string) *Logger {
 	// This func requires Logger to be a Stream
 	//   that allows us to nest Loggers
-	return &Logger{log, NewRecord().Set(key, value).AddKeysToRedact(keyToRedact...), log.redactors}
+	return &Logger{log.environmentPrefix, log, NewRecord().Set(key, value).AddKeysToRedact(keyToRedact...), log.redactors}
 }
 
 // Recordf adds the given Record with formatted arguments
@@ -185,7 +195,7 @@ func (log *Logger) Records(params ...any) *Logger {
 			key = ""
 		}
 	}
-	return &Logger{log, record, log.redactors}
+	return &Logger{log.environmentPrefix, log, record, log.redactors}
 }
 
 // Topic sets the Topic of this Logger
@@ -214,7 +224,7 @@ func (log *Logger) Child(topic, scope any, params ...any) *Logger {
 		scope = log.record.Get("scope")
 	}
 	record := NewRecord().Set("topic", topic).Set("scope", scope)
-	newlog := &Logger{log, record, log.redactors}
+	newlog := &Logger{log.environmentPrefix, log, record, log.redactors}
 	for _, param := range params {
 		switch actual := param.(type) {
 		case *Redactor:

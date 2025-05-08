@@ -24,8 +24,17 @@ func NewLevelSet(defaultLevel Level) (levels LevelSet) {
 //
 // If the environment variable DEBUG is set to 1 (or yes, on, true), the default level in the LevelSet will be DEBUG
 func ParseLevelsFromEnvironment() (levels LevelSet) {
-	levels = ParseLevels(core.GetEnvAsString("LOG_LEVEL", "INFO"))
-	if core.GetEnvAsBool("DEBUG", false) {
+	return ParseLevelsFromEnvironmentWithPrefix("")
+}
+
+// ParseLevelsFromEnvironmentWithPrefix parses the levels from the environment variable ${prefix}LOG_LEVEL
+//
+// If ${prefix}LOG_LEVEL is not set, it will return a LevelSet with the default level (INFO)
+//
+// If the environment variable ${prefix}DEBUG is set to 1 (or yes, on, true), the default level in the LevelSet will be DEBUG
+func ParseLevelsFromEnvironmentWithPrefix(prefix EnvironmentPrefix) (levels LevelSet) {
+	levels = ParseLevels(core.GetEnvAsString(string(prefix)+"LOG_LEVEL", "INFO"))
+	if core.GetEnvAsBool(string(prefix)+"DEBUG", false) {
 		if levels.Get("any", "any") > DEBUG {
 			levels.Set(DEBUG, "any", "any")
 		}

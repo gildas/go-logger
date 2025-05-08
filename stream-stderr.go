@@ -10,10 +10,11 @@ import (
 
 // StderrStream is the Stream that writes to the standard error
 type StderrStream struct {
-	Converter    Converter
-	FilterLevels LevelSet
-	SourceInfo   bool
-	mutex        sync.Mutex
+	Converter         Converter
+	FilterLevels      LevelSet
+	SourceInfo        bool
+	environmentPrefix EnvironmentPrefix
+	mutex             sync.Mutex
 }
 
 // GetFilterLevels gets the filter levels
@@ -77,10 +78,10 @@ func (stream *StderrStream) Write(record *Record) (err error) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.Converter == nil {
-		stream.Converter = GetConverterFromEnvironment()
+		stream.Converter = GetConverterFromEnvironmentWithPrefix(stream.environmentPrefix)
 	}
 	if len(stream.FilterLevels) == 0 {
-		stream.FilterLevels = ParseLevelsFromEnvironment()
+		stream.FilterLevels = ParseLevelsFromEnvironmentWithPrefix(stream.environmentPrefix)
 	}
 	payload, _ := stream.Converter.Convert(record).MarshalJSON()
 	if _, err = os.Stderr.Write(payload); err != nil {

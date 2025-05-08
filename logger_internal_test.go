@@ -96,6 +96,19 @@ func (suite *InternalLoggerSuite) TestCanCreateWithEnvironmentDESTINATION() {
 	suite.Assert().Equal(false, log.stream.(*FileStream).Unbuffered, "FileStream should be buffered")
 }
 
+func (suite *InternalLoggerSuite) TestCanCreateWithEnvironmentPrefix() {
+	os.Setenv("LOG_DESTINATION", "/var/log/test.log")
+	os.Setenv("TEST_LOG_DESTINATION", "/var/log/test/test.log")
+	defer os.Unsetenv("LOG_DESTINATION")
+	defer os.Unsetenv("TEST_LOG_DESTINATION")
+	log := Create("test", EnvironmentPrefix("TEST_"))
+	suite.Require().NotNil(log, "Failed to create a Logger with prefix")
+	suite.Assert().Equal(EnvironmentPrefix("TEST_"), log.environmentPrefix, "Logger should have TEST_ prefix")
+	suite.Assert().IsType(&FileStream{}, log.stream)
+	suite.Assert().Equal("/var/log/test/test.log", log.stream.(*FileStream).Path)
+	suite.Assert().NotEqual("/var/log/test.log", log.stream.(*FileStream).Path)
+}
+
 func (suite *InternalLoggerSuite) TestCanCreateWithDestination() {
 	var log *Logger
 

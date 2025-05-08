@@ -577,6 +577,17 @@ The `Logger` can be configured completely by environment variables if needed. Th
 - `DEBUG`, default: none  
   If set to "1", this will set the default level to filter to *DEBUG*
 
+You can also use a prefix for the environment variables. When you create a `Logger`, you can pass a prefix to the `Create` method. For example:
+
+```go
+func main() {
+    log := logger.Create("myapp", logger.EnvironmentPrefix("myapp_"))
+    log.Infof("This is a message")
+}
+```
+
+The logger will look for the environment variables `myapp_LOG_DESTINATION`, `myapp_LOG_LEVEL`, etc.
+
 ## Thanks
 
 Special thanks to [@chakrit](https://github.com/chakrit) for his [chakrit/go-bunyan](https://github.com/chakrit/go-bunyan) that inspired me. In fact earlier versions were wrappers around his library.  
