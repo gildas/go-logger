@@ -6,7 +6,7 @@ import (
 )
 
 // Redact redacts a stringable value
-func Redact(value interface{}) string {
+func Redact(value any) string {
 	if value == nil {
 		return ""
 	}
@@ -34,12 +34,12 @@ func RedactMap[S comparable, T Redactable](items map[S]T) map[S]any {
 }
 
 // RedactWithHash redacts a value with a hash
-func RedactWithHash(value interface{}) string {
+func RedactWithHash(value any) string {
 	return RedactWithPrefixedHash("REDACTED", value)
 }
 
 // RedactWithPrefixedHash redacts a value with a prefix and a hash
-func RedactWithPrefixedHash(prefix string, value interface{}) string {
+func RedactWithPrefixedHash(prefix string, value any) string {
 	if value == nil {
 		return ""
 	}

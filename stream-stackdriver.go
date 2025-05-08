@@ -20,7 +20,7 @@ type StackDriverStream struct {
 	LogID        string
 	Parent       string
 	KeyFilename  string
-	Key          interface{}
+	Key          any
 	Converter    Converter
 	FilterLevels LevelSet
 	SourceInfo   bool

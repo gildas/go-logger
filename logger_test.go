@@ -916,7 +916,7 @@ func (suite *LoggerSuite) TestCanLogTimedFunc() {
 }
 
 func (suite *LoggerSuite) TestCanLogTimedFuncWithReturnedValue() {
-	var result interface{}
+	var result any
 	output := CaptureStdout(func() {
 		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
 		code := func() int {
@@ -924,7 +924,7 @@ func (suite *LoggerSuite) TestCanLogTimedFuncWithReturnedValue() {
 			time.Sleep(500 * time.Millisecond)
 			return 12
 		}
-		result = log.TimeFuncV("code", func() interface{} {
+		result = log.TimeFuncV("code", func() any {
 			return code()
 		})
 	})
@@ -1006,7 +1006,7 @@ func (suite *LoggerSuite) TestCanLogTimedFuncWithReturnedError() {
 }
 
 func (suite *LoggerSuite) TestCanLogTimedFuncWithReturnedValueAndError() {
-	var result interface{}
+	var result any
 	var err error
 	output := CaptureStdout(func() {
 		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
@@ -1015,7 +1015,7 @@ func (suite *LoggerSuite) TestCanLogTimedFuncWithReturnedValueAndError() {
 			time.Sleep(500 * time.Millisecond)
 			return 12, errors.New("error")
 		}
-		result, err = log.TimeFuncVE("code", func() (interface{}, error) {
+		result, err = log.TimeFuncVE("code", func() (any, error) {
 			return code()
 		})
 	})

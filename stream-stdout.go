@@ -13,14 +13,15 @@ import (
 
 // StdoutStream is the Stream that writes to the standard output
 type StdoutStream struct {
-	Converter      Converter
-	FilterLevels   LevelSet
-	Unbuffered     bool
-	SourceInfo     bool
-	output         *bufio.Writer
-	writer         io.Writer
-	flushFrequency time.Duration
-	mutex          sync.Mutex
+	Converter         Converter
+	FilterLevels      LevelSet
+	Unbuffered        bool
+	SourceInfo        bool
+	output            *bufio.Writer
+	writer            io.Writer
+	flushFrequency    time.Duration
+	environmentPrefix EnvironmentPrefix
+	mutex             sync.Mutex
 }
 
 // GetFilterLevels gets the filter levels
@@ -85,10 +86,10 @@ func (stream *StdoutStream) Write(record *Record) error {
 	defer stream.mutex.Unlock()
 	if stream.writer == nil {
 		if stream.Converter == nil {
-			stream.Converter = GetConverterFromEnvironment()
+			stream.Converter = GetConverterFromEnvironmentWithPrefix(stream.environmentPrefix)
 		}
 		if len(stream.FilterLevels) == 0 {
-			stream.FilterLevels = ParseLevelsFromEnvironment()
+			stream.FilterLevels = ParseLevelsFromEnvironmentWithPrefix(stream.environmentPrefix)
 		}
 		if stream.Unbuffered {
 			stream.output = nil
@@ -96,7 +97,7 @@ func (stream *StdoutStream) Write(record *Record) error {
 		} else {
 			stream.output = bufio.NewWriter(os.Stdout)
 			stream.writer = stream.output
-			stream.flushFrequency = GetFlushFrequencyFromEnvironment()
+			stream.flushFrequency = GetFlushFrequencyFromEnvironmentWithPrefix(stream.environmentPrefix)
 			go stream.flushJob()
 		}
 	}

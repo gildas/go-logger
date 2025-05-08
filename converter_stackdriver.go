@@ -24,7 +24,7 @@ func (converter *StackDriverConverter) Convert(record *Record) *Record {
 	return record
 }
 
-func (converter StackDriverConverter) severity(value interface{}) logging.Severity {
+func (converter StackDriverConverter) severity(value any) logging.Severity {
 	switch level := value.(type) {
 	case Level:
 		switch level {

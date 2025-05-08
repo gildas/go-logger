@@ -89,7 +89,7 @@ func (user User) IsNil() bool {
 	return user.ID == ""
 }
 
-func (user User) Redact() interface{} {
+func (user User) Redact() any {
 	return User{user.ID, logger.Redact(user.Name), user.logger}
 }
 
@@ -107,7 +107,7 @@ type Metadata struct {
 	City   string `json:"city"`
 }
 
-func (metadata Metadata) Redact(keyToRedact ...string) interface{} {
+func (metadata Metadata) Redact(keyToRedact ...string) any {
 	redacted := metadata
 	for _, key := range keyToRedact {
 		switch key {
@@ -123,7 +123,7 @@ func (metadata Metadata) Redact(keyToRedact ...string) interface{} {
 }
 
 // Load loads an object from a file and marshals it
-func Load(filename string, object interface{}) (err error) {
+func Load(filename string, object any) (err error) {
 	var payload []byte
 
 	if payload, err = os.ReadFile(filepath.Join(".", "testdata", filename)); err != nil {
@@ -234,7 +234,7 @@ func (suite *LoggerSuite) LogLineEqual(line string, records map[string]string) {
 		rex_records[key] = regexp.MustCompile(value)
 	}
 
-	properties := map[string]interface{}{}
+	properties := map[string]any{}
 	err := json.Unmarshal([]byte(line), &properties)
 	suite.Require().NoError(err, "Could not unmarshal line, error: %s", err)
 
@@ -253,9 +253,9 @@ func (suite *LoggerSuite) LogLineEqual(line string, records map[string]string) {
 				stringvalue = strconv.FormatFloat(value.(float64), 'f', -1, 64)
 			case fmt.Stringer:
 				stringvalue = actual.String()
-			case map[string]interface{}:
+			case map[string]any:
 				stringvalue = fmt.Sprintf("%v", value)
-			case []interface{}:
+			case []any:
 				stringvalue = fmt.Sprintf("%v", value)
 			default:
 				suite.Failf(fmt.Sprintf("The value of the key %s cannot be casted to string", key), "Type: %s", reflect.TypeOf(value))

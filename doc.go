@@ -32,7 +32,7 @@ More generally, Record fields can be logged like this:
 	Log.Record("myObject", myObject).Infof("Another message about my object")
 	Log.Recordf("myObject", "format %s %+v". myObject.ID(), myObject).Infof("This record uses a formatted value")
 
-	log := Log.Record("dynamic", func() interface{} { return myObject.Callme() })
+	log := Log.Record("dynamic", func() any { return myObject.Callme() })
 
 	log.Infof("This is here")
 	log.Infof("That is there")
@@ -268,7 +268,7 @@ For example:
 	}
 
 	// implements logger.Redactable
-	func (customer Customer) Redact() interface{} {
+	func (customer Customer) Redact() any {
 		return Customer{customer.ID, "REDACTED"}
 	}
 

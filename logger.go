@@ -13,10 +13,14 @@ import (
 
 // Logger is a Logger that creates Bunyan's compatible logs (see: https://github.com/trentm/node-bunyan)
 type Logger struct {
-	stream    Streamer
-	record    *Record
-	redactors []Redactor
+	environmentPrefix EnvironmentPrefix
+	stream            Streamer
+	record            *Record
+	redactors         []Redactor
 }
+
+// EnvironmentPrefix describes the prefix used for environment variables
+type EnvironmentPrefix string
 
 // Must returns the given logger or panics if there is an error or if the Logger is nil
 func Must(log *Logger, err error) *Logger {
@@ -29,13 +33,14 @@ func Must(log *Logger, err error) *Logger {
 }
 
 // Create creates a new Logger
-func Create(name string, parameters ...interface{}) (logger *Logger) {
+func Create(name string, parameters ...any) (logger *Logger) {
 	var (
 		destinations = []string{}
 		streams      = []Streamer{}
 		records      = []*Record{}
 		redactors    = []Redactor{}
 		filterLevels = ParseLevelsFromEnvironment()
+		prefix       = EnvironmentPrefix("")
 	)
 
 	for _, parameter := range parameters {
@@ -46,6 +51,11 @@ func Create(name string, parameters ...interface{}) (logger *Logger) {
 			}
 		case string:
 			destinations = append(destinations, parameter)
+		case EnvironmentPrefix:
+			if len(parameter) > 0 {
+				prefix = parameter
+				filterLevels = ParseLevelsFromEnvironmentWithPrefix(prefix)
+			}
 		case Level:
 			filterLevels.Set(parameter, "any", "any")
 		case Streamer:
@@ -68,21 +78,21 @@ func Create(name string, parameters ...interface{}) (logger *Logger) {
 		Set("name", name).
 		Set("hostname", hostname).
 		Set("pid", os.Getpid()).
-		Set("tid", func() interface{} { return gettid() }).
+		Set("tid", func() any { return gettid() }).
 		Set("topic", "main").
 		Set("scope", "main").
 		Set("v", 0)
 
 	for _, destination := range destinations {
-		streams = append(streams, CreateStream(filterLevels, destination))
+		streams = append(streams, CreateStreamWithPrefix(prefix, filterLevels, destination))
 	}
 
 	if len(streams) == 0 {
-		logger = &Logger{CreateStream(filterLevels), record, []Redactor{}}
+		logger = &Logger{prefix, CreateStreamWithPrefix(prefix, filterLevels), record, []Redactor{}}
 	} else if len(streams) == 1 {
-		logger = &Logger{streams[0], record, []Redactor{}}
+		logger = &Logger{prefix, streams[0], record, []Redactor{}}
 	} else {
-		logger = &Logger{&MultiStream{streams: streams}, record, []Redactor{}}
+		logger = &Logger{prefix, &MultiStream{streams: streams}, record, []Redactor{}}
 	}
 
 	for _, record := range records {
@@ -109,7 +119,7 @@ func (log *Logger) AddDestinations(destinations ...any) {
 	for _, raw := range destinations {
 		switch destination := raw.(type) {
 		case string:
-			streams = append(streams, CreateStream(log.GetFilterLevels(), destination))
+			streams = append(streams, CreateStreamWithPrefix(log.environmentPrefix, log.GetFilterLevels(), destination))
 		case Streamer:
 			streams = append(streams, destination)
 		}
@@ -133,7 +143,7 @@ func (log *Logger) ResetDestinations(destinations ...any) {
 	for _, raw := range destinations {
 		switch destination := raw.(type) {
 		case string:
-			streams = append(streams, CreateStream(log.GetFilterLevels(), destination))
+			streams = append(streams, CreateStreamWithPrefix(log.environmentPrefix, log.GetFilterLevels(), destination))
 		case Streamer:
 			streams = append(streams, destination)
 		}
@@ -147,21 +157,21 @@ func (log *Logger) ResetDestinations(destinations ...any) {
 }
 
 // Record adds the given Record to the Log
-func (log *Logger) Record(key string, value interface{}) *Logger {
+func (log *Logger) Record(key string, value any) *Logger {
 	// This func requires Logger to be a Stream
 	//   that allows us to nest Loggers
-	return &Logger{log, NewRecord().Set(key, value), log.redactors}
+	return &Logger{log.environmentPrefix, log, NewRecord().Set(key, value), log.redactors}
 }
 
 // RecordWithKeysToRedact adds the given Record to the Log
-func (log *Logger) RecordWithKeysToRedact(key string, value interface{}, keyToRedact ...string) *Logger {
+func (log *Logger) RecordWithKeysToRedact(key string, value any, keyToRedact ...string) *Logger {
 	// This func requires Logger to be a Stream
 	//   that allows us to nest Loggers
-	return &Logger{log, NewRecord().Set(key, value).AddKeysToRedact(keyToRedact...), log.redactors}
+	return &Logger{log.environmentPrefix, log, NewRecord().Set(key, value).AddKeysToRedact(keyToRedact...), log.redactors}
 }
 
 // Recordf adds the given Record with formatted arguments
-func (log *Logger) Recordf(key, value string, args ...interface{}) *Logger {
+func (log *Logger) Recordf(key, value string, args ...any) *Logger {
 	return log.Record(key, fmt.Sprintf(value, args...))
 }
 
@@ -171,7 +181,7 @@ func (log *Logger) Recordf(key, value string, args ...interface{}) *Logger {
 //	If the last value is missing, its key is ignored
 //
 // E.g.: log.Records("key1", value1, "key2", value2)
-func (log *Logger) Records(params ...interface{}) *Logger {
+func (log *Logger) Records(params ...any) *Logger {
 	if len(params) == 0 {
 		return log
 	}
@@ -185,11 +195,11 @@ func (log *Logger) Records(params ...interface{}) *Logger {
 			key = ""
 		}
 	}
-	return &Logger{log, record, log.redactors}
+	return &Logger{log.environmentPrefix, log, record, log.redactors}
 }
 
 // Topic sets the Topic of this Logger
-func (log *Logger) Topic(topic interface{}) *Logger {
+func (log *Logger) Topic(topic any) *Logger {
 	if topic == nil {
 		topic = log.record.Get("topic")
 	}
@@ -197,7 +207,7 @@ func (log *Logger) Topic(topic interface{}) *Logger {
 }
 
 // Scope sets the Scope if this Logger
-func (log *Logger) Scope(scope interface{}) *Logger {
+func (log *Logger) Scope(scope any) *Logger {
 	if scope == nil {
 		scope = log.record.Get("scope")
 	}
@@ -205,7 +215,7 @@ func (log *Logger) Scope(scope interface{}) *Logger {
 }
 
 // Child creates a child Logger with a topic, a scope, and records
-func (log *Logger) Child(topic, scope interface{}, params ...interface{}) *Logger {
+func (log *Logger) Child(topic, scope any, params ...any) *Logger {
 	var key string
 	if topic == nil {
 		topic = log.record.Get("topic")
@@ -214,7 +224,7 @@ func (log *Logger) Child(topic, scope interface{}, params ...interface{}) *Logge
 		scope = log.record.Get("scope")
 	}
 	record := NewRecord().Set("topic", topic).Set("scope", scope)
-	newlog := &Logger{log, record, log.redactors}
+	newlog := &Logger{log.environmentPrefix, log, record, log.redactors}
 	for _, param := range params {
 		switch actual := param.(type) {
 		case *Redactor:
@@ -239,7 +249,7 @@ func (log *Logger) Child(topic, scope interface{}, params ...interface{}) *Logge
 }
 
 // GetRecord returns the Record field value for a given key
-func (log *Logger) GetRecord(key string) interface{} {
+func (log *Logger) GetRecord(key string) any {
 	if value, found := log.record.Find(key); found {
 		return value
 	}
@@ -260,21 +270,21 @@ func (log *Logger) GetScope() string {
 }
 
 // Tracef traces a message at the TRACE Level
-func (log *Logger) Tracef(msg string, args ...interface{}) { log.send(TRACE, msg, args...) }
+func (log *Logger) Tracef(msg string, args ...any) { log.send(TRACE, msg, args...) }
 
 // Debugf traces a message at the DEBUG Level
-func (log *Logger) Debugf(msg string, args ...interface{}) { log.send(DEBUG, msg, args...) }
+func (log *Logger) Debugf(msg string, args ...any) { log.send(DEBUG, msg, args...) }
 
 // Infof traces a message at the INFO Level
-func (log *Logger) Infof(msg string, args ...interface{}) { log.send(INFO, msg, args...) }
+func (log *Logger) Infof(msg string, args ...any) { log.send(INFO, msg, args...) }
 
 // Warnf traces a message at the WARN Level
-func (log *Logger) Warnf(msg string, args ...interface{}) { log.send(WARN, msg, args...) }
+func (log *Logger) Warnf(msg string, args ...any) { log.send(WARN, msg, args...) }
 
 // Errorf traces a message at the ERROR Level
 //
 // If the last argument is an error, a Record is added and the error string is added to the message
-func (log *Logger) Errorf(msg string, args ...interface{}) {
+func (log *Logger) Errorf(msg string, args ...any) {
 	logWithErr := log
 
 	if len(args) > 0 {
@@ -294,7 +304,7 @@ func (log *Logger) Errorf(msg string, args ...interface{}) {
 // Fatalf traces a message at the FATAL Level
 //
 // If the last argument is an error, a Record is added and the error string is added to the message
-func (log *Logger) Fatalf(msg string, args ...interface{}) {
+func (log *Logger) Fatalf(msg string, args ...any) {
 	logWithErr := log
 
 	if len(args) > 0 {
@@ -312,7 +322,7 @@ func (log *Logger) Fatalf(msg string, args ...interface{}) {
 }
 
 // Memorylf traces memory usage at the given level and with the given message
-func (log *Logger) Memorylf(level Level, msg string, args ...interface{}) {
+func (log *Logger) Memorylf(level Level, msg string, args ...any) {
 	var mem runtime.MemStats
 
 	runtime.ReadMemStats(&mem)
@@ -328,7 +338,7 @@ func (log *Logger) Memorylf(level Level, msg string, args ...interface{}) {
 		)
 	} else {
 		msg = "Heap(Alloc = %s, System = %s), Stack(Alloc = %s, System = %s), NumGC = %d"
-		args = []interface{}{
+		args = []any{
 			bytesToString(mem.HeapAlloc),
 			bytesToString(mem.Sys),
 			bytesToString(mem.StackInuse),
@@ -340,7 +350,7 @@ func (log *Logger) Memorylf(level Level, msg string, args ...interface{}) {
 }
 
 // Memoryf traces memory usage at the TRACE level with a given message
-func (log *Logger) Memoryf(msg string, args ...interface{}) {
+func (log *Logger) Memoryf(msg string, args ...any) {
 	log.Memorylf(TRACE, msg, args...)
 }
 
@@ -355,7 +365,7 @@ func (log *Logger) Memory() {
 }
 
 // send writes a message to the Stream
-func (log *Logger) send(level Level, msg string, args ...interface{}) {
+func (log *Logger) send(level Level, msg string, args ...any) {
 	if log.ShouldWrite(level, log.GetTopic(), log.GetScope()) {
 		record, release := NewPooledRecord()
 		defer release()
