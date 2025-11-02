@@ -552,6 +552,8 @@ When the http request handler (*MyHandler*) starts, the following records are lo
 - `remote`, contains the remote address of the request
 - The `topic` is set to "route" and the `scope` to the path of the request URL
 
+You can choose another header than "X-Request-Id" to pass the request identifier with the `HttpHandlerWithRequestIDHeader(header string)` method.
+
 When the http request handler (*MyHandler*) ends, the following additional records are logged:  
 
 - `duration`, contains the duration in seconds (**float64**) of the handler execution
