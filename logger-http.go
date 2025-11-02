@@ -106,19 +106,23 @@ func (w *responseWriter) Write(b []byte) (int, error) {
 
 // HttpHandler function will wrap an http handler with extra logging information
 func (l *Logger) HttpHandler() func(http.Handler) http.Handler {
+	return l.HttpHandlerWithRequestIDHeader("X-Request-Id")
+}
+
+// HttpHandlerWithRequestIDHeader function will wrap an http handler with extra logging information
+//
+// It allows to specify the header field to use for request ID
+func (l *Logger) HttpHandlerWithRequestIDHeader(header string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 
 			// Get a request identifier and pass it to the response writer
-			reqid := r.Header.Get("X-Line-Request-Id")
-			if len(reqid) == 0 {
-				reqid = r.Header.Get("X-Request-Id")
-			}
+			reqid := r.Header.Get(header)
 			if len(reqid) == 0 {
 				reqid = uuid.Must(uuid.NewRandom()).String()
 			}
-			w.Header().Set("X-Request-Id", reqid)
+			w.Header().Set(header, reqid)
 
 			// Get a new Child logger tailored to the request
 			reqLogger := l.Child("route", r.URL.Path, "reqid", reqid, "path", r.URL.Path, "remote", r.RemoteAddr)

@@ -621,3 +621,14 @@ func (suite *StreamSuite) TestCanSetLevelPerTopicAndScope() {
 	suite.Assert().Truef(streamMulti.ShouldWrite(logger.TRACE, "main", "specific"), "Stream %s should write TRACE messages for main topic and specific scope", reflect.TypeOf(streamMulti))
 	suite.Assert().Truef(streamMulti.ShouldWrite(logger.DEBUG, "another_topic", "any"), "Stream %s should write DEBUG messages for another_topic topic and any scope", reflect.TypeOf(streamMulti))
 }
+
+func (suite *StreamSuite) TestCanCreateWithEnvironmentPrefix() {
+	os.Setenv("LOG_DESTINATION", "stdout")
+	defer os.Unsetenv("LOG_DESTINATION")
+	os.Setenv("TEST_LOG_DESTINATION", "nil")
+	defer os.Unsetenv("TEST_LOG_DESTINATION")
+	stream := logger.CreateStreamWithPrefix(logger.EnvironmentPrefix("TEST_"), logger.NewLevelSet(logger.INFO))
+	suite.Require().NotNil(stream, "Failed to create a stream from an empty destination")
+	suite.Assert().IsType(&logger.NilStream{}, stream)
+	stream.Close()
+}

@@ -109,7 +109,8 @@ func (suite *LoggerSuite) TestShouldFailLoadingFromContextWithoutLogger() {
 }
 
 func (suite *LoggerSuite) TestShouldFailLoadingFromNilContext() {
-	_, err := logger.FromContext(nil) //nolint
+	//lint:ignore SA1012 Testing nil context
+	_, err := logger.FromContext(nil)
 	suite.Require().NotNil(err, "Context should not contain a Logger")
 	suite.Assert().True(errors.Is(err, errors.ArgumentMissing), "error should be an Argument Missing error")
 	details := errors.ArgumentMissing.Clone()
