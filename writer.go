@@ -7,6 +7,6 @@ type loggerWriter struct {
 }
 
 func (writer loggerWriter) Write(data []byte) (n int, err error) {
-	writer.logger.send(writer.level, string(data))
+	writer.logger.send(writer.level, "%s", string(data))
 	return len(data), nil
 }
