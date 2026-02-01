@@ -177,7 +177,7 @@ func (stream *FileStream) String() string {
 	if stream.Unbuffered {
 		_, _ = format.WriteString("Unbuffered ")
 	}
-	format.WriteString("Stream to %s")
+	_, _ = format.WriteString("Stream to %s")
 	if len(stream.FilterLevels) > 0 {
 		_, _ = format.WriteString(", Filter: %s")
 		return fmt.Sprintf(format.String(), stream.Path, stream.FilterLevels)
