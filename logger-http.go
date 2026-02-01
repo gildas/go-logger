@@ -141,17 +141,17 @@ func (l *Logger) HttpHandlerWithRequestIDHeader(header string) func(http.Handler
 			// Logging the duration of the request handling
 			duration := time.Since(start)
 			if writer.statusCode >= 400 {
-				reqLogger.
-					Record("duration", duration.Seconds()).
-					Record("http_status", writer.statusCode).
-					Record("written", writer.written).
-					Errorf("❌ request finish: %s %s in %s", r.Method, html.EscapeString(r.URL.Path), duration)
+				reqLogger.Records(
+					"duration", duration.Seconds(),
+					"http_status", writer.statusCode,
+					"written", writer.written,
+				).Errorf("❌ request finish: %s %s in %s", r.Method, html.EscapeString(r.URL.Path), duration)
 			} else {
-				reqLogger.
-					Record("duration", duration.Seconds()).
-					Record("http_status", writer.statusCode).
-					Record("written", writer.written).
-					Infof("✅ request finish: %s %s in %s", r.Method, html.EscapeString(r.URL.Path), duration)
+				reqLogger.Records(
+					"duration", duration.Seconds(),
+					"http_status", writer.statusCode,
+					"written", writer.written,
+				).Infof("✅ request finish: %s %s in %s", r.Method, html.EscapeString(r.URL.Path), duration)
 			}
 		})
 	}
