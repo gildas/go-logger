@@ -143,8 +143,8 @@ func (suite *StreamSuite) TestCanCreateStreamFromDestination() {
 }
 
 func (suite *StreamSuite) TestCanCreateStreamFromEnvironment() {
-	os.Setenv("LOG_DESTINATION", "/var/log/test.log")
-	defer os.Unsetenv("LOG_DESTINATION")
+	_ = os.Setenv("LOG_DESTINATION", "/var/log/test.log")
+	defer func() { _ = os.Unsetenv("LOG_DESTINATION") }()
 	stream := logger.CreateStream(logger.NewLevelSet(logger.INFO))
 	suite.Require().NotNil(stream, "Failed to create a file stream")
 	suite.Assert().IsType(&logger.FileStream{}, stream)
@@ -231,8 +231,8 @@ func (suite *StreamSuite) TestStackDriverStreamCanSetFilterLevel() {
 
 func (suite *StreamSuite) TestCanStreamToFile() {
 	var err error
-	os.Setenv("LOG_FLUSHFREQUENCY", "10ms")
-	defer os.Unsetenv("LOG_FLUSHFREQUENCY")
+	_ = os.Setenv("LOG_FLUSHFREQUENCY", "10ms")
+	defer func() { _ = os.Unsetenv("LOG_FLUSHFREQUENCY") }()
 	folder, teardown := CreateTempDir()
 	defer teardown()
 	stream := &logger.FileStream{Path: filepath.Join(folder, "test.log")}
@@ -274,8 +274,8 @@ func (suite *StreamSuite) TestCanStreamToUnbufferedFile() {
 }
 
 func (suite *StreamSuite) TestCanStreamToStdout() {
-	os.Setenv("LOG_FLUSHFREQUENCY", "10ms")
-	defer os.Unsetenv("LOG_FLUSHFREQUENCY")
+	_ = os.Setenv("LOG_FLUSHFREQUENCY", "10ms")
+	defer func() { _ = os.Unsetenv("LOG_FLUSHFREQUENCY") }()
 	stream := &logger.StdoutStream{}
 	output := CaptureStdout(func() {
 		err := stream.Write(logger.NewRecord().Set("bello", "banana").Set("だれ", "私"))
@@ -342,8 +342,8 @@ func (suite *StreamSuite) TestCanStreamToStackDriverWithKeyFilename() {
 		suite.T().Skip("There is no way to test this without a Google Project ID")
 	}
 	if current, ok := os.LookupEnv("GOOGLE_APPLICATION_CREDENTIALS"); ok {
-		os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
-		defer os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", current)
+		_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
+		defer func() { _ = os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", current) }()
 	}
 	stream := &logger.StackDriverStream{LogID: "test", KeyFilename: "gcloud-key.json"}
 	defer stream.Close()
@@ -359,8 +359,8 @@ func (suite *StreamSuite) TestCanStreamToStackDriverWithKey() {
 		suite.T().Skip("There is no way to test this without a Google Project ID")
 	}
 	if current, ok := os.LookupEnv("GOOGLE_APPLICATION_CREDENTIALS"); ok {
-		os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
-		defer os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", current)
+		_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
+		defer func() { _ = os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", current) }()
 	}
 	key := map[string]string{}
 	err := Load("../gcloud-key.json", &key)
@@ -388,22 +388,22 @@ func (suite *StreamSuite) TestCanStreamToMultiStream() {
 }
 
 func (suite *StreamSuite) TestCanGetFlushFrequencyFromEnvironment() {
-	os.Unsetenv("LOG_FLUSHFREQUENCY")
+	_ = os.Unsetenv("LOG_FLUSHFREQUENCY")
 	frequency := logger.GetFlushFrequencyFromEnvironment()
 	suite.Assert().Equal(5*time.Minute, frequency, "Frequency should be 5 minutes before being set in the environment")
-	os.Setenv("LOG_FLUSHFREQUENCY", "3600s")
+	_ = os.Setenv("LOG_FLUSHFREQUENCY", "3600s")
 	frequency = logger.GetFlushFrequencyFromEnvironment()
 	suite.Assert().Equal(1*time.Hour, frequency, "Frequency should be 1 hour after being set in the environment (was %s)", frequency)
-	os.Setenv("LOG_FLUSHFREQUENCY", "P2H")
+	_ = os.Setenv("LOG_FLUSHFREQUENCY", "P2H")
 	frequency = logger.GetFlushFrequencyFromEnvironment()
 	suite.Assert().Equal(2*time.Hour, frequency, "Frequency should be 2 hour after being set in the environment (was %s)", frequency)
-	os.Unsetenv("LOG_FLUSHFREQUENCY")
+	_ = os.Unsetenv("LOG_FLUSHFREQUENCY")
 }
 
 func (suite *StreamSuite) TestFailsWritingToStackDriverWithNoParent() {
 	if current, ok := os.LookupEnv("GOOGLE_PROJECT_ID"); ok {
-		os.Unsetenv("GOOGLE_PROJECT_ID")
-		defer os.Setenv("GOOGLE_PROJECT_ID", current)
+		_ = os.Unsetenv("GOOGLE_PROJECT_ID")
+		defer func() { _ = os.Setenv("GOOGLE_PROJECT_ID", current) }()
 	}
 	stream := &logger.StackDriverStream{}
 	err := stream.Write(logger.NewRecord().Set("key", "value"))
@@ -419,8 +419,8 @@ func (suite *StreamSuite) TestFailsWritingToStackDriverWithNoCredentials() {
 		suite.T().Skip("There is no way to test this without a Google Project ID")
 	}
 	if current, ok := os.LookupEnv("GOOGLE_APPLICATION_CREDENTIALS"); ok {
-		os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
-		defer os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", current)
+		_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
+		defer func() { _ = os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", current) }()
 	}
 	stream := &logger.StackDriverStream{}
 	err := stream.Write(logger.NewRecord().Set("key", "value"))
@@ -433,8 +433,8 @@ func (suite *StreamSuite) TestFailsWritingToStackDriverWithInvalidKey() {
 		suite.T().Skip("There is no way to test this without a Google Project ID")
 	}
 	if current, ok := os.LookupEnv("GOOGLE_APPLICATION_CREDENTIALS"); ok {
-		os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
-		defer os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", current)
+		_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
+		defer func() { _ = os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", current) }()
 	}
 	stream := &logger.StackDriverStream{LogID: "test", Key: make(chan bool)}
 	defer stream.Close()
@@ -623,10 +623,10 @@ func (suite *StreamSuite) TestCanSetLevelPerTopicAndScope() {
 }
 
 func (suite *StreamSuite) TestCanCreateWithEnvironmentPrefix() {
-	os.Setenv("LOG_DESTINATION", "stdout")
-	defer os.Unsetenv("LOG_DESTINATION")
-	os.Setenv("TEST_LOG_DESTINATION", "nil")
-	defer os.Unsetenv("TEST_LOG_DESTINATION")
+	_ = os.Setenv("LOG_DESTINATION", "stdout")
+	defer func() { _ = os.Unsetenv("LOG_DESTINATION") }()
+	_ = os.Setenv("TEST_LOG_DESTINATION", "nil")
+	defer func() { _ = os.Unsetenv("TEST_LOG_DESTINATION") }()
 	stream := logger.CreateStreamWithPrefix(logger.EnvironmentPrefix("TEST_"), logger.NewLevelSet(logger.INFO))
 	suite.Require().NotNil(stream, "Failed to create a stream from an empty destination")
 	suite.Assert().IsType(&logger.NilStream{}, stream)

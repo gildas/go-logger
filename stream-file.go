@@ -121,7 +121,7 @@ func (stream *FileStream) Write(record *Record) (err error) {
 		_, err = stream.writer.Write([]byte("\n"))
 		if err == nil { // Keep working as long as there is no error
 			if GetLevelFromRecord(record) >= ERROR && stream.output != nil {
-				stream.output.Flush() // calling stream.Flush would Lock the mutex again and end up with a dead-lock
+				_ = stream.output.Flush() // calling stream.Flush would Lock the mutex again and end up with a dead-lock
 			}
 		}
 	}
@@ -149,7 +149,7 @@ func (stream *FileStream) Flush() {
 	if stream.output != nil {
 		stream.mutex.Lock()
 		defer stream.mutex.Unlock()
-		stream.output.Flush()
+		_ = stream.output.Flush()
 	}
 }
 
@@ -160,10 +160,10 @@ func (stream *FileStream) Close() {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.output != nil {
-		stream.output.Flush()
+		_ = stream.output.Flush()
 	}
 	if stream.file != nil {
-		stream.file.Close()
+		_ = stream.file.Close()
 	}
 }
 
@@ -175,11 +175,11 @@ func (stream *FileStream) String() string {
 	defer bufferPool.Put(format)
 
 	if stream.Unbuffered {
-		format.WriteString("Unbuffered ")
+		_, _ = format.WriteString("Unbuffered ")
 	}
 	format.WriteString("Stream to %s")
 	if len(stream.FilterLevels) > 0 {
-		format.WriteString(", Filter: %s")
+		_, _ = format.WriteString(", Filter: %s")
 		return fmt.Sprintf(format.String(), stream.Path, stream.FilterLevels)
 	}
 	return fmt.Sprintf(format.String(), stream.Path)

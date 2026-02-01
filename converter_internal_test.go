@@ -26,29 +26,29 @@ func (suite *ConverterSuite) SetupSuite() {
 
 func (suite *ConverterSuite) TestCanGetConverterFromEnvironment() {
 	if current, ok := os.LookupEnv("LOG_CONVERTER"); ok {
-		defer os.Setenv("LOG_CONVERTER", current)
+		defer func() { _ = os.Setenv("LOG_CONVERTER", current) }()
 	} else {
-		defer os.Unsetenv("LOG_CONVERTER")
+		defer func() { _ = os.Unsetenv("LOG_CONVERTER") }()
 	}
-	os.Setenv("LOG_CONVERTER", "bunyan")
+	_ = os.Setenv("LOG_CONVERTER", "bunyan")
 	converter := GetConverterFromEnvironment()
 	suite.Assert().IsType(&BunyanConverter{}, converter)
-	os.Setenv("LOG_CONVERTER", "aws")
+	_ = os.Setenv("LOG_CONVERTER", "aws")
 	converter = GetConverterFromEnvironment()
 	suite.Assert().IsType(&CloudWatchConverter{}, converter)
-	os.Setenv("LOG_CONVERTER", "cloudwatch")
+	_ = os.Setenv("LOG_CONVERTER", "cloudwatch")
 	converter = GetConverterFromEnvironment()
 	suite.Assert().IsType(&CloudWatchConverter{}, converter)
-	os.Setenv("LOG_CONVERTER", "stackdriver")
+	_ = os.Setenv("LOG_CONVERTER", "stackdriver")
 	converter = GetConverterFromEnvironment()
 	suite.Assert().IsType(&StackDriverConverter{}, converter)
-	os.Setenv("LOG_CONVERTER", "google")
+	_ = os.Setenv("LOG_CONVERTER", "google")
 	converter = GetConverterFromEnvironment()
 	suite.Assert().IsType(&StackDriverConverter{}, converter)
-	os.Setenv("LOG_CONVERTER", "gcp")
+	_ = os.Setenv("LOG_CONVERTER", "gcp")
 	converter = GetConverterFromEnvironment()
 	suite.Assert().IsType(&StackDriverConverter{}, converter)
-	os.Setenv("LOG_CONVERTER", "bello")
+	_ = os.Setenv("LOG_CONVERTER", "bello")
 	converter = GetConverterFromEnvironment()
 	suite.Assert().IsType(&BunyanConverter{}, converter)
 }

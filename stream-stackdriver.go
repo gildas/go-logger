@@ -153,7 +153,7 @@ func (stream *StackDriverStream) Flush() {
 	if stream.target != nil {
 		stream.mutex.Lock()
 		defer stream.mutex.Unlock()
-		stream.target.Flush()
+		_ = stream.target.Flush()
 	}
 }
 
@@ -164,10 +164,10 @@ func (stream *StackDriverStream) Close() {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.target != nil {
-		stream.target.Flush()
+		_ = stream.target.Flush()
 	}
 	if stream.client != nil {
-		stream.client.Close()
+		_ = stream.client.Close()
 	}
 }
 

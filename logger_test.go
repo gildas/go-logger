@@ -109,8 +109,7 @@ func (suite *LoggerSuite) TestShouldFailLoadingFromContextWithoutLogger() {
 }
 
 func (suite *LoggerSuite) TestShouldFailLoadingFromNilContext() {
-	//lint:ignore SA1012 Testing nil context
-	_, err := logger.FromContext(nil)
+	_, err := logger.FromContext(nil) //nolint:staticcheck
 	suite.Require().NotNil(err, "Context should not contain a Logger")
 	suite.Assert().True(errors.Is(err, errors.ArgumentMissing), "error should be an Argument Missing error")
 	details := errors.ArgumentMissing.Clone()
@@ -462,7 +461,7 @@ func (suite *LoggerSuite) TestLoggerHttpHandlerWithSuccess() {
 		log.HttpHandler()(httpHandler()).ServeHTTP(w, req)
 		res := w.Result()
 		suite.Assert().Equal(http.StatusOK, res.StatusCode)
-		defer res.Body.Close()
+		defer func() { _ = res.Body.Close() }()
 		data, err := io.ReadAll(res.Body)
 		suite.Require().NoError(err, "Failed to read response body")
 		suite.Assert().Contains(string(data), "test")

@@ -168,7 +168,7 @@ func CreateTempDir() (string, func()) {
 	if err != nil {
 		panic(fmt.Sprintf("Unable to create a temp folder for log files. Error: %s\n", err))
 	}
-	return dir, func() { os.RemoveAll(dir) }
+	return dir, func() { _ = os.RemoveAll(dir) }
 }
 
 // CreateLogDir creates a local log directory
@@ -189,7 +189,7 @@ func CreateTempFile() (*os.File, func()) {
 	if err != nil {
 		panic(fmt.Sprintf("Unable to create a temp file for log files. Error: %s\n", err))
 	}
-	return file, func() { file.Close(); os.Remove(file.Name()) }
+	return file, func() { _ = file.Close(); _ = os.Remove(file.Name()) }
 }
 
 func CaptureStderr(f func()) string {
@@ -203,7 +203,7 @@ func CaptureStderr(f func()) string {
 	os.Stderr = writer
 
 	f()
-	writer.Close()
+	_ = writer.Close()
 
 	output := bytes.Buffer{}
 	_, _ = io.Copy(&output, reader)
@@ -221,7 +221,7 @@ func CaptureStdout(f func()) string {
 	os.Stdout = writer
 
 	f()
-	writer.Close()
+	_ = writer.Close()
 
 	output := bytes.Buffer{}
 	_, _ = io.Copy(&output, reader)
