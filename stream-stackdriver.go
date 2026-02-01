@@ -3,6 +3,7 @@ package logger
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -13,29 +14,79 @@ import (
 )
 
 // StackDriverStream is the Stream that writes to the standard output
+//
+// implements logger.Streamer
 type StackDriverStream struct {
-	LogID       string
-	Parent      string
-	KeyFilename string
-	Key         interface{}
-	Converter   Converter
-	FilterLevel Level
-	mutex       sync.Mutex
-	client      *logging.Client
-	target      *logging.Logger
+	LogID        string
+	Parent       string
+	KeyFilename  string
+	Key          any
+	Converter    Converter
+	FilterLevels LevelSet
+	SourceInfo   bool
+	mutex        sync.Mutex
+	client       *logging.Client
+	target       *logging.Logger
+}
+
+// GetFilterLevels gets the filter levels
+//
+// implements logger.Streamer
+func (stream *StackDriverStream) GetFilterLevels() LevelSet {
+	return stream.FilterLevels
 }
 
 // SetFilterLevel sets the filter level
-func (stream *StackDriverStream) SetFilterLevel(level Level) Streamer {
+//
+// If present, the first parameter is the topic.
+//
+// If present, the second parameter is the scope.
+//
+// implements logger.FilterSetter
+func (stream *StackDriverStream) SetFilterLevel(level Level, parameters ...string) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
-	stream.FilterLevel = level
-	return stream
+	if len(parameters) == 0 {
+		stream.FilterLevels.SetDefault(level)
+	} else if len(parameters) == 1 {
+		stream.FilterLevels.Set(level, parameters[0], "")
+	} else {
+		stream.FilterLevels.Set(level, parameters[0], parameters[1])
+	}
+}
+
+// FilterMore tells the stream to filter more
+//
+// The stream will filter more if it is not already at the highest level.
+// Which means less log messages will be written to the stream
+//
+// Example: if the stream is at DEBUG, it will be filtering at INFO
+//
+// implements logger.FilterModifier
+func (stream *StackDriverStream) FilterMore() {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevels.SetDefault(stream.FilterLevels.GetDefault().Next())
+}
+
+// FilterLess tells the stream to filter less
+//
+// The stream will filter less if it is not already at the lowest level.
+// Which means more log messages will be written to the stream
+//
+// Example: if the stream is at INFO, it will be filtering at DEBUG
+//
+// implements logger.FilterModifier
+func (stream *StackDriverStream) FilterLess() {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	stream.FilterLevels.SetDefault(stream.FilterLevels.GetDefault().Previous())
 }
 
 // Write writes the given Record
-func (stream *StackDriverStream) Write(record Record) (err error) {
-	// implements logger.Stream
+//
+// implements logger.Streamer
+func (stream *StackDriverStream) Write(record *Record) (err error) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.client == nil {
@@ -43,7 +94,7 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 		if len(stream.Parent) == 0 {
 			projectID, ok := os.LookupEnv("GOOGLE_PROJECT_ID")
 			if !ok {
-				return errors.EnvironmentMissing.With("GOOGLE_PROJECT_ID").WithStack()
+				return errors.EnvironmentMissing.With("GOOGLE_PROJECT_ID")
 			}
 			stream.Parent = "projects/" + projectID
 		}
@@ -52,7 +103,7 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 		if stream.Key != nil {
 			payload, err := json.Marshal(stream.Key)
 			if err != nil {
-				return errors.JSONMarshalError.Wrap(err)
+				return errors.JSONMarshalError.WrapIfNotMe(err)
 			}
 			options = append(options, googleoption.WithCredentialsJSON(payload))
 		} else if len(stream.KeyFilename) != 0 {
@@ -64,15 +115,15 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 			return errors.WithStack(err)
 		}
 		stream.target = stream.client.Logger(stream.LogID)
-		if stream.FilterLevel == 0 {
-			stream.FilterLevel = GetLevelFromEnvironment()
+		if len(stream.FilterLevels) == 0 {
+			stream.FilterLevels = ParseLevelsFromEnvironment()
 		}
 	}
 	grecord := stream.Converter.Convert(record)
-	stamp, _ := time.Parse(time.RFC3339, grecord["time"].(string))
-	severity := grecord["severity"].(logging.Severity)
-	delete(grecord, "time")
-	delete(grecord, "severity")
+	stamp, _ := time.Parse(time.RFC3339, grecord.Get("time").(string))
+	severity := grecord.Get("severity").(logging.Severity)
+	grecord.Delete("time")
+	grecord.Delete("severity")
 	stream.target.Log(logging.Entry{
 		Timestamp: stamp,
 		Severity:  severity,
@@ -81,36 +132,51 @@ func (stream *StackDriverStream) Write(record Record) (err error) {
 	return nil
 }
 
+// ShouldLogSourceInfo tells if the source info should be logged
+//
+// implements logger.Streamer
+func (stream *StackDriverStream) ShouldLogSourceInfo() bool {
+	return stream.SourceInfo
+}
+
 // ShouldWrite tells if the given level should be written to this stream
-func (stream *StackDriverStream) ShouldWrite(level Level) bool {
-	// implements logger.Stream
-	return level.ShouldWrite(stream.FilterLevel)
+//
+// implements logger.Streamer
+func (stream *StackDriverStream) ShouldWrite(level Level, topic, scope string) bool {
+	return level.ShouldWrite(stream.FilterLevels.Get(topic, scope))
 }
 
 // Flush flushes the stream (makes sure records are actually written)
+//
+// implements logger.Streamer
 func (stream *StackDriverStream) Flush() {
-	// implements logger.Stream
 	if stream.target != nil {
 		stream.mutex.Lock()
 		defer stream.mutex.Unlock()
-		stream.target.Flush()
+		_ = stream.target.Flush()
 	}
 }
 
 // Close closes the stream
+//
+// implements logger.Streamer
 func (stream *StackDriverStream) Close() {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.target != nil {
-		stream.target.Flush()
+		_ = stream.target.Flush()
 	}
 	if stream.client != nil {
-		stream.client.Close()
+		_ = stream.client.Close()
 	}
 }
 
 // String gets a string version
+//
+// implements fmt.Stringer
 func (stream *StackDriverStream) String() string {
-	// implements the fmt.Stringer interface
+	if len(stream.FilterLevels) > 0 {
+		return fmt.Sprintf("Stream to Google StackDriver, Filter: %s", stream.FilterLevels)
+	}
 	return "Stream to Google StackDriver"
 }

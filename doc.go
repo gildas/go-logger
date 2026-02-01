@@ -32,7 +32,7 @@ More generally, Record fields can be logged like this:
 	Log.Record("myObject", myObject).Infof("Another message about my object")
 	Log.Recordf("myObject", "format %s %+v". myObject.ID(), myObject).Infof("This record uses a formatted value")
 
-	log := Log.Record("dynamic", func() interface{} { return myObject.Callme() })
+	log := Log.Record("dynamic", func() any { return myObject.Callme() })
 
 	log.Infof("This is here")
 	log.Infof("That is there")
@@ -91,6 +91,18 @@ Therefore, to optimize the number of Logger objects that are created, there are 
 
 The Child method will create one Logger that has a Record containing a topic, a scope, 2 keys (*id* and *key1*) with their values.
 
+The Records method will create one Logger that has 2 keys (*key2* and *key3*) with their values.
+
+For example, with these methods:
+
+	var Log    = logger.Create("test")
+	var child1 = Log.Child("topic", "scope", "key2", "value2", "key3", "value3")
+	var child2 = child1.Records("key2", "value21", "key4", "value4")
+
+*child1* will be something like Logger(Logger(Stream to stdout)). Though we added 2 records.
+
+*child2* will be something like Logger(Logger(Logger(Stream to stdout))). Though we added 1 record to the 2 records added previously.
+
 Stream objects
 
 A Stream is where the Logger actually writes its Record data.
@@ -137,11 +149,6 @@ A few notes:
 
 - MultiStream is a Stream than can write to several streams.
 
-- All Stream types, except NilStream and MultiStream can use a FilterLevel. When set,
-Record objects that have a Level below the FilterLevel are not written to the Stream.
-This allows to log only stuff above Warn for instance.
-The FilterLevel can be set via the environment variable LOG_LEVEL.
-
 - StdoutStream and FileStream are buffered by default.
 Data is written from every LOG_FLUSHFREQUENCY (default 5 minutes) or when the Record's Level is at least ERROR.
 
@@ -154,6 +161,41 @@ You can also create a Logger with a combination of destinations and streams, AND
 	    "stackdriver",
 	    NewRecord().Set("key", "value"),
 	)
+
+Setting the FilterLevel
+
+All Stream types, except NilStream and MultiStream can use a FilterLevel. When set, Record objects that have a Level below the FilterLevel are not written to the Stream. This allows to log only stuff above *WARN* for instance.
+
+These streams can even use a FilterLevel per topic and scope. This allows to log everything at the *INFO* level and only the log messages beloging to the topic *db* at the *DEBUG* level, for instance. Or even at the topic *db* and scope *disk*.
+
+The FilterLevel can be set via the environment variable LOG_LEVEL:
+
+- LOG_LEVEL=INFO
+
+  will set the FilterLevel to *INFO*, which is the default if nothing is set;
+
+- LOG_LEVEL=INFO;DEBUG:{topic1} or LOG_LEVEL=TRACE:{topic1};DEBUG
+
+  will set the FilterLevel to *DEBUG* and the FilterLevel for the topic *topic1* to *TRACE* (and all the scopes under that topic);
+
+- LOG_LEVEL=INFO;DEBUG:{topic1:scope1,scope2}
+
+  will set the FilterLevel to *INFO* and the FilterLevel for the topic *topic1* and scopes *scope1*, *scope2* to *DEBUG* (all the other scopes under that topic will be filtered at *INFO*);
+
+- LOG_LEVEL=INFO;DEBUG:{topic1};TRACE:{topic2}
+
+  will set the FilterLevel to *INFO* and the FilterLevel for the topic *topic1* to *DEBUG*, respectively *topic2* and *TRACE* (and all the scopes under these topics);
+
+- The last setting of a topic supersedes the ones set before;
+
+- If the environment variable `DEBUG` is set to *1*, the default FilterLevel is overrident and set to *DEBUG*.
+
+It is also possible to change the FilterLevel by calling `FilterMore()`and `FilterLess()` methods on the `Logger` or any of its `Streamer` members. The former will log less data and the latter will log more data. We provide an example of how to use these in the [examples](examples/set-level-with-signal/) folder using Unix signals.
+
+	log := logger.Create("myapp", &logger.StdoutStream{})
+	// We are filtering at INFO
+	log.FilterLess()
+	// We are now filtering at DEBUG
 
 StackDriver Stream
 
@@ -211,7 +253,47 @@ if there is an error, Must will panic.
 
 FromContext() can be used to retrieve a Logger from a Go context.
 (This is used in the next paragraph about HTTP Usage).
+
 log.ToContext will store the Logger to the given Go context.
+
+Redacting
+
+The Logger can redact records as needed by simply implementing the logger.Redactable interface in the data that is logged.
+
+For example:
+
+	type Customer {
+		ID   uuid.UUID `json:"id"`
+		Name string    `json:"name"`
+	}
+
+	// implements logger.Redactable
+	func (customer Customer) Redact() any {
+		return Customer{customer.ID, "REDACTED"}
+	}
+
+	main() {
+		// ...
+		customer := Customer{uuid, "John Doe"}
+
+		log.Record("customer", customer).Infof("Got a customer")
+	}
+
+
+You can also redact the log messages by providing regular expressions, called redactors. Whenever a redactor matches, its matched content is replaced with "REDACTED".
+
+You can assign several redactors to a single logger:
+
+	r1, err := logger.NewRedactor("[0-9]{10}")
+	r2 := (logger.Redactor)(myregexp)
+	log := logger.Create("test", r1, r2)
+
+You can also add redactors to a child logger (without modifying the parent logger):
+
+	r3 := logger.NewRedactor("[a-z]{8}")
+	log := parent.Child("topic", "scope", "record1", "value1", r3)
+
+Note: Adding redactors to a logger **WILL** have a performance impact on your application as each regular expression will be matched against every single message produced by the logger. We advise you to use as few redactors as possible and contain them in child logger, so they have a minmal impact.
 
 Converters
 
@@ -222,8 +304,11 @@ The default Converter is BunyanConverter so the bunyan log viewer can read the l
 Here is a list of all the converters:
 
 - BunyanConverter, the default converter (does nothing, actually),
+- CloudWatchConverter produces logs that are nicer with AWS CloudWatch log viewer.
 - PinoConverter produces logs that can be used by pino (http://getpino.io),
 - StackDriverConverter produces logs that are nicer with Google StackDriver log viewer,
+
+Note: When you use converters, their output will most probably not work anymore with `bunyan`. That means you cannot have both worlds in the same Streamer. In some situation, you can survive this by using several streamers, one converted, one not.
 
 Writing your own Converter
 
@@ -240,6 +325,57 @@ You can also write your own Converter by implementing the logger.Converter inter
 
 	var Log = logger.Create("myapp", &logger.StdoutStream{Converter: &MyConverter{}})
 
+Standard Log Compatibility
+
+To use a Logger with the standard go log library, you can simply call the `AsStandardLog()` method. You can optionally give a Level:
+
+	package main
+
+	import (
+		"net/http"
+		"github.com/gildas/go-logger"
+	)
+
+	func main() {
+			log := logger.Create("myapp")
+
+			server1 := http.Server{
+				// extra http stuff
+				ErrorLog: log.AsStandardLog()
+			}
+
+			server2 := http.Server{
+				// extra http stuff
+				ErrorLog: log.AsStandardLog(logger.WARN)
+			}
+	}
+
+You can also give an io.Writer to the standard log constructor:
+
+	package main
+
+	import (
+		"log"
+		"net/http"
+		"github.com/gildas/go-logger"
+	)
+
+	func main() {
+			mylog := logger.Create("myapp")
+
+			server1 := http.Server{
+				// extra http stuff
+				ErrorLog: log.New(mylog.Writer(), "", 0),
+			}
+
+			server2 := http.Server{
+				// extra http stuff
+				ErrorLog: log.New(mylog.Writer(logger.WARN), "", 0),
+			}
+	}
+
+Since Writer() returns io.Writer, anything that uses that interface could, in theory, write to a Logger.
+
 HTTP Usage
 
 It is possible to pass Logger objects to http.Handler object. When doing so, the Logger will automatically write
@@ -253,25 +389,25 @@ Here is an example:
 	package main
 
 	import (
-	    "net/http"
+		"net/http"
 		"github.com/gildas/go-logger"
 		"github.com/gorilla/mux"
 	)
 
 	func MyHandler() http.Handler {
-	    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	        // Extracts the Logger from the request's context
-	        //  Note: Use logger.Must only when you know there is a Logger as it will panic otherwise
-	        log := logger.Must(logger.FromContext(r.Context()))
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Extracts the Logger from the request's context
+			//  Note: Use logger.Must only when you know there is a Logger as it will panic otherwise
+			log := logger.Must(logger.FromContext(r.Context()))
 
-	        log.Infof("Now we are logging inside this http Handler")
-	    })
+			log.Infof("Now we are logging inside this http Handler")
+		})
 	}
 
 	func main() {
-	    log := logger.Create("myapp")
-	    router := mux.NewRouter()
-	    router.Methods("GET").Path("/").Handler(log.HttpHandler()(MyHandler()))
+		log := logger.Create("myapp")
+		router := mux.NewRouter()
+		router.Methods("GET").Path("/").Handler(log.HttpHandler()(MyHandler()))
 	}
 
 Environment Variables

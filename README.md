@@ -1,12 +1,17 @@
 # go-logger
 
 ![GoVersion](https://img.shields.io/github/go-mod/go-version/gildas/go-logger)
-[![GoDoc](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/gildas/go-logger) 
-[![License](https://img.shields.io/github/license/gildas/go-logger)](https://github.com/gildas/go-logger/blob/master/LICENSE) 
+[![GoDoc](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/gildas/go-logger)
+[![License](https://img.shields.io/github/license/gildas/go-logger)](https://github.com/gildas/go-logger/blob/master/LICENSE)
 [![Report](https://goreportcard.com/badge/github.com/gildas/go-logger)](https://goreportcard.com/report/github.com/gildas/go-logger)  
 
-![Test (master)](https://github.com/gildas/go-logger/workflows/Test/badge.svg?branch=master)
-![Test (dev)](https://github.com/gildas/go-logger/workflows/Test/badge.svg?branch=dev)
+![master](https://img.shields.io/badge/branch-master-informational)
+[![Test](https://github.com/gildas/go-logger/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/gildas/go-logger/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/gildas/go-logger/branch/master/graph/badge.svg?token=gFCzS9b7Mu)](https://codecov.io/gh/gildas/go-logger/branch/master)
+
+![dev](https://img.shields.io/badge/branch-dev-informational)
+[![Test](https://github.com/gildas/go-logger/actions/workflows/test.yml/badge.svg?branch=dev)](https://github.com/gildas/go-logger/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/gildas/go-logger/branch/dev/graph/badge.svg?token=gFCzS9b7Mu)](https://codecov.io/gh/gildas/go-logger/branch/dev)
 
 go-logger is a logging library based on [node-bunyan](https://github.com/trentm/node-bunyan).
 
@@ -41,13 +46,16 @@ More generally, [Record fields](https://github.com/trentm/node-bunyan#log-record
 
 ```go
 Log.Record("myObject", myObject).Infof("Another message about my object")
+Log.Record("?myObject", myObject).Infof("Another message about my object, show myObject even if it is nil")
 Log.Recordf("myObject", "format %s %+v". myObject.ID(), myObject).Infof("This record uses a formatted value")
 
-log := Log.Record("dynamic", func() interface{} { return myObject.Callme() })
+log := Log.Record("dynamic", func() any { return myObject.Callme() })
 
 log.Infof("This is here")
 log.Infof("That is there")
 ```
+
+In the second example, the prefix `?` tells the `Logger` to log the record if the value is `nil`, empty string, nil UUID, or implements `IsNil() bool` returning true. By default, the `Logger` will not log these values.
 
 In the last example, the code `myObject.Callme()` will be executed each time *log* is used to write a message.
 This is used, as an example, to add a timestamp to the log's `Record`.
@@ -87,6 +95,7 @@ func (s Stuff) DoSomething(other *OtherStuff) error {
 The call to `Record(key, value)` creates a new `Logger` object. So, they are like Russian dolls when it comes down to actually writing the log message to the output stream. In other words, `Record` objects are collected from their parent's `Logger` back to the original `Logger`.  
 
 For example:  
+
 ```go
 var Log   = logger.Create("test")
 var child = Log.Record("key1", "value1").Record("key2", "value2")
@@ -111,6 +120,7 @@ The `Child` method will create one `Logger` that has a `Record` containing a top
 The `Records` method will create one `Logger` that has 2 keys (*key2* and *key3*) with their values.
 
 For example, with these methods:  
+
 ```go
 var Log    = logger.Create("test")
 var child1 = Log.Child("topic", "scope", "key2", "value2", "key3", "value3")
@@ -156,14 +166,10 @@ var Log = logger.Create("myapp", &logger.FileStream{Path: "/path/to/myapp.log"},
 ```
 
 A few notes:
-- `logger.CreateWithStream` can also be used to create with one or more streams.  
-  (Backward compatibility)
-- `logger.CreateWithDestination` can also be used to create with one or more destinations.  
-  (Backward compatibility)
+
 - the `StackDriverStream` needs a `LogID` parameter or the value of the environment variable `GOOGLE_PROJECT_ID`. (see [Google's StackDriver documentation](https://godoc.org/cloud.google.com/go/logging#NewClient) for the description of that parameter).
 - `NilStream` is a `Stream` that does not write anything, all messages are lost.
 - `MultiStream` is a `Stream` than can write to several streams.
-- All `Stream` types, except `NilStream` and `MultiStream` can use a `FilterLevel`. When set, `Record` objects that have a `Level` below the `FilterLevel` are not written to the `Stream`. This allows to log only stuff above *Warn* for instance. The `FilterLevel` can be set via the environment variable `LOG_LEVEL`.
 - `StdoutStream` and `FileStream` are buffered by default. Data is written from every `LOG_FLUSHFREQUENCY` (default 5 minutes) or when the `Record`'s `Level` is at least *ERROR*.
 - Streams convert the `Record` to write via a `Converter`. The converter is set to a default value per Stream.
 
@@ -177,9 +183,42 @@ var Log = logger.Create("myapp",
 )
 ```
 
+### Setting the LevelSet
+
+All `Stream` types, except `NilStream` and `MultiStream` can use a `LevelSet`. When set, `Record` objects that have a `Level` below the `LevelSet` are not written to the `Stream`. This allows to log only stuff above *WARN* for instance.
+
+A `LevelSet` is a set of `Level` objects organized by `topic` and `scope`.
+
+The `LevelSet` can be set via a string or the environment variable `LOG_LEVEL`:
+
+- `LOG_LEVEL=INFO`  
+  will configure the `LevelSet` to *INFO*, which is the default if nothing is set;
+- `LOG_LEVEL=TRACE:{topic1};DEBUG`  
+  will configure the `LevelSet` to *DEBUG* for everything and *TRACE* for the topic *topic1* to *TRACE* (and all the scopes under that topic);
+- `LOG_LEVEL=INFO;DEBUG:{topic1:scope1,scope2}`  
+  will configure the `LevelSet` to *INFO* for everything and to *DEBUG* for the topic *topic1* and scopes *scope1*, *scope2* to *DEBUG* (all the other scopes under that topic will be set to *INFO*);
+- `LOG_LEVEL=INFO;DEBUG:{topic1};TRACE:{topic2}`  
+  will configure the `LevelSet` to *INFO* for everything, to *DEBUG* for the topic *topic1*, and to *TRACE* for the topic *topic2* (and all the scopes under these topics);
+- `LOG_LEVEL=INFO;DEBUG:{:scope1}`  
+  will configure the `LevelSet` to *INFO* for everything, to *DEBUG* for the scope *topic1* (and all the topics containing that scope);
+- The last setting of a topic supersedes the ones set before;
+- If the environment variable `DEBUG` is set to *1*, the default `Level` in the `LevelSet` is superseded with *DEBUG*.
+
+At the moment, the `LevelSet` can be configured only for all `Streamer` of a `Logger`.
+
+It is also possible to change the default `Level` by calling `FilterMore()`and `FilterLess()` methods on the `Logger` or any of its `Streamer` members. The former will log less data and the latter will log more data. We provide an example of how to use these in the [examples](examples/set-level-with-signal/) folder using Unix signals.
+
+```go
+log := logger.Create("myapp", &logger.StdoutStream{})
+// We are filtering at INFO
+log.FilterLess()
+// We are now filtering at DEBUG
+```
+
 ### StackDriver Stream
 
 If you plan to log to Google's StackDriver from a Google Cloud Kubernetes or a Google Cloud Instance, you do not need the StackDriver Stream and should use the Stdout Stream with the StackDriver Converter, since the standard output of your application will be captured automatically by Google to feed StackDriver:  
+
 ```go
 var Log = logger.Create("myapp", "gcp") // "google" or "googlecloud" are valid aliases
 var Log = logger.Create("myapp", &logger.StdoutStream{Converter: &logger.StackDriverConverter{}})
@@ -188,30 +227,35 @@ var Log = logger.Create("myapp", &logger.StdoutStream{Converter: &logger.StackDr
 To be able to use the StackDriver Stream from outside Google Cloud, you have some configuration to do first.
 
 On your workstation, you need to get the key filename:  
+
 1. Authenticate with Google Cloud  
-```console
-gcloud auth login
-```
+  ```console
+  gcloud auth login
+  ```
 2. Create a Service Account (`logger-account` is just an example of a service account name)  
-```console
-gcloud iam service-acccount create logger-account
-```
+  ```console
+  gcloud iam service-acccount create logger-account
+  ```
 3. Associate the Service Account to the Project you want to use  
-```console
-gcloud projects add-iam-policy-binding my-logging-project \
-  --member "serviceAccount:logger-account@my-logging-project.iam.gserviceaccount.com" \
-  --role "roles/logging.logWriter"
-```
+  ```console
+  gcloud projects add-iam-policy-binding my-logging-project \
+    --member "serviceAccount:logger-account@my-logging-project.iam.gserviceaccount.com" \
+    --role "roles/logging.logWriter"
+  ```
 4. Retrieve the key filename  
-```console
-gcloud iam service-accounts keys create /path/to/key.json \
-  --iam-account logger-account@my-logging-project.iam.gserviceaccount.com
-```
+  ```console
+  gcloud iam service-accounts keys create /path/to/key.json \
+    --iam-account logger-account@my-logging-project.iam.gserviceaccount.com
+  ```
 
 You can either set the `GOOGLE_APPLICATION_CREDENTIAL` and `GOOGLE_PROJECT_ID` environment variables with the path of the obtained key and Google Project ID or provide them to the StackDriver stream:  
+
 ```go
-var Log = logger.Create("myapp", &logger.StackDriverStream{})
-var Log = logger.Create("myapp", &logger.StackDriverStream{
+var log = logger.Create("myapp", &logger.StackDriverStream{})
+```
+
+```go
+var log = logger.Create("myapp", &logger.StackDriverStream{
     Parent:      "my-logging-project",
     KeyFilename: "/path/to/key.json",
 })
@@ -222,7 +266,61 @@ var Log = logger.Create("myapp", &logger.StackDriverStream{
 You can also write your own `Stream` by implementing the `logger.Streamer` interface and create the Logger like this:
 
 ```go
-var Log = logger.Create("myapp", &MyStream{})
+var log = logger.Create("myapp", &MyStream{})
+```
+
+### Logging Source Information
+
+It is possible to log source information such as the source filename and code line, go package, and the caller func.
+
+```go
+var Log = logger.Create("myapp", &logger.FileStream{Path: "/path/to/myapp.log", SourceInfo: true})
+
+func MyFunc() {
+  Log.Infof("I am Here")
+}
+```
+
+**Note**: Since this feature can be expensive to compute, it is turned of by default.  
+To turn it on, you need to either specify the option in the Stream object, set the environment variable `LOG_SOURCEINFO` to *true*. It is also turned on if the environment variable `DEBUG` is *true*.
+
+### Timing your funcs
+
+You can automatically log the duration of your func by calling them via the logger:
+
+```go
+log.TimeFunc("message shown with the duration", func() {
+  log.Info("I am here")
+  // ... some stuff that takes time
+  time.Sleep(12*time.Second)
+})
+```
+
+The duration will logged in the `msg` record after the given message. It will also be added as a float value in the `duration` record.
+
+There are 3 more variations for funcs that return an error, a value, an error and a value:
+
+```go
+result := log.TimeFuncV("message shown with the duration", func() any {
+  log.Info("I am here")
+  // ... some stuff that takes time
+  time.Sleep(12*time.Second)
+  return 12
+})
+
+err := log.TimeFuncE("message shown with the duration", func() err {
+  log.Info("I am here")
+  // ... some stuff that takes time
+  time.Sleep(12*time.Second)
+  return errors.ArgumentMissing.With("path")
+})
+
+result, err := log.TimeFuncVE("message shown with the duration", func() (any, error) {
+  log.Info("I am here")
+  // ... some stuff that takes time
+  time.Sleep(12*time.Second)
+  return 12, errors.ArgumentInvalid.With("value", 12)
+})
 ```
 
 ### Miscellaneous
@@ -230,20 +328,101 @@ var Log = logger.Create("myapp", &MyStream{})
 The following convenience methods can be used when creating a `Logger` from another one (received from arguments, for example):
 
 ```go
-var Log = logger.CreateIfNil(OtherLogger, "myapp")
-var Log = logger.Create("myapp", OtherLogger)
+var log = logger.CreateIfNil(OtherLogger, "myapp")
+```
+
+```go
+var log = logger.Create("myapp", OtherLogger)
 ```
 
 If `OtherLogger` is `nil`, the new `Logger` will write to the `NilStream()`.
 
 ```go
-var Log = logger.Must(logger.FromContext(context))
+var log = logger.Must(logger.FromContext(context))
 ```
 
 `Must` can be used to create a `Logger` from a method that returns `*Logger, error`, if there is an error, `Must` will panic.
 
 `FromContext` can be used to retrieve a `Logger` from a GO context. (This is used in the paragraph about HTTP Usage)  
+
 `log.ToContext` will store the `Logger` to the given GO context.
+
+## Redacting
+
+The `Logger` can redact records as needed by simply implementing the `logger.Redactable` interface in the data that is logged.
+
+For example:
+
+```go
+type Customer {
+  ID   uuid.UUID `json:"id"`
+  Name string    `json:"name"`
+}
+
+// implements logger.Redactable
+func (customer Customer) Redact() any {
+  return Customer{customer.Name, logger.Redact(customer.ID)}
+}
+
+main() {
+  // ...
+  customer := Customer{uuid, "John Doe"}
+
+  log.Record("customer", customer).Infof("Got a customer")
+}
+```
+
+When redacting a field, you can also call `logger.RedactWithHash` which will redact the value with a string like: "REDACTED-&lt;hash&gt;" where `<hash>` is a SHA256 hash of the original value. This is useful when you want to redact a value but still want to be able to identify it in the logs. You can also change the prefix with `logger.RedactWithPrefixedHash`.
+
+For Complex objects, you can also implement the `logger.RedactableWithKeys` interface:
+
+```go
+type Customer {
+  ID   uuid.UUID `json:"id"`
+  Name string    `json:"name"`
+}
+
+// implements logger.RedactableWithKeys
+func (customer Customer) Redact(keyToRedact ...string) any {
+  redacted := customer
+  for _, key := range keyToRedact {
+    switch key {
+    case "name":
+      redacted.Name = logger.RedactWithHash(customer.Name)
+    }
+  }
+}
+
+main() {
+  log.RecordWithKeysToRedact("customer", customer, "name").Infof("Got a customer")
+}
+```
+
+You can also redact slices and maps of objects:
+
+```go
+log.Record("users", logger.RedactSlice(users)).Infof("Got a list of users")
+log.Record("users", logger.RedactMap(users)).Infof("Got a map of users")
+```
+
+You can also redact the log messages by providing regular expressions, called redactors. Whenever a redactor matches, its matched content is replaced with "REDACTED".
+
+You can assign several redactors to a single logger:
+
+```go
+r1, err := logger.NewRedactor("[0-9]{10}")
+r2 := (logger.Redactor)(myregexp)
+log := logger.Create("test", r1, r2)
+```
+
+You can also add redactors to a child logger (without modifying the parent logger):
+
+```go
+r3 := logger.NewRedactor("[a-z]{8}")
+log := parent.Child("topic", "scope", "record1", "value1", r3)
+```
+
+**Note:** Adding redactors to a logger **WILL** have a performance impact on your application as each regular expression will be matched against every single message produced by the logger. We advise you to use as few redactors as possible and contain them in child logger, so they have a minimal impact.
 
 ## Converters
 
@@ -254,8 +433,11 @@ The default `Converter` is `BunyanConverter` so the `bunyan` log viewer can read
 Here is a list of all the converters:
 
 - `BunyanConverter`, the default converter (does nothing, actually),
+- `CloudWatchConverter` produces logs that are nicer with AWS CloudWatch log viewer.
 - `PinoConverter` produces logs that can be used by [pino](http://getpino.io),
 - `StackDriverConverter` produces logs that are nicer with Google StackDriver log viewer,
+
+**Note**: When you use converters, their output will most probably not work anymore with `bunyan`. That means you cannot have both worlds in the same Streamer. In some situation, you can survive this by using several streamers, one converted, one not.
 
 ### Writing your own Converter
 
@@ -263,7 +445,7 @@ You can also write your own `Converter` by implementing the `logger.Converter` i
 
 ```go
 type MyConverter struct {
-	// ...
+  // ...
 }
 
 func (converter *MyConverter) Convert(record Record) Record {
@@ -350,13 +532,14 @@ echo $encrypted | base64 -d | openssl rsautl -decrypt -inkey tmp/mykey
 
 ## Standard Log Compatibility
 
-To use a `Logger` with the standard go `log` library, you can simply call the `AsStandardLog()` method. You can optionally give a `Level`  
+To use a `Logger` with the standard go `log` library, you can simply call the `AsStandardLog()` method. You can optionally give a `Level`:  
+
 ```go
 package main
 
 import (
   "net/http"
-	"github.com/gildas/go-logger"
+  "github.com/gildas/go-logger"
 )
 
 func main() {
@@ -375,13 +558,14 @@ func main() {
 ```
 
 You can also give an `io.Writer` to the standard `log` constructor:  
+
 ```go
 package main
 
 import (
   "log"
   "net/http"
-	"github.com/gildas/go-logger"
+  "github.com/gildas/go-logger"
 )
 
 func main() {
@@ -414,30 +598,77 @@ package main
 
 import (
   "net/http"
-	"github.com/gildas/go-logger"
-	"github.com/gorilla/mux"
+  "github.com/gildas/go-logger"
+  "github.com/gorilla/mux"
 )
 
 func MyHandler() http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        // Extracts the Logger from the request's context
-        //  Note: Use logger.Must only when you know there is a Logger as it will panic otherwise
-        log := logger.Must(logger.FromContext(r.Context()))
+      // Extracts the Logger from the request's context
+      //  Note: Use logger.Must only when you know there is a Logger as it will panic otherwise
+      log := logger.Must(logger.FromContext(r.Context()))
 
-        log.Infof("Now we are logging inside this http Handler")
+      log.Infof("Now we are logging inside this http Handler")
     })
 }
 
 func main() {
-    log := logger.Create("myapp")
-    router := mux.NewRouter()
-    router.Methods("GET").Path("/").Handler(log.HttpHandler()(MyHandler()))
+  log := logger.Create("myapp")
+  router := mux.NewRouter()
+  router.Use(log.HttpHandler()) // Adding the HTTP handler middleware
+  router.Methods("GET").Path("/").Handler(MyHandler())
+}
+```
+
+The following records will be logged whenever the HTTP handler logs entries (and when the request starts and ends):
+
+- `reqid`, contains the request Header X-Request-Id if present, or a random UUID
+- `path`, contains the URL Path of the request
+- `remote`, contains the remote address of the request
+- The `topic` is set to "route" and the `scope` to the path of the request URL
+
+You can choose another header than "X-Request-Id" to pass the request identifier with the `HttpHandlerWithRequestIDHeader(header string)` method:
+
+```go
+func main() {
+  ...
+  router := mux.NewRouter()
+  router.Use(log.HttpHandlerWithRequestIDHeader("X-Custom-Request-Id")) // Adding the HTTP handler middleware
+  ...
+}
+```
+
+When the http request handler (*MyHandler*) starts, the following records are logged:  
+
+- `verb`, contains the HTTP Method of the request
+- `agent`, contains the User-Agent Header of the request
+
+When the http request handler (*MyHandler*) ends, the following additional records are logged:
+
+- `duration`, contains the duration in seconds (**float64**) of the handler execution
+- `http_status`, contains the HTTP status code returned to the client
+- `written`, contains the number of bytes written to the client
+
+You can also add custom records that will be logged at the end of the request by using the `AddRecordToResponseWriter` function:
+
+```go
+func MyHandler() http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+      // Extracts the Logger from the request's context
+      log := logger.Must(logger.FromContext(r.Context()))
+
+      // Add a custom record to be logged at the end of the request
+      logger.AddRecordToResponseWriter(w, "custom_record", "my_value")
+
+      log.Infof("Now we are logging inside this http Handler")
+    })
 }
 ```
 
 ## Environment Variables
 
 The `Logger` can be configured completely by environment variables if needed. These are:  
+
 - `LOG_DESTINATION`, default: `StdoutStream`  
   The `Stream`s to write logs to. It can be a comma-separated list (for a `MultiStream`)
 - `LOG_LEVEL`, default: *INFO*  
@@ -455,7 +686,18 @@ The `Logger` can be configured completely by environment variables if needed. Th
 - `DEBUG`, default: none  
   If set to "1", this will set the default level to filter to *DEBUG*
 
-# Thanks
+You can also use a prefix for the environment variables. When you create a `Logger`, you can pass a prefix to the `Create` method. For example:
+
+```go
+func main() {
+    log := logger.Create("myapp", logger.EnvironmentPrefix("myapp_"))
+    log.Infof("This is a message")
+}
+```
+
+The logger will look for the environment variables `myapp_LOG_DESTINATION`, `myapp_LOG_LEVEL`, etc.
+
+## Thanks
 
 Special thanks to [@chakrit](https://github.com/chakrit) for his [chakrit/go-bunyan](https://github.com/chakrit/go-bunyan) that inspired me. In fact earlier versions were wrappers around his library.  
 

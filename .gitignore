@@ -28,3 +28,7 @@ log/
 # VSCode
 .vscode/
 /.project
+.dccache
+
+# Snyk Security Extension - AI Rules (auto-generated)
+.github/instructions/snyk_rules.instructions.md

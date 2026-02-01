@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"os"
 	"strings"
 )
 
@@ -30,6 +29,28 @@ const (
 	NEVER Level = 1
 )
 
+// FilterSetter describes objects that can set their Filter Level
+//
+// The Filter Level is the level that will be used to filter what gets written to the Stream:
+// Records with a level lower than the filter level will not be written
+type FilterSetter interface {
+	// SetFilterLevel sets the filter level
+	//
+	// If present, the first parameter is the topic.
+	//
+	// If present, the second parameter is the scope.
+	SetFilterLevel(level Level, parameters ...string)
+}
+
+// FilterModifier describes objects that can modify their Filter Level
+type FilterModifier interface {
+	// FilterMore tells the stream to filter more
+	FilterMore()
+
+	// FilterLess tells the stream to filter less
+	FilterLess()
+}
+
 // ParseLevel converts a string into a Level
 func ParseLevel(value string) Level {
 	if level, ok := map[string]Level{
@@ -49,8 +70,11 @@ func ParseLevel(value string) Level {
 }
 
 // GetLevelFromRecord retrieves the level from the given Record
-func GetLevelFromRecord(record Record) Level {
-	if value, ok := record["level"]; ok {
+func GetLevelFromRecord(record *Record) Level {
+	if record == nil {
+		return NEVER
+	}
+	if value, found := record.Find("level"); found {
 		if level, ok := value.(Level); ok {
 			return level
 		}
@@ -58,18 +82,33 @@ func GetLevelFromRecord(record Record) Level {
 	return NEVER
 }
 
-// GetLevelFromEnvironment retrieves the level from the environment LOG_LEVEL
-func GetLevelFromEnvironment() Level {
-	if value, ok := os.LookupEnv("LOG_LEVEL"); ok {
-		return ParseLevel(value)
+// Next returns the Level that follows the current one
+//
+// # If level is ALWAYS, it will return ALWAYS
+//
+// Example: TRACE.Next() will return DEBUG
+func (level Level) Next() Level {
+	if level == ALWAYS {
+		return ALWAYS
 	}
-	if value, ok := os.LookupEnv("DEBUG"); ok && value == "1" {
-		return DEBUG
+	return level + 10
+}
+
+// Previous returns the Level that precedes the current one
+//
+// # If level is NEVER, it will return NEVER
+//
+// Example: DEBUG.Previous() will return TRACE
+func (level Level) Previous() Level {
+	if level == NEVER {
+		return NEVER
 	}
-	return INFO
+	return level - 10
 }
 
 // ShouldWrite tells if the current level is writeable when compared to the given filter level
+//
+// To be writeable, the current level must be higher than the filter level
 func (level Level) ShouldWrite(filter Level) bool {
 	if level == NEVER || level == UNSET {
 		return false
