@@ -597,6 +597,94 @@ func (suite *LoggerSuite) TestLoggerHttpHandlerWithFailure() {
 	})
 }
 
+func (suite *LoggerSuite) TestLoggerHttpHandlerWithAddedRecords() {
+	httpHandler := func() http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			log, err := logger.FromContext(r.Context())
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			logger.AddRecordToResponseWriter(w, "test_key", "test_value")
+			count, err := w.Write([]byte("test"))
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				log.Errorf("Failed to write response", err)
+				return
+			}
+			log.Infof("Written %d bytes", count)
+		})
+	}
+
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		suite.Require().NotNil(log, "cannot create a logger.Logger")
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		w := httptest.NewRecorder()
+		log.HttpHandler()(httpHandler()).ServeHTTP(w, req)
+		res := w.Result()
+		suite.Assert().Equal(http.StatusOK, res.StatusCode)
+		defer func() { _ = res.Body.Close() }()
+		data, err := io.ReadAll(res.Body)
+		suite.Require().NoError(err, "Failed to read response body")
+		suite.Assert().Contains(string(data), "test")
+	})
+	lines := strings.Split(output, "\n")
+	lines = lines[:len(lines)-1] // remove the last empty line
+	suite.Require().Len(lines, 3, "Expected 3 lines of output")
+	suite.LogLineEqual(lines[0], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      `request start: GET /`,
+		"name":     "test",
+		"path":     "/",
+		"pid":      "[0-9]+",
+		"remote":   `[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+`,
+		"reqid":    `^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$`,
+		"scope":    "/",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "route",
+		"verb":     "GET",
+		"v":        "0",
+	})
+	suite.LogLineEqual(lines[1], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      `Written 4 bytes`,
+		"name":     "test",
+		"path":     "/",
+		"pid":      "[0-9]+",
+		"remote":   `[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+`,
+		"reqid":    `^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$`,
+		"scope":    "/",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "route",
+		"v":        "0",
+	})
+	suite.LogLineEqual(lines[2], map[string]string{
+		"duration":    `[0-9\.]+`,
+		"hostname":    `[a-zA-Z_0-9\-\.]+`,
+		"http_status": "200",
+		"level":       "30",
+		"msg":         `✅ request finish: GET / in [0-9]+(?:\.[0-9]+)?µs`,
+		"name":        "test",
+		"path":        "/",
+		"pid":         "[0-9]+",
+		"remote":      `[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+`,
+		"reqid":       `^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$`,
+		"test_key":    "test_value",
+		"scope":       "/",
+		"tid":         "[0-9]+",
+		"time":        `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":       "route",
+		"v":           "0",
+		"written":     "4",
+	})
+}
+
 func (suite *LoggerSuite) TestCanUseWithIOWriter() {
 	output := CaptureStdout(func() {
 		logger := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
