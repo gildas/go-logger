@@ -541,22 +541,55 @@ func MyHandler() http.Handler {
 func main() {
   log := logger.Create("myapp")
   router := mux.NewRouter()
-  router.Methods("GET").Path("/").Handler(log.HttpHandler()(MyHandler()))
+  router.Use(log.HttpHandler()) // Adding the HTTP handler middleware
+  router.Methods("GET").Path("/").Handler(MyHandler())
 }
 ```
 
-When the http request handler (*MyHandler*) starts, the following records are logged:  
+The following records will be logged whenever the HTTP handler logs entries (and when the request starts and ends):
 
 - `reqid`, contains the request Header X-Request-Id if present, or a random UUID
 - `path`, contains the URL Path of the request
 - `remote`, contains the remote address of the request
 - The `topic` is set to "route" and the `scope` to the path of the request URL
 
-You can choose another header than "X-Request-Id" to pass the request identifier with the `HttpHandlerWithRequestIDHeader(header string)` method.
+You can choose another header than "X-Request-Id" to pass the request identifier with the `HttpHandlerWithRequestIDHeader(header string)` method:
 
-When the http request handler (*MyHandler*) ends, the following additional records are logged:  
+```go
+func main() {
+  ...
+  router := mux.NewRouter()
+  router.Use(log.HttpHandlerWithRequestIDHeader("X-Custom-Request-Id")) // Adding the HTTP handler middleware
+  ...
+}
+```
+
+When the http request handler (*MyHandler*) starts, the following records are logged:  
+
+- `verb`, contains the HTTP Method of the request
+- `agent`, contains the User-Agent Header of the request
+
+When the http request handler (*MyHandler*) ends, the following additional records are logged:
 
 - `duration`, contains the duration in seconds (**float64**) of the handler execution
+- `http_status`, contains the HTTP status code returned to the client
+- `written`, contains the number of bytes written to the client
+
+You can also add custom records that will be logged at the end of the request by using the `AddRecordToResponseWriter` function:
+
+```go
+func MyHandler() http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+      // Extracts the Logger from the request's context
+      log := logger.Must(logger.FromContext(r.Context()))
+
+      // Add a custom record to be logged at the end of the request
+      logger.AddRecordToResponseWriter(w, "custom_record", "my_value")
+
+      log.Infof("Now we are logging inside this http Handler")
+    })
+}
+```
 
 ## Environment Variables
 

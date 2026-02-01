@@ -99,29 +99,29 @@ func (suite *LevelSetSuite) TestCanParseLevelsFromEnvironment() {
 	currentLogLevel := core.GetEnvAsString("LOG_LEVEL", "")
 	currentDebug := core.GetEnvAsString("DEBUG", "")
 	defer func() {
-		os.Setenv("LOG_LEVEL", currentLogLevel)
-		os.Setenv("DEBUG", currentDebug)
+		_ = os.Setenv("LOG_LEVEL", currentLogLevel)
+		_ = os.Setenv("DEBUG", currentDebug)
 	}()
 	var levels logger.LevelSet
 
-	os.Setenv("LOG_LEVEL", "")
+	_ = os.Setenv("LOG_LEVEL", "")
 	levels = logger.ParseLevelsFromEnvironment()
 	suite.Require().Len(levels, 1, "Levels should have 1 entry")
 	suite.Assert().Equal(logger.INFO, levels.Get("any", "any"), "Default Level Should be INFO (got: %s)", levels.Get("any", "any"))
 
-	os.Setenv("LOG_LEVEL", "DEBUG")
+	_ = os.Setenv("LOG_LEVEL", "DEBUG")
 	levels = logger.ParseLevelsFromEnvironment()
 	suite.Require().Len(levels, 1, "Levels should have 1 entry")
 	suite.Assert().Equal(logger.DEBUG, levels.Get("any", "any"), "Default Level Should be DEBUG (got: %s)", levels.Get("any", "any"))
 
-	os.Setenv("LOG_LEVEL", "WARN")
-	os.Setenv("DEBUG", "true")
+	_ = os.Setenv("LOG_LEVEL", "WARN")
+	_ = os.Setenv("DEBUG", "true")
 	levels = logger.ParseLevelsFromEnvironment()
 	suite.Require().Len(levels, 1, "Levels should have 1 entry")
 	suite.Assert().Equal(logger.DEBUG, levels.Get("any", "any"), "Default Level Should be DEBUG (got: %s)", levels.Get("any", "any"))
 
-	os.Setenv("LOG_LEVEL", "TRACE")
-	os.Setenv("DEBUG", "true")
+	_ = os.Setenv("LOG_LEVEL", "TRACE")
+	_ = os.Setenv("DEBUG", "true")
 	levels = logger.ParseLevelsFromEnvironment()
 	suite.Require().Len(levels, 1, "Levels should have 1 entry")
 	suite.Assert().Equal(logger.TRACE, levels.Get("any", "any"), "Default Level Should be TRACE (got: %s)", levels.Get("any", "any"))

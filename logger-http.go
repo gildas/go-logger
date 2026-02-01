@@ -16,6 +16,11 @@ type responseWriter struct {
 	http.ResponseWriter
 	statusCode int
 	written    uint64
+	Records    map[string]any
+}
+
+type responseRecorder interface {
+	Record(key string, value any)
 }
 
 // WriteHeader sends an HTTP response header with the provided
@@ -104,6 +109,21 @@ func (w *responseWriter) Write(b []byte) (int, error) {
 	return n, err
 }
 
+// Record will add a key/value pair to the response writer records
+func (w *responseWriter) Record(key string, value any) {
+	if w.Records == nil {
+		w.Records = make(map[string]any)
+	}
+	w.Records[key] = value
+}
+
+// AddRecordToResponseWriter function will add a key/value pair to the response writer records
+func AddRecordToResponseWriter(rw http.ResponseWriter, key string, value any) {
+	if recorder, ok := rw.(responseRecorder); ok {
+		recorder.Record(key, value)
+	}
+}
+
 // HttpHandler function will wrap an http handler with extra logging information
 func (l *Logger) HttpHandler() func(http.Handler) http.Handler {
 	return l.HttpHandlerWithRequestIDHeader("X-Request-Id")
@@ -126,10 +146,10 @@ func (l *Logger) HttpHandlerWithRequestIDHeader(header string) func(http.Handler
 
 			// Get a new Child logger tailored to the request
 			reqLogger := l.Child("route", r.URL.Path, "reqid", reqid, "path", r.URL.Path, "remote", r.RemoteAddr)
-			reqLogger.
-				Record("agent", r.UserAgent()).
-				Record("verb", r.Method).
-				Infof("⏳ request start: %s %s", r.Method, html.EscapeString(r.URL.Path))
+			reqLogger.Records(
+				"agent", r.UserAgent(),
+				"verb", r.Method,
+			).Infof("⏳ request start: %s %s", r.Method, html.EscapeString(r.URL.Path))
 
 			// Wrap the response writer to capture the status code
 			writer := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
@@ -141,17 +161,17 @@ func (l *Logger) HttpHandlerWithRequestIDHeader(header string) func(http.Handler
 			// Logging the duration of the request handling
 			duration := time.Since(start)
 			if writer.statusCode >= 400 {
-				reqLogger.
-					Record("duration", duration.Seconds()).
-					Record("http_status", writer.statusCode).
-					Record("written", writer.written).
-					Errorf("❌ request finish: %s %s in %s", r.Method, html.EscapeString(r.URL.Path), duration)
+				reqLogger.RecordMap(writer.Records).Records(
+					"duration", duration.Seconds(),
+					"http_status", writer.statusCode,
+					"written", writer.written,
+				).Errorf("❌ request finish: %s %s in %s", r.Method, html.EscapeString(r.URL.Path), duration)
 			} else {
-				reqLogger.
-					Record("duration", duration.Seconds()).
-					Record("http_status", writer.statusCode).
-					Record("written", writer.written).
-					Infof("✅ request finish: %s %s in %s", r.Method, html.EscapeString(r.URL.Path), duration)
+				reqLogger.RecordMap(writer.Records).Records(
+					"duration", duration.Seconds(),
+					"http_status", writer.statusCode,
+					"written", writer.written,
+				).Infof("✅ request finish: %s %s in %s", r.Method, html.EscapeString(r.URL.Path), duration)
 			}
 		})
 	}

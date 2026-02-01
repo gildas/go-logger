@@ -263,7 +263,7 @@ func jsonValue(object any, buffer *bytes.Buffer, keyToRedact ...string) {
 			if stringer, ok := object.(fmt.Stringer); ok {
 				buffer.WriteString(stringer.String())
 			} else {
-				buffer.WriteString(fmt.Sprintf("%+#v", object))
+				_, _ = fmt.Fprintf(buffer, "%+#v", object)
 			}
 			buffer.WriteString(`"`)
 		}

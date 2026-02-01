@@ -102,10 +102,8 @@ func (stream *StackDriverStream) Write(record *Record) (err error) {
 		options := []googleoption.ClientOption{}
 		if stream.Key != nil {
 			payload, err := json.Marshal(stream.Key)
-			if errors.Is(err, errors.JSONMarshalError) {
-				return err
-			} else if err != nil {
-				return errors.JSONMarshalError.Wrap(err)
+			if err != nil {
+				return errors.JSONMarshalError.WrapIfNotMe(err)
 			}
 			options = append(options, googleoption.WithCredentialsJSON(payload))
 		} else if len(stream.KeyFilename) != 0 {
@@ -155,7 +153,7 @@ func (stream *StackDriverStream) Flush() {
 	if stream.target != nil {
 		stream.mutex.Lock()
 		defer stream.mutex.Unlock()
-		stream.target.Flush()
+		_ = stream.target.Flush()
 	}
 }
 
@@ -166,10 +164,10 @@ func (stream *StackDriverStream) Close() {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.target != nil {
-		stream.target.Flush()
+		_ = stream.target.Flush()
 	}
 	if stream.client != nil {
-		stream.client.Close()
+		_ = stream.client.Close()
 	}
 }
 

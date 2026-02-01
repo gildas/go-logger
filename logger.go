@@ -198,6 +198,20 @@ func (log *Logger) Records(params ...any) *Logger {
 	return &Logger{log.environmentPrefix, log, record, log.redactors}
 }
 
+// RecordMap adds the given map as Record objects and returns a new Logger
+//
+// if the map is empty, the Logger is returned unchanged
+func (log *Logger) RecordMap(values map[string]any) *Logger {
+	if len(values) == 0 {
+		return log
+	}
+	record := NewRecord()
+	for key, value := range values {
+		record.Set(key, value)
+	}
+	return &Logger{log.environmentPrefix, log, record, log.redactors}
+}
+
 // Topic sets the Topic of this Logger
 func (log *Logger) Topic(topic any) *Logger {
 	if topic == nil {
