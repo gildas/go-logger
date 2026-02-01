@@ -146,10 +146,10 @@ func (l *Logger) HttpHandlerWithRequestIDHeader(header string) func(http.Handler
 
 			// Get a new Child logger tailored to the request
 			reqLogger := l.Child("route", r.URL.Path, "reqid", reqid, "path", r.URL.Path, "remote", r.RemoteAddr)
-			reqLogger.
-				Record("agent", r.UserAgent()).
-				Record("verb", r.Method).
-				Infof("⏳ request start: %s %s", r.Method, html.EscapeString(r.URL.Path))
+			reqLogger.Records(
+				"agent", r.UserAgent(),
+				"verb", r.Method,
+			).Infof("⏳ request start: %s %s", r.Method, html.EscapeString(r.URL.Path))
 
 			// Wrap the response writer to capture the status code
 			writer := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
