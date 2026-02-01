@@ -116,16 +116,16 @@ func (stream *FileStream) Write(record *Record) (err error) {
 		}
 	}
 	payload, _ := stream.Converter.Convert(record).MarshalJSON()
-	if _, err = stream.writer.Write(payload); err != nil {
-		return errors.WithStack(err)
+	_, err = stream.writer.Write(payload)
+	if err == nil { // Keep working as long as there is no error
+		_, err = stream.writer.Write([]byte("\n"))
+		if err == nil { // Keep working as long as there is no error
+			if GetLevelFromRecord(record) >= ERROR && stream.output != nil {
+				stream.output.Flush() // calling stream.Flush would Lock the mutex again and end up with a dead-lock
+			}
+		}
 	}
-	if _, err = stream.writer.Write([]byte("\n")); err != nil {
-		return errors.WithStack(err)
-	}
-	if GetLevelFromRecord(record) >= ERROR && stream.output != nil {
-		stream.output.Flush() // calling stream.Flush would Lock the mutex again and end up with a dead-lock
-	}
-	return nil
+	return errors.WithStack(err) // If err is nil, WithStack return nil
 }
 
 // ShouldWrite tells if the given level should be written to this stream

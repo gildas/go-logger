@@ -84,13 +84,11 @@ func (stream *StderrStream) Write(record *Record) (err error) {
 		stream.FilterLevels = ParseLevelsFromEnvironmentWithPrefix(stream.environmentPrefix)
 	}
 	payload, _ := stream.Converter.Convert(record).MarshalJSON()
-	if _, err = os.Stderr.Write(payload); err != nil {
-		return errors.WithStack(err)
+	_, err = os.Stderr.Write(payload)
+	if err == nil { // Keep working as long as there is no error
+		_, err = os.Stderr.Write([]byte("\n"))
 	}
-	if _, err = os.Stderr.Write([]byte("\n")); err != nil {
-		return errors.WithStack(err)
-	}
-	return nil
+	return errors.WithStack(err) // If err is nil, WithStack return nil
 }
 
 // ShouldLogSourceInfo tells if the source info should be logged

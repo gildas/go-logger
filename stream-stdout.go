@@ -81,7 +81,7 @@ func (stream *StdoutStream) FilterLess() {
 // Write writes the given Record
 //
 // implements logger.Streamer
-func (stream *StdoutStream) Write(record *Record) error {
+func (stream *StdoutStream) Write(record *Record) (err error) {
 	stream.mutex.Lock()
 	defer stream.mutex.Unlock()
 	if stream.writer == nil {
@@ -101,22 +101,17 @@ func (stream *StdoutStream) Write(record *Record) error {
 			go stream.flushJob()
 		}
 	}
-	payload, err := stream.Converter.Convert(record).MarshalJSON()
-	if errors.Is(err, errors.JSONMarshalError) {
-		return err
-	} else if err != nil {
-		return errors.JSONMarshalError.Wrap(err)
+	payload, _ := stream.Converter.Convert(record).MarshalJSON()
+	_, err = stream.writer.Write(payload)
+	if err == nil { // Keep working as long as there is no error
+		_, err = stream.writer.Write([]byte("\n"))
+		if err == nil { // Keep working as long as there is no error
+			if GetLevelFromRecord(record) >= ERROR && stream.output != nil {
+				stream.output.Flush() // calling stream.Flush would Lock the mutex again and end up with a dead-lock
+			}
+		}
 	}
-	if _, err = stream.writer.Write(payload); err != nil {
-		return errors.WithStack(err)
-	}
-	if _, err = stream.writer.Write([]byte("\n")); err != nil {
-		return errors.WithStack(err)
-	}
-	if GetLevelFromRecord(record) >= ERROR && stream.output != nil {
-		stream.output.Flush() // calling stream.Flush would Lock the mutex again and end up with a dead-lock
-	}
-	return nil
+	return errors.WithStack(err) // If err is nil, WithStack return nil
 }
 
 // ShouldLogSourceInfo tells if the source info should be logged
