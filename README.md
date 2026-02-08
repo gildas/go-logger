@@ -431,7 +431,7 @@ While redaction renders the text as unreadable, obfuscation encrypts the data, m
 To allow the logger to obfuscate, you just need to add a `cipher.Block` to its creation parameters:
 
 ```go
-log := logger.Create("MYAPP", cihpherBlock)
+log := logger.Create("MYAPP", cipherBlock)
 ```
 
 Then, simply call `Obfuscate` to encrypt the sensitive data:
