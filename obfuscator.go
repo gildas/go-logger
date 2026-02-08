@@ -8,7 +8,7 @@ import (
 	"regexp"
 )
 
-var unobfuscateRex = regexp.MustCompile("(.*)!ENC!:{(.*)}(.*)")
+var unobfuscateRex = regexp.MustCompile("(.*)!ENC!:{([^}]+)}(.*)")
 
 // Obfuscate obfuscates the given string
 func (l *Logger) Obfuscate(value string) string {
