@@ -437,7 +437,7 @@ log := logger.Create("MYAPP", cipherBlock)
 Then, simply call `Obfuscate` to encrypt the sensitive data:
 
 ```go
-log.Infof("This is some sensitive information: %s. Do not show it!", logger.Obfuscate(sensitiveData))
+log.Infof("This is some sensitive information: %s. Do not show it!", log.Obfuscate(sensitiveData))
 ```
 
 The log message will contain the obfuscated data instead of the original sensitive information. Later, to decrypt the sensitive data, you can simply call `Unobfuscate`, provided you have the proper key.
@@ -445,7 +445,12 @@ The log message will contain the obfuscated data instead of the original sensiti
 ```go
 log := logger.Create("MYAPP", cipherBlock)
 
-fmt.Printf("Here is the data: %s", logger.Unobfuscate(obfuscatedData))
+data, err := log.Unobfuscate(obfuscatedData)
+if err != nil {
+    fmt.Printf("failed to unobfuscate data: %v", err)
+} else {
+    fmt.Printf("Here is the data: %s", data)
+}
 ```
 
 **Notes:**
