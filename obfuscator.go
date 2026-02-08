@@ -12,11 +12,11 @@ var unobfuscateRex = regexp.MustCompile("(.*)!ENC!:{(.*)}(.*)")
 
 // Obfuscate obfuscates the given string
 func (l *Logger) Obfuscate(value string) string {
-	if l.ObfuscationKey != nil {
+	if l.obfuscationKey != nil {
 		var err error
 		var gcm cipher.AEAD
 
-		if gcm, err = cipher.NewGCM(l.ObfuscationKey); err == nil {
+		if gcm, err = cipher.NewGCM(l.obfuscationKey); err == nil {
 			nonce := make([]byte, gcm.NonceSize())
 			if _, err = io.ReadFull(rand.Reader, nonce); err == nil {
 				return "!ENC!:{" + base64.URLEncoding.EncodeToString(gcm.Seal(nonce, nonce, []byte(value), nil)) + "}"
@@ -31,14 +31,14 @@ func (l *Logger) Obfuscate(value string) string {
 
 // Unobfuscate the given string
 func (l *Logger) Unobfuscate(value string) (unobfuscated string, err error) {
-	if l.ObfuscationKey != nil {
+	if l.obfuscationKey != nil {
 		if components := unobfuscateRex.FindStringSubmatch(value); len(components) == 4 {
 			var decoded []byte
 
 			if decoded, err = base64.URLEncoding.DecodeString(components[2]); err == nil {
 				var gcm cipher.AEAD
 
-				if gcm, err = cipher.NewGCM(l.ObfuscationKey); err == nil {
+				if gcm, err = cipher.NewGCM(l.obfuscationKey); err == nil {
 					var decrypted []byte
 
 					nonce := decoded[:gcm.NonceSize()]
