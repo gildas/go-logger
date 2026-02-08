@@ -41,10 +41,12 @@ func (l *Logger) Unobfuscate(value string) (unobfuscated string, err error) {
 				if gcm, err = cipher.NewGCM(l.obfuscationKey); err == nil {
 					var decrypted []byte
 
-					nonce := decoded[:gcm.NonceSize()]
-					decoded = decoded[gcm.NonceSize():]
-					if decrypted, err = gcm.Open(nil, nonce, decoded, nil); err == nil {
-						return components[1] + string(decrypted) + components[3], nil
+					if len(decoded) >= gcm.NonceSize() {
+						nonce := decoded[:gcm.NonceSize()]
+						decoded = decoded[gcm.NonceSize():]
+						if decrypted, err = gcm.Open(nil, nonce, decoded, nil); err == nil {
+							return components[1] + string(decrypted) + components[3], nil
+						}
 					}
 				}
 			}
