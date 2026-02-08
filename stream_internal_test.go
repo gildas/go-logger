@@ -9,9 +9,9 @@ import (
 
 func TestCreateUnbufferedStreamWithDEBUG(t *testing.T) {
 	currentDEBUG := os.Getenv("DEBUG")
-	defer os.Setenv("DEBUG", currentDEBUG)
+	defer func() { _ = os.Setenv("DEBUG", currentDEBUG) }()
 
-	os.Setenv("DEBUG", "1")
+	_ = os.Setenv("DEBUG", "1")
 	stream := CreateStream(NewLevelSet(DEBUG))
 	assert.True(t, stream.(*StdoutStream).Unbuffered, "Stdout should be unbuffered with DEBUG set")
 }

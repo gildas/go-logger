@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"crypto/cipher"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,6 +17,7 @@ type Logger struct {
 	environmentPrefix EnvironmentPrefix
 	stream            Streamer
 	record            *Record
+	obfuscationKey    cipher.Block
 	redactors         []Redactor
 }
 
@@ -35,12 +37,13 @@ func Must(log *Logger, err error) *Logger {
 // Create creates a new Logger
 func Create(name string, parameters ...any) (logger *Logger) {
 	var (
-		destinations = []string{}
-		streams      = []Streamer{}
-		records      = []*Record{}
-		redactors    = []Redactor{}
-		filterLevels = ParseLevelsFromEnvironment()
-		prefix       = EnvironmentPrefix("")
+		destinations   = []string{}
+		streams        = []Streamer{}
+		records        = []*Record{}
+		redactors      = []Redactor{}
+		filterLevels   = ParseLevelsFromEnvironment()
+		prefix         = EnvironmentPrefix("")
+		obfuscationKey cipher.Block
 	)
 
 	for _, parameter := range parameters {
@@ -68,6 +71,8 @@ func Create(name string, parameters ...any) (logger *Logger) {
 			redactors = append(redactors, parameter)
 		case *Redactor:
 			redactors = append(redactors, *parameter)
+		case cipher.Block:
+			obfuscationKey = parameter
 		}
 		// if param is a struct or pointer to struct, or interface
 		// we should use it for the Topic, Scope
@@ -88,11 +93,11 @@ func Create(name string, parameters ...any) (logger *Logger) {
 	}
 
 	if len(streams) == 0 {
-		logger = &Logger{prefix, CreateStreamWithPrefix(prefix, filterLevels), record, []Redactor{}}
+		logger = &Logger{prefix, CreateStreamWithPrefix(prefix, filterLevels), record, obfuscationKey, []Redactor{}}
 	} else if len(streams) == 1 {
-		logger = &Logger{prefix, streams[0], record, []Redactor{}}
+		logger = &Logger{prefix, streams[0], record, obfuscationKey, []Redactor{}}
 	} else {
-		logger = &Logger{prefix, &MultiStream{streams: streams}, record, []Redactor{}}
+		logger = &Logger{prefix, &MultiStream{streams: streams}, record, obfuscationKey, []Redactor{}}
 	}
 
 	for _, record := range records {
@@ -160,14 +165,14 @@ func (log *Logger) ResetDestinations(destinations ...any) {
 func (log *Logger) Record(key string, value any) *Logger {
 	// This func requires Logger to be a Stream
 	//   that allows us to nest Loggers
-	return &Logger{log.environmentPrefix, log, NewRecord().Set(key, value), log.redactors}
+	return &Logger{log.environmentPrefix, log, NewRecord().Set(key, value), log.obfuscationKey, log.redactors}
 }
 
 // RecordWithKeysToRedact adds the given Record to the Log
 func (log *Logger) RecordWithKeysToRedact(key string, value any, keyToRedact ...string) *Logger {
 	// This func requires Logger to be a Stream
 	//   that allows us to nest Loggers
-	return &Logger{log.environmentPrefix, log, NewRecord().Set(key, value).AddKeysToRedact(keyToRedact...), log.redactors}
+	return &Logger{log.environmentPrefix, log, NewRecord().Set(key, value).AddKeysToRedact(keyToRedact...), log.obfuscationKey, log.redactors}
 }
 
 // Recordf adds the given Record with formatted arguments
@@ -195,7 +200,21 @@ func (log *Logger) Records(params ...any) *Logger {
 			key = ""
 		}
 	}
-	return &Logger{log.environmentPrefix, log, record, log.redactors}
+	return &Logger{log.environmentPrefix, log, record, log.obfuscationKey, log.redactors}
+}
+
+// RecordMap adds the given map as Record objects and returns a new Logger
+//
+// if the map is empty, the Logger is returned unchanged
+func (log *Logger) RecordMap(values map[string]any) *Logger {
+	if len(values) == 0 {
+		return log
+	}
+	record := NewRecord()
+	for key, value := range values {
+		record.Set(key, value)
+	}
+	return &Logger{log.environmentPrefix, log, record, log.obfuscationKey, log.redactors}
 }
 
 // Topic sets the Topic of this Logger
@@ -224,7 +243,7 @@ func (log *Logger) Child(topic, scope any, params ...any) *Logger {
 		scope = log.record.Get("scope")
 	}
 	record := NewRecord().Set("topic", topic).Set("scope", scope)
-	newlog := &Logger{log.environmentPrefix, log, record, log.redactors}
+	newlog := &Logger{log.environmentPrefix, log, record, log.obfuscationKey, log.redactors}
 	for _, param := range params {
 		switch actual := param.(type) {
 		case *Redactor:

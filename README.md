@@ -424,6 +424,41 @@ log := parent.Child("topic", "scope", "record1", "value1", r3)
 
 **Note:** Adding redactors to a logger **WILL** have a performance impact on your application as each regular expression will be matched against every single message produced by the logger. We advise you to use as few redactors as possible and contain them in child logger, so they have a minimal impact.
 
+## Obfuscation
+
+While redaction renders the text as unreadable, obfuscation encrypts the data, making it reversible if you have the correct key. This might be useful when you want to hide sensitive information but still need to be able to recover it later.
+
+To allow the logger to obfuscate, you just need to add a `cipher.Block` to its creation parameters:
+
+```go
+log := logger.Create("MYAPP", cipherBlock)
+```
+
+Then, simply call `Obfuscate` to encrypt the sensitive data:
+
+```go
+log.Infof("This is some sensitive information: %s. Do not show it!", log.Obfuscate(sensitiveData))
+```
+
+The log message will contain the obfuscated data instead of the original sensitive information. Later, to decrypt the sensitive data, you can simply call `Unobfuscate`, provided you have the proper key.
+
+```go
+log := logger.Create("MYAPP", cipherBlock)
+
+data, err := log.Unobfuscate(obfuscatedData)
+if err != nil {
+    fmt.Printf("failed to unobfuscate data: %v", err)
+} else {
+    fmt.Printf("Here is the data: %s", data)
+}
+```
+
+**Notes:**
+
+- If the logger was not created with a cipher block, `Obfuscate` will still work, but will not obfuscate anything and will log a warning before the log entry.
+- `Unobfuscate` will not fail if the logger was not created with a cipher block, but it will not unobfuscate anything, of course.
+- `Unobfuscate` will not fail if the provided text was not obfuscated, it will return the text as is.
+
 ## Converters
 
 The `Converter` object is responsible for converting the `Record`, given to the `Stream` to write, to match other log viewers.
@@ -541,22 +576,55 @@ func MyHandler() http.Handler {
 func main() {
   log := logger.Create("myapp")
   router := mux.NewRouter()
-  router.Methods("GET").Path("/").Handler(log.HttpHandler()(MyHandler()))
+  router.Use(log.HttpHandler()) // Adding the HTTP handler middleware
+  router.Methods("GET").Path("/").Handler(MyHandler())
 }
 ```
 
-When the http request handler (*MyHandler*) starts, the following records are logged:  
+The following records will be logged whenever the HTTP handler logs entries (and when the request starts and ends):
 
 - `reqid`, contains the request Header X-Request-Id if present, or a random UUID
 - `path`, contains the URL Path of the request
 - `remote`, contains the remote address of the request
 - The `topic` is set to "route" and the `scope` to the path of the request URL
 
-You can choose another header than "X-Request-Id" to pass the request identifier with the `HttpHandlerWithRequestIDHeader(header string)` method.
+You can choose another header than "X-Request-Id" to pass the request identifier with the `HttpHandlerWithRequestIDHeader(header string)` method:
 
-When the http request handler (*MyHandler*) ends, the following additional records are logged:  
+```go
+func main() {
+  ...
+  router := mux.NewRouter()
+  router.Use(log.HttpHandlerWithRequestIDHeader("X-Custom-Request-Id")) // Adding the HTTP handler middleware
+  ...
+}
+```
+
+When the http request handler (*MyHandler*) starts, the following records are logged:  
+
+- `verb`, contains the HTTP Method of the request
+- `agent`, contains the User-Agent Header of the request
+
+When the http request handler (*MyHandler*) ends, the following additional records are logged:
 
 - `duration`, contains the duration in seconds (**float64**) of the handler execution
+- `http_status`, contains the HTTP status code returned to the client
+- `written`, contains the number of bytes written to the client
+
+You can also add custom records that will be logged at the end of the request by using the `AddRecordToResponseWriter` function:
+
+```go
+func MyHandler() http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+      // Extracts the Logger from the request's context
+      log := logger.Must(logger.FromContext(r.Context()))
+
+      // Add a custom record to be logged at the end of the request
+      logger.AddRecordToResponseWriter(w, "custom_record", "my_value")
+
+      log.Infof("Now we are logging inside this http Handler")
+    })
+}
+```
 
 ## Environment Variables
 

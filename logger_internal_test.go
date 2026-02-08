@@ -63,8 +63,8 @@ func (suite *InternalLoggerSuite) TestCanCreateWithFilterLevel() {
 }
 
 func (suite *InternalLoggerSuite) TestCanCreateWithEnvironmentDEBUG() {
-	os.Setenv("DEBUG", "1")
-	defer os.Unsetenv("DEBUG")
+	_ = os.Setenv("DEBUG", "1")
+	defer func() { _ = os.Unsetenv("DEBUG") }()
 	log := Create("test")
 	suite.Require().NotNil(log, "Failed to create a Logger with stdout stream")
 	suite.Assert().IsType(&StdoutStream{}, log.stream)
@@ -73,8 +73,8 @@ func (suite *InternalLoggerSuite) TestCanCreateWithEnvironmentDEBUG() {
 }
 
 func (suite *InternalLoggerSuite) TestCanCreateWithEnvironmentFLUSHFREQUENCY() {
-	os.Setenv("LOG_FLUSHFREQUENCY", "10ms")
-	defer os.Unsetenv("LOG_FLUSHFREQUENCY")
+	_ = os.Setenv("LOG_FLUSHFREQUENCY", "10ms")
+	defer func() { _ = os.Unsetenv("LOG_FLUSHFREQUENCY") }()
 	log := Create("test")
 	suite.Require().NotNil(log, "Failed to create a Logger with stdout stream")
 	suite.Assert().IsType(&StdoutStream{}, log.stream)
@@ -87,8 +87,8 @@ func (suite *InternalLoggerSuite) TestCanCreateWithEnvironmentFLUSHFREQUENCY() {
 }
 
 func (suite *InternalLoggerSuite) TestCanCreateWithEnvironmentDESTINATION() {
-	os.Setenv("LOG_DESTINATION", "/var/log/test.log")
-	defer os.Unsetenv("LOG_DESTINATION")
+	_ = os.Setenv("LOG_DESTINATION", "/var/log/test.log")
+	defer func() { _ = os.Unsetenv("LOG_DESTINATION") }()
 	log := Create("test")
 	suite.Require().NotNil(log, "Failed to create a Logger with file stream")
 	suite.Assert().IsType(&FileStream{}, log.stream)
@@ -97,10 +97,10 @@ func (suite *InternalLoggerSuite) TestCanCreateWithEnvironmentDESTINATION() {
 }
 
 func (suite *InternalLoggerSuite) TestCanCreateWithEnvironmentPrefix() {
-	os.Setenv("LOG_DESTINATION", "/var/log/test.log")
-	os.Setenv("TEST_LOG_DESTINATION", "/var/log/test/test.log")
-	defer os.Unsetenv("LOG_DESTINATION")
-	defer os.Unsetenv("TEST_LOG_DESTINATION")
+	_ = os.Setenv("LOG_DESTINATION", "/var/log/test.log")
+	_ = os.Setenv("TEST_LOG_DESTINATION", "/var/log/test/test.log")
+	defer func() { _ = os.Unsetenv("LOG_DESTINATION") }()
+	defer func() { _ = os.Unsetenv("TEST_LOG_DESTINATION") }()
 	log := Create("test", EnvironmentPrefix("TEST_"))
 	suite.Require().NotNil(log, "Failed to create a Logger with prefix")
 	suite.Assert().Equal(EnvironmentPrefix("TEST_"), log.environmentPrefix, "Logger should have TEST_ prefix")
@@ -379,7 +379,7 @@ func captureStdout(f func()) string {
 	}()
 
 	f()
-	writer.Close()
+	_ = writer.Close()
 
 	output := bytes.Buffer{}
 	_, _ = io.Copy(&output, reader)
