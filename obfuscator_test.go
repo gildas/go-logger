@@ -7,13 +7,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gildas/go-core"
 	"github.com/gildas/go-logger"
 	"github.com/stretchr/testify/suite"
 )
 
 type ObfuscatorSuite struct {
 	LoggerSuite
-	Name string
+	Name      string
+	CipherKey string
 }
 
 func TestObfuscatorSuite(t *testing.T) {
@@ -22,6 +24,7 @@ func TestObfuscatorSuite(t *testing.T) {
 
 func (suite *ObfuscatorSuite) SetupSuite() {
 	suite.Name = strings.TrimSuffix(reflect.TypeOf(suite).Elem().Name(), "Suite")
+	suite.CipherKey = core.GetEnvAsString("CIPHER_KEY", "1234567890123456")
 }
 
 func (suite *ObfuscatorSuite) TearDownSuite() {
@@ -31,7 +34,7 @@ func (suite *ObfuscatorSuite) TearDownSuite() {
 }
 
 func (suite *ObfuscatorSuite) TestCanObfuscate() {
-	cipherBlock, err := aes.NewCipher([]byte("1234567890123456"))
+	cipherBlock, err := aes.NewCipher([]byte(suite.CipherKey))
 	suite.Require().NoError(err, "Failed to create cipher block")
 
 	customer := User{"12345678", "John Doe", nil}
@@ -104,7 +107,7 @@ func (suite *ObfuscatorSuite) TestCanObfuscateWithoutKey() {
 }
 
 func (suite *ObfuscatorSuite) TestCanUnobfuscate() {
-	cipherBlock, err := aes.NewCipher([]byte("1234567890123456"))
+	cipherBlock, err := aes.NewCipher([]byte(suite.CipherKey))
 	suite.Require().NoError(err, "Failed to create cipher block")
 	log := logger.Create("test", cipherBlock, &logger.StdoutStream{Unbuffered: true})
 
