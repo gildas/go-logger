@@ -109,7 +109,9 @@ func (suite *ObfuscatorSuite) TestCanObfuscateWithoutKey() {
 func (suite *ObfuscatorSuite) TestCanUnobfuscate() {
 	cipherBlock, err := aes.NewCipher([]byte(suite.CipherKey))
 	suite.Require().NoError(err, "Failed to create cipher block")
-	log := logger.Create("test", cipherBlock, &logger.StdoutStream{Unbuffered: true})
+	log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+
+	log.SetObfuscationKey(cipherBlock)
 
 	obfuscated := "This should be hidden: !ENC!:{rAdNoayKlX5t8uKvmZ8FBadpq--P2bbem7Dqero33wL3gguQcHKiBA==} and more text"
 	cleartext, err := log.Unobfuscate(obfuscated)

@@ -10,6 +10,11 @@ import (
 
 var unobfuscateRex = regexp.MustCompile("(.*)!ENC!:{([^}]+)}(.*)")
 
+// SetObfuscationKey sets the key used for obfuscation
+func (l *Logger) SetObfuscationKey(key cipher.Block) {
+	l.obfuscationKey = key
+}
+
 // Obfuscate obfuscates the given string
 func (l *Logger) Obfuscate(value string) string {
 	if l.obfuscationKey != nil {
