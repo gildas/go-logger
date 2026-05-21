@@ -58,7 +58,7 @@ func (suite *LoggerSuite) TestShouldPanicWithError() {
 	_ = logger.Must(nil, &ErrorForTest{"error", 400})
 }
 
-func (suite *LoggerSuite) TestCanCreateLogWithMust() {
+func (suite *LoggerSuite) TestCanCreateWithMust() {
 	log := logger.Must(logger.Create("test"), nil)
 	suite.Require().NotNil(log, "cannot create a logger.Logger")
 }
@@ -1225,6 +1225,31 @@ func (suite *LoggerSuite) TestCanLogErrorWithStack() {
 		"name":     "test",
 		"pid":      "[0-9]+",
 		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
+}
+
+func (suite *LoggerSuite) TestCanLogToScopeConditionally() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		log.Scope("scope1").Infof("message in scope1")
+		logno := log.Child(nil, nil, logger.NewLevelSet(logger.NEVER, "", "scope2"))
+		logno.Scope("scope2").Infof("message in scope2")
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	lines = lines[0 : len(lines)-1] // remove the last empty line
+	suite.Require().Len(lines, 1, "There should be 1 line in the log output, found %d", len(lines))
+	suite.LogLineEqual(lines[0], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      "message in scope1",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "scope1",
 		"tid":      "[0-9]+",
 		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
 		"topic":    "main",

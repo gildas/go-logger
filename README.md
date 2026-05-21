@@ -215,6 +215,31 @@ log.FilterLess()
 // We are now filtering at DEBUG
 ```
 
+You can also create a logger with a `LevelSet` directly:
+
+```go
+log := logger.Create(
+  "myapp",
+  logger.NewLevelSet(logger.DEBUG, "topic1", "scope1"),
+)
+// logs will be filtered at INFO by default,
+// but for topic1/scope1, they will be filtered at DEBUG
+```
+
+Or get a Child logger with a `LevelSet`:
+
+```go
+log := logger.Create("myapp", &logger.StdoutStream{})
+child := log.Child(
+  "topic1",
+  "scope1",
+  logger.NewLevelSet(logger.DEBUG),
+  logger.NewLevelSet(logger.NEVER, "", "scope2"),
+)
+// logs will be filtered at DEBUG by default,
+// but for any/scope2, they will never be logged
+```
+
 ### StackDriver Stream
 
 If you plan to log to Google's StackDriver from a Google Cloud Kubernetes or a Google Cloud Instance, you do not need the StackDriver Stream and should use the Stdout Stream with the StackDriver Converter, since the standard output of your application will be captured automatically by Google to feed StackDriver:  
