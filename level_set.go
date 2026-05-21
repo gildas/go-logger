@@ -11,7 +11,7 @@ import (
 // LevelSet is a set of levels organized by topic and scope
 type LevelSet map[topicscope]Level
 
-// NewLevelSet creates a new LevelSet with a default level
+// NewLevelSet creates a new LevelSet with a default level and optional topic/scope levels
 func NewLevelSet(defaultLevel Level, parameters ...string) (levels LevelSet) {
 	levels = LevelSet{}
 	if len(parameters) == 0 {

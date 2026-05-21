@@ -221,7 +221,6 @@ You can also create a logger with a `LevelSet` directly:
 log := logger.Create(
   "myapp",
   logger.NewLevelSet(logger.DEBUG, "topic1", "scope1"),
-  &logger.StdoutStream{},
 )
 // logs will be filtered at INFO by default,
 // but for topic1/scope1, they will be filtered at DEBUG
@@ -238,7 +237,7 @@ child := log.Child(
   logger.NewLevelSet(logger.NEVER, "", "scope2"),
 )
 // logs will be filtered at DEBUG by default,
-// but and for any/scope2, they will never be logged
+// but for any/scope2, they will never be logged
 ```
 
 ### StackDriver Stream
