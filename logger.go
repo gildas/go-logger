@@ -61,6 +61,10 @@ func Create(name string, parameters ...any) (logger *Logger) {
 			}
 		case Level:
 			filterLevels.Set(parameter, "any", "any")
+		case LevelSet:
+			for ts, level := range parameter {
+				filterLevels.Set(level, ts.Topic, ts.Scope)
+			}
 		case Streamer:
 			streams = append(streams, parameter)
 		case *Record:
@@ -250,6 +254,10 @@ func (log *Logger) Child(topic, scope any, params ...any) *Logger {
 			newlog.redactors = append(newlog.redactors, *actual)
 		case Redactor:
 			newlog.redactors = append(newlog.redactors, actual)
+		case LevelSet:
+			for ts, level := range actual {
+				newlog.SetFilterLevel(level, ts.Topic, ts.Scope)
+			}
 		case string:
 			if len(key) == 0 {
 				key = actual

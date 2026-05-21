@@ -62,6 +62,14 @@ func (suite *InternalLoggerSuite) TestCanCreateWithFilterLevel() {
 	suite.Assert().Equal(TRACE, log.stream.(*StdoutStream).FilterLevels.GetDefault(), "FilterLevel should be TRACE")
 }
 
+func (suite *InternalLoggerSuite) TestCanCreateWithFilterLevelSet() {
+	log := Create("test", NewLevelSet(TRACE, "topic1", "scope1"))
+	suite.Require().NotNil(log, "Failed to create a Logger with a LevelSet")
+	suite.Assert().IsType(&StdoutStream{}, log.stream)
+	suite.Assert().Equal(INFO, log.stream.(*StdoutStream).FilterLevels.GetDefault(), "FilterLevel should be INFO")
+	suite.Assert().Equal(TRACE, log.stream.(*StdoutStream).FilterLevels.Get("topic1", "scope1"), "FilterLevel for topic1/scope1 should be TRACE")
+}
+
 func (suite *InternalLoggerSuite) TestCanCreateWithEnvironmentDEBUG() {
 	_ = os.Setenv("DEBUG", "1")
 	defer func() { _ = os.Unsetenv("DEBUG") }()
