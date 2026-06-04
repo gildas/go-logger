@@ -1,6 +1,9 @@
 package logger
 
-import "github.com/gildas/go-errors"
+import (
+	"github.com/gildas/go-core"
+	"github.com/gildas/go-errors"
+)
 
 // MultiStream is the Stream that writes to several streams
 type MultiStream struct {
@@ -124,6 +127,14 @@ func (stream *MultiStream) Close() {
 	for _, s := range stream.streams {
 		s.Close()
 	}
+}
+
+// Clone clones the stream, so that the new stream is independent of the original one
+//
+// implements logger.Streamer
+func (stream *MultiStream) Clone() Streamer {
+	clonedStreams := core.Map(stream.streams, func(s Streamer) Streamer { return s.Clone() })
+	return &MultiStream{streams: clonedStreams}
 }
 
 // String gets a string version

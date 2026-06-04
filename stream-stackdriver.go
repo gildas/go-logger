@@ -171,6 +171,23 @@ func (stream *StackDriverStream) Close() {
 	}
 }
 
+// Clone clones the stream, so that the new stream is independent of the original one
+//
+// implements logger.Streamer
+func (stream *StackDriverStream) Clone() Streamer {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	return &StackDriverStream{
+		LogID:        stream.LogID,
+		Parent:       stream.Parent,
+		KeyFilename:  stream.KeyFilename,
+		Key:          stream.Key,
+		Converter:    stream.Converter,
+		FilterLevels: stream.FilterLevels.Clone(),
+		SourceInfo:   stream.SourceInfo,
+	}
+}
+
 // String gets a string version
 //
 // implements fmt.Stringer

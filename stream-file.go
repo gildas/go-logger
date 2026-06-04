@@ -167,6 +167,22 @@ func (stream *FileStream) Close() {
 	}
 }
 
+// Clone clones the stream, so that the new stream is independent of the original one
+//
+// implements logger.Streamer
+func (stream *FileStream) Clone() Streamer {
+	stream.mutex.Lock()
+	defer stream.mutex.Unlock()
+	return &FileStream{
+		Path:              stream.Path,
+		Converter:         stream.Converter,
+		FilterLevels:      stream.FilterLevels.Clone(),
+		SourceInfo:        stream.SourceInfo,
+		Unbuffered:        stream.Unbuffered,
+		environmentPrefix: stream.environmentPrefix,
+	}
+}
+
 // String gets a string version
 //
 // implements fmt.Stringer
