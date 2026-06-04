@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"strconv"
 	"strings"
 
@@ -44,6 +45,16 @@ func NewPooledRecord() (record *Record, release func()) {
 // Close returns the record to the pool
 func (record *Record) Close() {
 	mapPool.Put(record)
+}
+
+// Clone creates a clone of this record
+func (record Record) Clone() *Record {
+	newData := make(map[string]any, len(record.Data))
+	maps.Copy(newData, record.Data)
+	return &Record{
+		Data:         newData,
+		KeysToRedact: append([]string(nil), record.KeysToRedact...),
+	}
 }
 
 // Find gets the value at a key

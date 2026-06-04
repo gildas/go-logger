@@ -95,9 +95,9 @@ func (log *Logger) Clone() Streamer {
 	return &Logger{
 		environmentPrefix: log.environmentPrefix,
 		stream:            log.stream.Clone(),
-		record:            log.record,
+		record:            log.record.Clone(),
 		obfuscationKey:    log.obfuscationKey,
-		redactors:         log.redactors,
+		redactors:         append([]Redactor(nil), log.redactors...),
 	}
 }
 
