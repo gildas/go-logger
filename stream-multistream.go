@@ -126,6 +126,17 @@ func (stream *MultiStream) Close() {
 	}
 }
 
+// Clone clones the stream, so that the new stream is independent of the original one
+//
+// implements logger.Streamer
+func (stream *MultiStream) Clone() Streamer {
+	clonedStreams := make([]Streamer, len(stream.streams))
+	for i, s := range stream.streams {
+		clonedStreams[i] = s.Clone()
+	}
+	return &MultiStream{streams: clonedStreams}
+}
+
 // String gets a string version
 //
 // implements fmt.Stringer

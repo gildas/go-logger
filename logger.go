@@ -239,6 +239,8 @@ func (log *Logger) Scope(scope any) *Logger {
 
 // Child creates a child Logger with a topic, a scope, and records
 func (log *Logger) Child(topic, scope any, params ...any) *Logger {
+	// This func requires Logger to be a Stream
+	//   that allows us to nest Loggers and to make sure the records are inherited by the child Logger
 	var key string
 	if topic == nil {
 		topic = log.record.Get("topic")
@@ -255,6 +257,8 @@ func (log *Logger) Child(topic, scope any, params ...any) *Logger {
 		case Redactor:
 			newlog.redactors = append(newlog.redactors, actual)
 		case LevelSet:
+			// We need to clone the stream to make sure the parent stream is not affected by changes to the child stream
+			newlog.stream = newlog.stream.Clone()
 			for ts, level := range actual {
 				newlog.SetFilterLevel(level, ts.Topic, ts.Scope)
 			}

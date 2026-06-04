@@ -77,6 +77,13 @@ func (stream *NilStream) Flush() {
 func (stream *NilStream) Close() {
 }
 
+// Clone clones the stream, so that the new stream is independent of the original one
+//
+// implements logger.Streamer
+func (stream *NilStream) Clone() Streamer {
+	return &NilStream{}
+}
+
 // String gets a string version
 //
 // implements fmt.Stringer

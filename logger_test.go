@@ -1256,3 +1256,12 @@ func (suite *LoggerSuite) TestCanLogToScopeConditionally() {
 		"v":        "0",
 	})
 }
+
+func (suite *LoggerSuite) TestChildLoggerShouldNotShareStreams() {
+	log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+	suite.Assert().Equal("Logger(Unbuffered Stream to stdout)", fmt.Sprintf("%s", log))
+
+	child := log.Child(nil, nil, logger.NewLevelSet(logger.DEBUG))
+	suite.Assert().Equal("Logger(Logger(Unbuffered Stream to stdout, Filter: DEBUG))", fmt.Sprintf("%s", child))
+	suite.Assert().Equal("Logger(Unbuffered Stream to stdout)", fmt.Sprintf("%s", log))
+}

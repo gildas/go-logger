@@ -51,6 +51,10 @@ func (stream *BogusStream) Flush() {
 func (stream *BogusStream) Close() {
 }
 
+func (stream *BogusStream) Clone() logger.Streamer {
+	return &BogusStream{}
+}
+
 // BogusValue is a bogus value that fails to marshal
 type BogusValue struct {
 }

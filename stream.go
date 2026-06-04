@@ -27,6 +27,9 @@ type Streamer interface {
 
 	// GetFilterLevels gets the FilterLevels
 	GetFilterLevels() LevelSet
+
+	// Clone clones the stream, so that the new stream is independent of the original one
+	Clone() Streamer
 }
 
 // GetFlushFrequencyFromEnvironment fetches the flush frequency from the LOG_FLUSHFREQUENCY environment

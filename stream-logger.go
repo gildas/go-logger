@@ -8,7 +8,6 @@ import (
 //
 // implements logger.Streamer
 func (log *Logger) Write(record *Record) error {
-	// implements logger.Stream
 	record.Merge(log.record)
 	return log.stream.Write(record)
 }
@@ -87,6 +86,19 @@ func (log *Logger) Flush() {
 // implements logger.Streamer
 func (log *Logger) Close() {
 	log.stream.Close()
+}
+
+// Clone clones the logger, so that the new logger is independent of the original one
+//
+// implements logger.Streamer
+func (log *Logger) Clone() Streamer {
+	return &Logger{
+		environmentPrefix: log.environmentPrefix,
+		stream:            log.stream.Clone(),
+		record:            log.record,
+		obfuscationKey:    log.obfuscationKey,
+		redactors:         log.redactors,
+	}
 }
 
 // String gets a string version

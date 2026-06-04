@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"maps"
 	"regexp"
 	"strings"
 
@@ -75,6 +76,13 @@ func ParseLevels(settings string) (levels LevelSet) {
 		}
 	}
 	return
+}
+
+// Clone clones the LevelSet
+func (set LevelSet) Clone() LevelSet {
+	clone := LevelSet{}
+	maps.Copy(clone, set)
+	return clone
 }
 
 // GetDefault gets the default level
