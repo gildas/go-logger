@@ -632,3 +632,35 @@ func (suite *StreamSuite) TestCanCreateWithEnvironmentPrefix() {
 	suite.Assert().IsType(&logger.NilStream{}, stream)
 	stream.Close()
 }
+
+func (suite *StreamSuite) TestCanClone() {
+	nilStream := &logger.NilStream{}
+	clonedNilStream := nilStream.Clone()
+	suite.Assert().IsType(&logger.NilStream{}, clonedNilStream)
+
+	fileStream := &logger.FileStream{Path: "log/test.log", FilterLevels: logger.NewLevelSet(logger.INFO)}
+	clonedFileStream := fileStream.Clone()
+	suite.Assert().IsType(&logger.FileStream{}, clonedFileStream)
+	suite.Assert().Equal(fileStream.Path, clonedFileStream.(*logger.FileStream).Path)
+	suite.Assert().Equal(fileStream.FilterLevels, clonedFileStream.(*logger.FileStream).FilterLevels)
+
+	stdoutStream := &logger.StdoutStream{FilterLevels: logger.NewLevelSet(logger.INFO)}
+	clonedStdoutStream := stdoutStream.Clone()
+	suite.Assert().IsType(&logger.StdoutStream{}, clonedStdoutStream)
+	suite.Assert().Equal(stdoutStream.FilterLevels, clonedStdoutStream.(*logger.StdoutStream).FilterLevels)
+
+	stderrStream := &logger.StderrStream{FilterLevels: logger.NewLevelSet(logger.INFO)}
+	clonedStderrStream := stderrStream.Clone()
+	suite.Assert().IsType(&logger.StderrStream{}, clonedStderrStream)
+	suite.Assert().Equal(stderrStream.FilterLevels, clonedStderrStream.(*logger.StderrStream).FilterLevels)
+
+	stackDriverStream := &logger.StackDriverStream{LogID: "test", FilterLevels: logger.NewLevelSet(logger.INFO)}
+	clonedStackDriverStream := stackDriverStream.Clone()
+	suite.Assert().IsType(&logger.StackDriverStream{}, clonedStackDriverStream)
+	suite.Assert().Equal(stackDriverStream.LogID, clonedStackDriverStream.(*logger.StackDriverStream).LogID)
+	suite.Assert().Equal(stackDriverStream.FilterLevels, clonedStackDriverStream.(*logger.StackDriverStream).FilterLevels)
+
+	multiStream := logger.CreateMultiStream(stdoutStream, fileStream).(*logger.MultiStream)
+	clonedMultiStream := multiStream.Clone()
+	suite.Assert().IsType(&logger.MultiStream{}, clonedMultiStream)
+}
