@@ -141,6 +141,7 @@ func (l *Logger) HttpHandlerWithRequestIDHeader(header string) func(http.Handler
 			reqid := r.Header.Get(header)
 			if len(reqid) == 0 {
 				reqid = uuid.Must(uuid.NewRandom()).String()
+				r.Header.Set(header, reqid)
 			}
 			w.Header().Set(header, reqid)
 
