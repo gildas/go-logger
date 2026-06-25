@@ -136,13 +136,21 @@ func (l *Logger) HttpHandlerWithRequestIDHeader(header string) func(http.Handler
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
+			ctx := r.Context()
 
 			// Get a request identifier and pass it to the response writer
-			reqid := r.Header.Get(header)
-			if len(reqid) == 0 {
-				reqid = uuid.Must(uuid.NewRandom()).String()
+			var reqid string
+
+			if len(header) > 0 {
+				reqid = r.Header.Get(header)
+				if len(reqid) == 0 {
+					reqid = uuid.Must(uuid.NewRandom()).String()
+					r.Header.Set(header, reqid)
+				}
+				w.Header().Set(header, reqid)
+				//nolint:staticcheck
+				ctx = context.WithValue(ctx, "reqid", reqid)
 			}
-			w.Header().Set(header, reqid)
 
 			// Get a new Child logger tailored to the request
 			reqLogger := l.Child("route", r.URL.Path, "reqid", reqid, "path", r.URL.Path, "remote", r.RemoteAddr)
@@ -154,9 +162,8 @@ func (l *Logger) HttpHandlerWithRequestIDHeader(header string) func(http.Handler
 			// Wrap the response writer to capture the status code
 			writer := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 
-			// Adding reqid and reqLogger to r.Context and serving the request
-			//nolint:staticcheck
-			next.ServeHTTP(writer, r.WithContext(reqLogger.ToContext(context.WithValue(r.Context(), "reqid", reqid))))
+			// Serving the request
+			next.ServeHTTP(writer, r.WithContext(reqLogger.ToContext(ctx)))
 
 			// Logging the duration of the request handling
 			duration := time.Since(start)
