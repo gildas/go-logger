@@ -46,6 +46,30 @@ func (w *responseWriter) WriteHeader(statusCode int) {
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
+// Header returns the header map that will be sent by
+// [http.ResponseWriter.WriteHeader]. The [http.Header] map also is the mechanism with which
+// [http.Handler] implementations can set HTTP trailers.
+//
+// Changing the header map after a call to [http.ResponseWriter.WriteHeader] (or
+// [http.ResponseWriter.Write]) has no effect unless the HTTP status code was of the
+// 1xx class or the modified headers are trailers.
+//
+// There are two ways to set Trailers. The preferred way is to
+// predeclare in the headers which trailers you will later
+// send by setting the "Trailer" header to the names of the
+// trailer keys which will come later. In this case, those
+// keys of the Header map are treated as if they were
+// trailers. See the example. The second way, for trailer
+// keys not known to the [http.Handler] until after the first [http.ResponseWriter.Write],
+// is to prefix the [http.Header] map keys with the [http.TrailerPrefix]
+// constant value.
+//
+// To suppress automatic response headers (such as "Date"), set
+// their value to nil.
+func (w *responseWriter) Header() http.Header {
+	return w.ResponseWriter.Header()
+}
+
 // Hijack implements the http.Hijacker interface
 //
 // Hijack lets the caller take over the connection.
@@ -55,37 +79,22 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	if hijacker, ok := w.ResponseWriter.(http.Hijacker); ok {
 		return hijacker.Hijack()
 	}
-	return nil, nil, errors.Join(errors.New("ResponseWrite does not implement http.Hijaker"), errors.InvalidType.With("responseWriter", "Hijacker"))
+	return nil, nil, errors.Join(errors.New("ResponseWriter does not implement http.Hijaker"), errors.InvalidType.With("responseWriter", "Hijacker"))
 }
 
-/*
-// Not sure yet if we need this
-
+// Flush sends any buffered data to the client.
+//
+// implements http.Flusher interface
 func (w *responseWriter) Flush() {
 	if flusher, ok := w.ResponseWriter.(http.Flusher); ok {
 		flusher.Flush()
 	}
 }
 
-func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	if hijacker, ok := w.ResponseWriter.(http.Hijacker); ok {
-		return hijacker.Hijack()
-	}
-	return nil, nil, errors.NotImplemented.WithStack()
-}
-
-func (w *responseWriter) RoundTrip(r *http.Request) (*http.Response, error) {
-	if roundtripper, ok := w.ResponseWriter.(http.RoundTripper); ok {
-		return roundtripper.RoundTrip(r)
-	}
-	return nil, errors.NotImplemented.WithStack()
-}
-*/
-
 // Write writes the data to the connection as part of an HTTP reply.
 //
-// If WriteHeader has not yet been called, Write calls
-// WriteHeader(http.StatusOK) before writing the data. If the Header
+// If [WriteHeader] has not yet been called, Write calls
+// WriteHeader([http.StatusOK]) before writing the data. If the Header
 // does not contain a Content-Type line, Write adds a Content-Type set
 // to the result of passing the initial 512 bytes of written data to
 // DetectContentType. Additionally, if the total size of all written
