@@ -61,7 +61,7 @@ func (w *responseWriter) WriteHeader(statusCode int) {
 // keys of the Header map are treated as if they were
 // trailers. See the example. The second way, for trailer
 // keys not known to the [http.Handler] until after the first [http.ResponseWriter.Write],
-// is to prefix the [http.Header] map keys with the [TrailerPrefix]
+// is to prefix the [http.Header] map keys with the [http.TrailerPrefix]
 // constant value.
 //
 // To suppress automatic response headers (such as "Date"), set
@@ -79,7 +79,7 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	if hijacker, ok := w.ResponseWriter.(http.Hijacker); ok {
 		return hijacker.Hijack()
 	}
-	return nil, nil, errors.Join(errors.New("ResponseWrite does not implement http.Hijaker"), errors.InvalidType.With("responseWriter", "Hijacker"))
+	return nil, nil, errors.Join(errors.New("ResponseWriter does not implement http.Hijaker"), errors.InvalidType.With("responseWriter", "Hijacker"))
 }
 
 // Flush sends any buffered data to the client.
