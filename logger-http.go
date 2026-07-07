@@ -61,7 +61,7 @@ func (w *responseWriter) WriteHeader(statusCode int) {
 // keys of the Header map are treated as if they were
 // trailers. See the example. The second way, for trailer
 // keys not known to the [http.Handler] until after the first [http.ResponseWriter.Write],
-// is to prefix the [http.Header] map keys with the [TrailerPrefix]
+// is to prefix the [http.Header] map keys with the [http.TrailerPrefix]
 // constant value.
 //
 // To suppress automatic response headers (such as "Date"), set
@@ -79,7 +79,7 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	if hijacker, ok := w.ResponseWriter.(http.Hijacker); ok {
 		return hijacker.Hijack()
 	}
-	return nil, nil, errors.Join(errors.New("ResponseWrite does not implement http.Hijaker"), errors.InvalidType.With("responseWriter", "Hijacker"))
+	return nil, nil, errors.Join(errors.New("ResponseWriter does not implement http.Hijaker"), errors.InvalidType.With("responseWriter", "Hijacker"))
 }
 
 // Flush sends any buffered data to the client.
@@ -89,37 +89,6 @@ func (w *responseWriter) Flush() {
 	if flusher, ok := w.ResponseWriter.(http.Flusher); ok {
 		flusher.Flush()
 	}
-}
-
-// RoundTrip executes a single HTTP transaction, returning
-// a Response for the provided Request.
-//
-// RoundTrip should not attempt to interpret the response. In
-// particular, RoundTrip must return err == nil if it obtained
-// a response, regardless of the response's HTTP status code.
-// A non-nil err should be reserved for failure to obtain a
-// response. Similarly, RoundTrip should not attempt to
-// handle higher-level protocol details such as redirects,
-// authentication, or cookies.
-//
-// RoundTrip should not modify the request, except for
-// consuming and closing the Request's Body. RoundTrip may
-// read fields of the request in a separate goroutine. Callers
-// should not mutate or reuse the request until the Response's
-// Body has been closed.
-//
-// RoundTrip must always close the body, including on errors,
-// but depending on the implementation may do so in a separate
-// goroutine even after RoundTrip returns. This means that
-// callers wanting to reuse the body for subsequent requests
-// must arrange to wait for the Close call before doing so.
-//
-// The Request's URL and Header fields must be initialized.
-func (w *responseWriter) RoundTrip(r *http.Request) (*http.Response, error) {
-	if roundtripper, ok := w.ResponseWriter.(http.RoundTripper); ok {
-		return roundtripper.RoundTrip(r)
-	}
-	return nil, errors.NotImplemented.WithStack()
 }
 
 // Write writes the data to the connection as part of an HTTP reply.

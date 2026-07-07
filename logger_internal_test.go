@@ -361,6 +361,17 @@ func (suite *InternalLoggerSuite) TestIsHijacker() {
 	suite.Require().ErrorIs(err, errors.InvalidType)
 }
 
+func (suite *InternalLoggerSuite) TestIsFlusher() {
+	w := &responseWriter{
+		ResponseWriter: &flusherResponse{},
+		statusCode:     200,
+		written:        0,
+	}
+	_ = w.Header()
+	suite.Assert().Implements((*http.Flusher)(nil), w)
+	w.Flush()
+}
+
 type hijackerResponse struct{}
 
 func (*hijackerResponse) Header() http.Header        { return nil }
@@ -375,6 +386,13 @@ type noopResponse struct{}
 func (*noopResponse) Header() http.Header        { return nil }
 func (*noopResponse) Write([]byte) (int, error)  { return 0, nil }
 func (*noopResponse) WriteHeader(statusCode int) {}
+
+type flusherResponse struct{}
+
+func (*flusherResponse) Header() http.Header        { return nil }
+func (*flusherResponse) Write([]byte) (int, error)  { return 0, nil }
+func (*flusherResponse) WriteHeader(statusCode int) {}
+func (*flusherResponse) Flush()                     {}
 
 func captureStdout(f func()) string {
 	reader, writer, err := os.Pipe()
