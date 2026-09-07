@@ -3,12 +3,12 @@ package logger_test
 import (
 	"encoding/json"
 	"testing"
-
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/suite"
+	"uuid"
 
 	"github.com/gildas/go-errors"
 	"github.com/gildas/go-logger"
+	googleuuid "github.com/google/uuid"
+	"github.com/stretchr/testify/suite"
 )
 
 type RecordSuite struct {
@@ -74,12 +74,25 @@ func (suite *RecordSuite) TestCanMarshalEmptyString() {
 
 func (suite *RecordSuite) TestCanMarshalEmptyUUID() {
 	record := logger.NewRecord()
-	record.Data["empty"] = uuid.Nil
+	record.Data["empty"] = googleuuid.Nil
 	payload, err := json.Marshal(record)
 	suite.Require().NoError(err, "Error while marshaling record")
 	suite.Assert().JSONEq(`{}`, string(payload))
 
-	record.Data["?empty"] = uuid.Nil
+	record.Data["?empty"] = googleuuid.Nil
+	payload, err = json.Marshal(record)
+	suite.Require().NoError(err, "Error while marshaling record")
+	suite.Assert().JSONEq(`{"empty": "00000000-0000-0000-0000-000000000000"}`, string(payload))
+}
+
+func (suite *RecordSuite) TestCanMarshalEmptyUUID_GO127() {
+	record := logger.NewRecord()
+	record.Data["empty"] = uuid.Nil()
+	payload, err := json.Marshal(record)
+	suite.Require().NoError(err, "Error while marshaling record")
+	suite.Assert().JSONEq(`{}`, string(payload))
+
+	record.Data["?empty"] = uuid.Nil()
 	payload, err = json.Marshal(record)
 	suite.Require().NoError(err, "Error while marshaling record")
 	suite.Assert().JSONEq(`{"empty": "00000000-0000-0000-0000-000000000000"}`, string(payload))

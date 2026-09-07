@@ -7,9 +7,10 @@ import (
 	"maps"
 	"strconv"
 	"strings"
+	"uuid"
 
 	"github.com/gildas/go-errors"
-	"github.com/google/uuid"
+	googleuuid "github.com/google/uuid"
 )
 
 // Record is the map that contains all records of a log entry
@@ -132,7 +133,10 @@ func (record Record) MarshalJSON() ([]byte, error) {
 			if value, ok := raw.(string); ok && value == "" {
 				continue
 			}
-			if id, ok := raw.(uuid.UUID); ok && id == uuid.Nil {
+			if id, ok := raw.(googleuuid.UUID); ok && id == googleuuid.Nil {
+				continue
+			}
+			if id, ok := raw.(uuid.UUID); ok && id == uuid.Nil() {
 				continue
 			}
 			if id, ok := raw.(interface{ IsNil() bool }); ok && id.IsNil() {

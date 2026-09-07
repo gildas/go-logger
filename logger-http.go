@@ -7,9 +7,9 @@ import (
 	"net"
 	"net/http"
 	"time"
+	"uuid"
 
 	"github.com/gildas/go-errors"
-	"github.com/google/uuid"
 )
 
 type responseWriter struct {
@@ -153,7 +153,7 @@ func (l *Logger) HttpHandlerWithRequestIDHeader(header string) func(http.Handler
 			if len(header) > 0 {
 				reqid = r.Header.Get(header)
 				if len(reqid) == 0 {
-					reqid = uuid.Must(uuid.NewRandom()).String()
+					reqid = uuid.New().String()
 					r.Header.Set(header, reqid)
 				}
 				w.Header().Set(header, reqid)
