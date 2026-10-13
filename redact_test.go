@@ -1,6 +1,7 @@
 package logger_test
 
 import (
+	"net/http"
 	"reflect"
 	"strings"
 	"testing"
@@ -184,6 +185,52 @@ func (suite *RedactSuite) TestCanRedactAsString() {
 	suite.Assert().Equal("", logger.RedactWithHash(nil))
 	suite.Assert().Equal("REDACTED-6cea57c2fb", logger.RedactWithHash("John Doe"))
 	suite.Assert().Equal("Name-6cea57c2fb", logger.RedactWithPrefixedHash("Name", "John Doe"))
+}
+
+func (suite *RedactSuite) TestCanRedactHTTPHeaders() {
+	headers := http.Header{}
+	headers.Set("Authorization", "Bearer my-secret-token")
+	headers.Set("Proxy-Authorization", "Basic dXNlcjpwYXNzd29yZA==")
+	headers.Add("Cookie", "session=abcdef")
+	headers.Add("Cookie", "theme=dark")
+	headers.Set("Content-Type", "application/json")
+	headers.Set("X-Request-Id", "12345678")
+
+	redacted := logger.RedactHTTPHeaders(headers)
+	suite.Assert().Equal("Bearer "+logger.RedactWithHash("my-secret-token"), redacted.Get("Authorization"))
+	suite.Assert().Equal("Basic "+logger.RedactWithHash("dXNlcjpwYXNzd29yZA=="), redacted.Get("Proxy-Authorization"))
+	suite.Assert().Equal([]string{logger.RedactWithHash("session=abcdef"), logger.RedactWithHash("theme=dark")}, redacted.Values("Cookie"))
+	suite.Assert().Equal("application/json", redacted.Get("Content-Type"))
+	suite.Assert().Equal("12345678", redacted.Get("X-Request-Id"))
+
+	// The original headers should not be modified
+	suite.Assert().Equal("Bearer my-secret-token", headers.Get("Authorization"))
+	suite.Assert().Equal("Basic dXNlcjpwYXNzd29yZA==", headers.Get("Proxy-Authorization"))
+	suite.Assert().Equal([]string{"session=abcdef", "theme=dark"}, headers.Values("Cookie"))
+}
+
+func (suite *RedactSuite) TestCanRedactHTTPHeadersWithSensitiveKeys() {
+	headers := http.Header{}
+	headers.Set("Authorization", "Bearer my-secret-token")
+	headers.Set("X-Api-Key", "my-api-key")
+	headers.Set("X-Request-Id", "12345678")
+
+	redacted := logger.RedactHTTPHeaders(headers, "x-api-key")
+	suite.Assert().Equal("Bearer "+logger.RedactWithHash("my-secret-token"), redacted.Get("Authorization"))
+	suite.Assert().Equal(logger.RedactWithHash("my-api-key"), redacted.Get("X-Api-Key"))
+	suite.Assert().Equal("12345678", redacted.Get("X-Request-Id"))
+	suite.Assert().Equal("my-api-key", headers.Get("X-Api-Key"))
+}
+
+func (suite *RedactSuite) TestCanRedactHTTPHeadersWithoutSensitiveHeaders() {
+	headers := http.Header{}
+	headers.Set("Content-Type", "application/json")
+
+	redacted := logger.RedactHTTPHeaders(headers, "X-Api-Key")
+	suite.Assert().Equal(headers, redacted)
+	suite.Assert().Empty(redacted.Values("Authorization"))
+	suite.Assert().Empty(redacted.Values("X-Api-Key"))
+	suite.Assert().Nil(logger.RedactHTTPHeaders(nil))
 }
 
 func (suite *RedactSuite) TestCanRedactCreditCardCard() {

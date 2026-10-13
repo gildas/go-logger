@@ -6,6 +6,7 @@ import (
 	"html"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 	"uuid"
 
@@ -191,4 +192,22 @@ func (l *Logger) HttpHandlerWithRequestIDHeader(header string) func(http.Handler
 			}
 		})
 	}
+}
+
+// RedactHTTPHeaders function will redact sensitive HTTP headers from the logs
+//
+// "Authorization", "Proxy-Authorization", and "Cookie" headers will be always redacted.
+func RedactHTTPHeaders(headers http.Header, sensitiveKeys ...string) http.Header {
+	redacted := headers.Clone()
+	for _, key := range append([]string{"Authorization", "Proxy-Authorization", "Cookie"}, sensitiveKeys...) {
+		values := redacted.Values(key)
+		for i, value := range values {
+			if scheme, credentials, found := strings.Cut(value, " "); found {
+				values[i] = scheme + " " + RedactWithHash(credentials)
+			} else {
+				values[i] = RedactWithHash(value)
+			}
+		}
+	}
+	return redacted
 }
