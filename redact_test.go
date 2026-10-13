@@ -209,15 +209,56 @@ func (suite *RedactSuite) TestCanRedactHTTPHeaders() {
 	suite.Assert().Equal([]string{"session=abcdef", "theme=dark"}, headers.Values("Cookie"))
 }
 
+func (suite *RedactSuite) TestCanRedactHTTPHeadersWithCookies() {
+	headers := http.Header{}
+	headers.Set("Cookie", "session=SECRET1; theme=SECRET2")
+	headers.Add("Set-Cookie", "session=SECRET3; Path=/; HttpOnly")
+	headers.Add("Set-Cookie", "theme=SECRET4; Path=/")
+
+	redacted := logger.RedactHTTPHeaders(headers)
+	suite.Assert().Equal(logger.RedactWithHash("session=SECRET1; theme=SECRET2"), redacted.Get("Cookie"))
+	suite.Assert().Equal([]string{
+		logger.RedactWithHash("session=SECRET3; Path=/; HttpOnly"),
+		logger.RedactWithHash("theme=SECRET4; Path=/"),
+	}, redacted.Values("Set-Cookie"))
+	for key, values := range redacted {
+		for _, value := range values {
+			suite.Assert().NotContainsf(value, "SECRET", "Header %s leaks a secret: %s", key, value)
+		}
+	}
+}
+
+func (suite *RedactSuite) TestCanRedactHTTPHeadersWithoutScheme() {
+	headers := http.Header{}
+	headers.Set("Authorization", "my-secret-token")
+
+	redacted := logger.RedactHTTPHeaders(headers)
+	suite.Assert().Equal(logger.RedactWithHash("my-secret-token"), redacted.Get("Authorization"))
+}
+
+func (suite *RedactSuite) TestShouldRedactHTTPHeadersOnlyOnce() {
+	headers := http.Header{}
+	headers.Set("Authorization", "Bearer my-secret-token")
+	headers.Set("Cookie", "session=SECRET1")
+	headers.Set("X-Api-Key", "my-api-key")
+
+	redacted := logger.RedactHTTPHeaders(headers, "authorization", "COOKIE", "X-Api-Key", "x-api-key")
+	suite.Assert().Equal("Bearer "+logger.RedactWithHash("my-secret-token"), redacted.Get("Authorization"))
+	suite.Assert().Equal(logger.RedactWithHash("session=SECRET1"), redacted.Get("Cookie"))
+	suite.Assert().Equal(logger.RedactWithHash("my-api-key"), redacted.Get("X-Api-Key"))
+}
+
 func (suite *RedactSuite) TestCanRedactHTTPHeadersWithSensitiveKeys() {
 	headers := http.Header{}
 	headers.Set("Authorization", "Bearer my-secret-token")
 	headers.Set("X-Api-Key", "my-api-key")
+	headers.Set("X-Auth-Token", "Token my-auth-token")
 	headers.Set("X-Request-Id", "12345678")
 
-	redacted := logger.RedactHTTPHeaders(headers, "x-api-key")
+	redacted := logger.RedactHTTPHeaders(headers, "x-api-key", "X-Auth-Token")
 	suite.Assert().Equal("Bearer "+logger.RedactWithHash("my-secret-token"), redacted.Get("Authorization"))
 	suite.Assert().Equal(logger.RedactWithHash("my-api-key"), redacted.Get("X-Api-Key"))
+	suite.Assert().Equal(logger.RedactWithHash("Token my-auth-token"), redacted.Get("X-Auth-Token"))
 	suite.Assert().Equal("12345678", redacted.Get("X-Request-Id"))
 	suite.Assert().Equal("my-api-key", headers.Get("X-Api-Key"))
 }
