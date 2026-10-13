@@ -17,16 +17,17 @@ import (
 //
 // implements logger.Streamer
 type StackDriverStream struct {
-	LogID        string
-	Parent       string
-	KeyFilename  string
-	Key          any
-	Converter    Converter
-	FilterLevels LevelSet
-	SourceInfo   bool
-	mutex        sync.Mutex
-	client       *logging.Client
-	target       *logging.Logger
+	LogID         string
+	Parent        string
+	KeyFilename   string
+	Key           any
+	Converter     Converter
+	FilterLevels  LevelSet
+	SourceInfo    bool
+	mutex         sync.Mutex
+	client        *logging.Client
+	target        *logging.Logger
+	clientOptions []googleoption.ClientOption // extra client options, used by tests
 }
 
 // GetFilterLevels gets the filter levels
@@ -99,7 +100,7 @@ func (stream *StackDriverStream) Write(record *Record) (err error) {
 			stream.Parent = "projects/" + projectID
 		}
 		stream.Converter = &StackDriverConverter{}
-		options := []googleoption.ClientOption{}
+		options := append([]googleoption.ClientOption{}, stream.clientOptions...)
 		if stream.Key != nil {
 			payload, err := json.Marshal(stream.Key)
 			if err != nil {

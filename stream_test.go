@@ -451,6 +451,59 @@ func (suite *StreamSuite) TestFailsWritingToStackDriverWithInvalidKey() {
 	suite.Assert().Contains(err.Error(), "Not Implemented")
 }
 
+func (suite *StreamSuite) TestNilStreamCanBeFlushedAndClosed() {
+	stream := &logger.NilStream{}
+	stream.SetFilterLevel(logger.WARN, "topic", "scope")
+	stream.FilterMore()
+	stream.FilterLess()
+	stream.Flush()
+	stream.Close()
+	suite.Assert().Equal(logger.LevelSet{}, stream.GetFilterLevels())
+	suite.Assert().False(stream.ShouldWrite(logger.ALWAYS, "", ""), "NilStream should never write")
+}
+
+func (suite *StreamSuite) TestStderrStreamCanBeFlushedAndClosed() {
+	stream := &logger.StderrStream{}
+	output := CaptureStderr(func() {
+		stream.Flush()
+		stream.Close()
+	})
+	suite.Assert().Empty(output, "Should not have written anything")
+}
+
+func (suite *StreamSuite) TestStackDriverStreamCanBeFlushedAndClosedWithoutClient() {
+	stream := &logger.StackDriverStream{}
+	stream.Flush()
+	stream.Close()
+}
+
+func (suite *StreamSuite) TestFailsWritingToStackDriverWithUnmarshableKey() {
+	suite.T().Setenv("GOOGLE_PROJECT_ID", "go-logger-test")
+	stream := &logger.StackDriverStream{LogID: "test", Key: make(chan bool)}
+	defer stream.Close()
+	err := stream.Write(logger.NewRecord().Set("level", logger.WARN).Set("time", time.Now()).Set("msg", "Hello"))
+	suite.Require().Error(err, "Should have failed writing to stream")
+	suite.Assert().ErrorIs(err, errors.JSONMarshalError)
+	suite.Assert().Equal("projects/go-logger-test", stream.Parent)
+}
+
+func (suite *StreamSuite) TestFailsWritingToStackDriverWithInvalidCredentials() {
+	stream := &logger.StackDriverStream{LogID: "test", Parent: "projects/go-logger-test", Key: map[string]string{"type": "bogus"}}
+	defer stream.Close()
+	err := stream.Write(logger.NewRecord().Set("level", logger.WARN).Set("time", time.Now()).Set("msg", "Hello"))
+	suite.Require().Error(err, "Should have failed writing to stream")
+	suite.T().Logf("Expected error: %s", err.Error())
+}
+
+func (suite *StreamSuite) TestFailsWritingToStackDriverWithMissingKeyFilename() {
+	stream := &logger.StackDriverStream{LogID: "test", Parent: "projects/go-logger-test", KeyFilename: filepath.Join(suite.T().TempDir(), "missing-key.json")}
+	defer stream.Close()
+	err := stream.Write(logger.NewRecord().Set("level", logger.WARN).Set("time", time.Now()).Set("msg", "Hello"))
+	suite.Require().Error(err, "Should have failed writing to stream")
+	suite.T().Logf("Expected error: %s", err.Error())
+	suite.Assert().Contains(err.Error(), "no such file")
+}
+
 func (suite *StreamSuite) TestFailsWritingToFileStreamWithInvalidFile() {
 	streamFile := &logger.FileStream{Path: ""}
 	err := streamFile.Write(logger.NewRecord().Set("key", "value"))

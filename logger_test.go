@@ -1168,6 +1168,33 @@ func (suite *LoggerSuite) TestCanLogWithSourceInfo() {
 	})
 }
 
+func (suite *LoggerSuite) TestCanLogWithSourceInfoFromPackageWithoutSlash() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true, SourceInfo: true})
+		// The caller of the writer is fmt.Fprintf, whose package has no slash in its path
+		_, _ = fmt.Fprintf(log.Writer(), "message")
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	suite.Require().Len(lines, 2, "There should be 2 lines in the log output, found %d", len(lines))
+	suite.LogLineEqual(lines[0], map[string]string{
+		"file":     `print\.go`,
+		"func":     `Fprintf`,
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"line":     "[0-9]+",
+		"msg":      "message",
+		"name":     "test",
+		"package":  "fmt",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
+}
+
 func (suite *LoggerSuite) TestCanLogWithMultipleLevelsPerTopic() {
 	output := CaptureStdout(func() {
 		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
