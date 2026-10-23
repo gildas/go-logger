@@ -158,8 +158,8 @@ func (l *Logger) HttpHandlerWithRequestIDHeader(header string) func(http.Handler
 					r.Header.Set(header, reqid)
 				}
 				w.Header().Set(header, reqid)
-				//nolint:staticcheck
-				ctx = context.WithValue(ctx, "reqid", reqid)
+				//lint:ignore SA1029 Using context.WithValue with a string key is discouraged, but acceptable here for request ID.
+				ctx = context.WithValue(ctx, "reqid", reqid) //nolint:staticcheck // SA1029: Using context.WithValue with a string key is discouraged, but acceptable here for request ID.
 			}
 
 			// Get a new Child logger tailored to the request
