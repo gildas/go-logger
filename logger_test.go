@@ -109,7 +109,8 @@ func (suite *LoggerSuite) TestShouldFailLoadingFromContextWithoutLogger() {
 }
 
 func (suite *LoggerSuite) TestShouldFailLoadingFromNilContext() {
-	_, err := logger.FromContext(nil) //nolint:staticcheck
+	//lint:ignore SA1012 Testing nil-context error handling.
+	_, err := logger.FromContext(nil) //nolint:staticcheck // SA1012: We are intentionally passing a nil context to test error handling
 	suite.Require().NotNil(err, "Context should not contain a Logger")
 	suite.Assert().True(errors.Is(err, errors.ArgumentMissing), "error should be an Argument Missing error")
 	details := errors.ArgumentMissing.Clone()
@@ -1286,11 +1287,11 @@ func (suite *LoggerSuite) TestCanLogToScopeConditionally() {
 
 func (suite *LoggerSuite) TestChildLoggerShouldNotShareStreams() {
 	log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
-	suite.Assert().Equal("Logger(Unbuffered Stream to stdout)", fmt.Sprintf("%s", log))
+	suite.Assert().Equal("Logger(Unbuffered Stream to stdout)", log.String())
 
 	child := log.Child(nil, nil, logger.NewLevelSet(logger.DEBUG))
-	suite.Assert().Equal("Logger(Logger(Unbuffered Stream to stdout, Filter: DEBUG))", fmt.Sprintf("%s", child))
-	suite.Assert().Equal("Logger(Unbuffered Stream to stdout)", fmt.Sprintf("%s", log))
+	suite.Assert().Equal("Logger(Logger(Unbuffered Stream to stdout, Filter: DEBUG))", child.String())
+	suite.Assert().Equal("Logger(Unbuffered Stream to stdout)", log.String())
 }
 
 func (suite *LoggerSuite) TestCanLogTag() {
