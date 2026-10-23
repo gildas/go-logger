@@ -1307,7 +1307,7 @@ func (suite *LoggerSuite) TestCanLogTag() {
 	suite.LogLineEqual(lines[0], map[string]string{
 		"hostname": `[a-zA-Z_0-9\-\.]+`,
 		"level":    "30",
-		"msg":      "⏳ tagged section",
+		"msg":      "▶️ tagged section",
 		"name":     "test",
 		"pid":      "[0-9]+",
 		"scope":    "main",
@@ -1320,7 +1320,7 @@ func (suite *LoggerSuite) TestCanLogTag() {
 		"hostname": `[a-zA-Z_0-9\-\.]+`,
 		"duration": `[0-9]+\.[0-9]+`,
 		"level":    "30",
-		"msg":      `✅ tagged section. executed in [0-9]+\.[0-9]+[nµm]?s`,
+		"msg":      `⏹️ tagged section. executed in [0-9]+\.[0-9]+[nµm]?s`,
 		"name":     "test",
 		"pid":      "[0-9]+",
 		"scope":    "main",
