@@ -1292,3 +1292,40 @@ func (suite *LoggerSuite) TestChildLoggerShouldNotShareStreams() {
 	suite.Assert().Equal("Logger(Logger(Unbuffered Stream to stdout, Filter: DEBUG))", fmt.Sprintf("%s", child))
 	suite.Assert().Equal("Logger(Unbuffered Stream to stdout)", fmt.Sprintf("%s", log))
 }
+
+func (suite *LoggerSuite) TestCanLogTag() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		defer log.Tag("tagged section")()
+		time.Sleep(100 * time.Millisecond)
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	lines = lines[0 : len(lines)-1] // remove the last empty line
+	suite.Require().Len(lines, 2, "There should be 2 lines in the log output, found %d", len(lines))
+	suite.LogLineEqual(lines[0], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      "⏳ tagged section",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
+	suite.LogLineEqual(lines[1], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"duration": `[0-9]+\.[0-9]+`,
+		"level":    "30",
+		"msg":      `✅ tagged section. executed in [0-9]+\.[0-9]+[nµm]?s`,
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
+}
