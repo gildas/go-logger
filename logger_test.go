@@ -109,7 +109,8 @@ func (suite *LoggerSuite) TestShouldFailLoadingFromContextWithoutLogger() {
 }
 
 func (suite *LoggerSuite) TestShouldFailLoadingFromNilContext() {
-	_, err := logger.FromContext(nil) //nolint:staticcheck
+	//lint:ignore SA1012 Testing nil-context error handling.
+	_, err := logger.FromContext(nil) //nolint:staticcheck // SA1012: We are intentionally passing a nil context to test error handling
 	suite.Require().NotNil(err, "Context should not contain a Logger")
 	suite.Assert().True(errors.Is(err, errors.ArgumentMissing), "error should be an Argument Missing error")
 	details := errors.ArgumentMissing.Clone()
@@ -669,7 +670,7 @@ func (suite *LoggerSuite) TestLoggerHttpHandlerWithAddedRecords() {
 		"hostname":    `[a-zA-Z_0-9\-\.]+`,
 		"http_status": "200",
 		"level":       "30",
-		"msg":         `✅ request finish: GET / in [0-9]+(?:\.[0-9]+)?µs`,
+		"msg":         `✅ request finish: GET / in [0-9]+(?:\.[0-9]+)?[nµm]?s`,
 		"name":        "test",
 		"path":        "/",
 		"pid":         "[0-9]+",
@@ -992,7 +993,7 @@ func (suite *LoggerSuite) TestCanLogTimedFunc() {
 		"duration": `[0-9]+\.[0-9]+`,
 		"hostname": `[a-zA-Z_0-9\-\.]+`,
 		"level":    "30",
-		"msg":      "code. executed in [0-9]+.[0-9]+ms",
+		"msg":      "code. executed in [0-9]+.[0-9]+[nµm]?s",
 		"name":     "test",
 		"pid":      "[0-9]+",
 		"scope":    "main",
@@ -1039,7 +1040,7 @@ func (suite *LoggerSuite) TestCanLogTimedFuncWithReturnedValue() {
 		"duration": `[0-9]+\.[0-9]+`,
 		"hostname": `[a-zA-Z_0-9\-\.]+`,
 		"level":    "30",
-		"msg":      "code. executed in [0-9]+.[0-9]+ms",
+		"msg":      "code. executed in [0-9]+.[0-9]+[nµm]?s",
 		"name":     "test",
 		"pid":      "[0-9]+",
 		"scope":    "main",
@@ -1082,7 +1083,7 @@ func (suite *LoggerSuite) TestCanLogTimedFuncWithReturnedError() {
 		"duration": `[0-9]+\.[0-9]+`,
 		"hostname": `[a-zA-Z_0-9\-\.]+`,
 		"level":    "30",
-		"msg":      "code. executed in [0-9]+.[0-9]+ms",
+		"msg":      "code. executed in [0-9]+.[0-9]+[nµm]?s",
 		"name":     "test",
 		"pid":      "[0-9]+",
 		"scope":    "main",
@@ -1131,7 +1132,7 @@ func (suite *LoggerSuite) TestCanLogTimedFuncWithReturnedValueAndError() {
 		"duration": `[0-9]+\.[0-9]+`,
 		"hostname": `[a-zA-Z_0-9\-\.]+`,
 		"level":    "30",
-		"msg":      "code. executed in [0-9]+.[0-9]+ms",
+		"msg":      "code. executed in [0-9]+.[0-9]+[nµm]?s",
 		"name":     "test",
 		"pid":      "[0-9]+",
 		"scope":    "main",
@@ -1286,9 +1287,46 @@ func (suite *LoggerSuite) TestCanLogToScopeConditionally() {
 
 func (suite *LoggerSuite) TestChildLoggerShouldNotShareStreams() {
 	log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
-	suite.Assert().Equal("Logger(Unbuffered Stream to stdout)", fmt.Sprintf("%s", log))
+	suite.Assert().Equal("Logger(Unbuffered Stream to stdout)", log.String())
 
 	child := log.Child(nil, nil, logger.NewLevelSet(logger.DEBUG))
-	suite.Assert().Equal("Logger(Logger(Unbuffered Stream to stdout, Filter: DEBUG))", fmt.Sprintf("%s", child))
-	suite.Assert().Equal("Logger(Unbuffered Stream to stdout)", fmt.Sprintf("%s", log))
+	suite.Assert().Equal("Logger(Logger(Unbuffered Stream to stdout, Filter: DEBUG))", child.String())
+	suite.Assert().Equal("Logger(Unbuffered Stream to stdout)", log.String())
+}
+
+func (suite *LoggerSuite) TestCanLogTag() {
+	output := CaptureStdout(func() {
+		log := logger.Create("test", &logger.StdoutStream{Unbuffered: true})
+		defer log.Tag("tagged section")()
+		time.Sleep(100 * time.Millisecond)
+	})
+	suite.Require().NotEmpty(output, "There was no output")
+	lines := strings.Split(output, "\n")
+	lines = lines[0 : len(lines)-1] // remove the last empty line
+	suite.Require().Len(lines, 2, "There should be 2 lines in the log output, found %d", len(lines))
+	suite.LogLineEqual(lines[0], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"level":    "30",
+		"msg":      "▶️ tagged section",
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
+	suite.LogLineEqual(lines[1], map[string]string{
+		"hostname": `[a-zA-Z_0-9\-\.]+`,
+		"duration": `[0-9]+\.[0-9]+`,
+		"level":    "30",
+		"msg":      `⏹️ tagged section. executed in [0-9]+\.[0-9]+[nµm]?s`,
+		"name":     "test",
+		"pid":      "[0-9]+",
+		"scope":    "main",
+		"tid":      "[0-9]+",
+		"time":     `[0-9]+-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+Z`,
+		"topic":    "main",
+		"v":        "0",
+	})
 }

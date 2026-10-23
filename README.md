@@ -254,24 +254,31 @@ To be able to use the StackDriver Stream from outside Google Cloud, you have som
 On your workstation, you need to get the key filename:  
 
 1. Authenticate with Google Cloud  
-  ```console
-  gcloud auth login
-  ```
+
+    ```console
+    gcloud auth login
+    ```
+
 2. Create a Service Account (`logger-account` is just an example of a service account name)  
-  ```console
-  gcloud iam service-acccount create logger-account
-  ```
+
+    ```console
+    gcloud iam service-acccount create logger-account
+    ```
+
 3. Associate the Service Account to the Project you want to use  
-  ```console
-  gcloud projects add-iam-policy-binding my-logging-project \
-    --member "serviceAccount:logger-account@my-logging-project.iam.gserviceaccount.com" \
-    --role "roles/logging.logWriter"
-  ```
+
+    ```console
+    gcloud projects add-iam-policy-binding my-logging-project \
+      --member "serviceAccount:logger-account@my-logging-project.iam.gserviceaccount.com" \
+      --role "roles/logging.logWriter"
+    ```
+
 4. Retrieve the key filename  
-  ```console
-  gcloud iam service-accounts keys create /path/to/key.json \
-    --iam-account logger-account@my-logging-project.iam.gserviceaccount.com
-  ```
+
+    ```console
+    gcloud iam service-accounts keys create /path/to/key.json \
+      --iam-account logger-account@my-logging-project.iam.gserviceaccount.com
+    ```
 
 You can either set the `GOOGLE_APPLICATION_CREDENTIAL` and `GOOGLE_PROJECT_ID` environment variables with the path of the obtained key and Google Project ID or provide them to the StackDriver stream:  
 
@@ -348,6 +355,18 @@ result, err := log.TimeFuncVE("message shown with the duration", func() (any, er
 })
 ```
 
+You can also use `log.Tag` to time specific sections of your code by tagging them with a label. This allows you to measure the duration of tagged sections independently of the overall function timing.
+
+```go
+func MyFunc(log *logger.Logger) {
+  defer log.Tag("MyFunc")()
+
+  // do stuff
+}
+```
+
+In the logs, the duration of the tagged section will be recorded with the label specified in `log.Tag`, the closing log entry will also have the duration in its Record. This allows you to see how long each tagged section took independently of the overall function timing.
+
 ### Miscellaneous
 
 The following convenience methods can be used when creating a `Logger` from another one (received from arguments, for example):
@@ -416,6 +435,7 @@ func (customer Customer) Redact(keyToRedact ...string) any {
       redacted.Name = logger.RedactWithHash(customer.Name)
     }
   }
+  return redacted
 }
 
 main() {
@@ -682,6 +702,28 @@ func main() {
 ```
 
 The logger will look for the environment variables `myapp_LOG_DESTINATION`, `myapp_LOG_LEVEL`, etc.
+
+## Benchmarks
+
+The benchmarks write to an in-memory stream that converts each record with the Bunyan converter and marshals it to JSON, so no disk I/O is involved. Run them with:
+
+```console
+go test -run '^$' -bench 'BenchmarkLogger_' -benchmem
+```
+
+Results (Intel Core i9-10850K, linux/amd64, `-benchtime=2s`):
+
+| Benchmark              | ns/op | B/op | allocs/op |
+|------------------------|------:|-----:|----------:|
+| Simple message         | 2323  | 152  | 10        |
+| Complex message        | 3386  | 361  | 15        |
+| Child log              | 2525  | 152  | 10        |
+| JSON record            | 3607  | 739  | 16        |
+| JSON redacted record   | 3852  | 868  | 22        |
+| Redacted string        | 6414  | 507  | 15        |
+| Obfuscated string      | 4006  | 1301 | 18        |
+
+Numbers vary depending on the machine.
 
 ## Thanks
 
