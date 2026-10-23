@@ -355,6 +355,18 @@ result, err := log.TimeFuncVE("message shown with the duration", func() (any, er
 })
 ```
 
+You can also use `log.Tag` to time specific sections of your code by tagging them with a label. This allows you to measure the duration of tagged sections independently of the overall function timing.
+
+```go
+func MyFunc(log *logger.Logger) {
+  defer log.Tag("MyFunc")()
+
+  // do stuff
+}
+```
+
+In the logs, the duration of the tagged section will be recorded with the label specified in `log.Tag`, the closing log entry will also have the duration in its Record. This allows you to see how long each tagged section took independently of the overall function timing.
+
 ### Miscellaneous
 
 The following convenience methods can be used when creating a `Logger` from another one (received from arguments, for example):
@@ -423,6 +435,7 @@ func (customer Customer) Redact(keyToRedact ...string) any {
       redacted.Name = logger.RedactWithHash(customer.Name)
     }
   }
+  return redacted
 }
 
 main() {
