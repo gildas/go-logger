@@ -106,9 +106,9 @@ func (stream *StackDriverStream) Write(record *Record) (err error) {
 			if err != nil {
 				return errors.JSONMarshalError.WrapIfNotMe(err)
 			}
-			options = append(options, googleoption.WithCredentialsJSON(payload))
+			options = append(options, googleoption.WithAuthCredentialsJSON(googleoption.ServiceAccount, payload))
 		} else if len(stream.KeyFilename) != 0 {
-			options = append(options, googleoption.WithCredentialsFile(stream.KeyFilename))
+			options = append(options, googleoption.WithAuthCredentialsFile(googleoption.ServiceAccount, stream.KeyFilename))
 		}
 		// if Key and KeyFilename are not provided, $GOOGLE_APPLICATION_CREDENTIALS is used.
 		stream.client, err = logging.NewClient(ctx, stream.Parent, options...)
