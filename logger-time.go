@@ -42,9 +42,9 @@ func (l *Logger) TimeFuncVE(message string, code func() (any, error)) (any, erro
 // Returns a defer func that you need to call to complete the tag
 func (l *Logger) Tag(message string) func() {
 	start := time.Now()
-	l.Infof("▶️ %s", message)
+	l.send(INFO, "▶️ %s", message)
 	return func() {
 		duration := time.Since(start)
-		l.Record("duration", duration.Seconds()).Infof("⏹️ %s. executed in %s", message, duration)
+		l.Record("duration", duration.Seconds()).send(INFO, "⏹️ %s. executed in %s", message, duration)
 	}
 }
