@@ -254,24 +254,31 @@ To be able to use the StackDriver Stream from outside Google Cloud, you have som
 On your workstation, you need to get the key filename:  
 
 1. Authenticate with Google Cloud  
-  ```console
-  gcloud auth login
-  ```
+
+    ```console
+    gcloud auth login
+    ```
+
 2. Create a Service Account (`logger-account` is just an example of a service account name)  
-  ```console
-  gcloud iam service-acccount create logger-account
-  ```
+
+    ```console
+    gcloud iam service-acccount create logger-account
+    ```
+
 3. Associate the Service Account to the Project you want to use  
-  ```console
-  gcloud projects add-iam-policy-binding my-logging-project \
-    --member "serviceAccount:logger-account@my-logging-project.iam.gserviceaccount.com" \
-    --role "roles/logging.logWriter"
-  ```
+
+    ```console
+    gcloud projects add-iam-policy-binding my-logging-project \
+      --member "serviceAccount:logger-account@my-logging-project.iam.gserviceaccount.com" \
+      --role "roles/logging.logWriter"
+    ```
+
 4. Retrieve the key filename  
-  ```console
-  gcloud iam service-accounts keys create /path/to/key.json \
-    --iam-account logger-account@my-logging-project.iam.gserviceaccount.com
-  ```
+
+    ```console
+    gcloud iam service-accounts keys create /path/to/key.json \
+      --iam-account logger-account@my-logging-project.iam.gserviceaccount.com
+    ```
 
 You can either set the `GOOGLE_APPLICATION_CREDENTIAL` and `GOOGLE_PROJECT_ID` environment variables with the path of the obtained key and Google Project ID or provide them to the StackDriver stream:  
 
