@@ -683,6 +683,28 @@ func main() {
 
 The logger will look for the environment variables `myapp_LOG_DESTINATION`, `myapp_LOG_LEVEL`, etc.
 
+## Benchmarks
+
+The benchmarks write to an in-memory stream that converts each record with the Bunyan converter and marshals it to JSON, so no disk I/O is involved. Run them with:
+
+```console
+go test -run '^$' -bench 'BenchmarkLogger_' -benchmem
+```
+
+Results (Intel Core i9-10850K, linux/amd64, `-benchtime=2s`):
+
+| Benchmark              | ns/op | B/op | allocs/op |
+|------------------------|------:|-----:|----------:|
+| Simple message         | 2323  | 152  | 10        |
+| Complex message        | 3386  | 361  | 15        |
+| Child log              | 2525  | 152  | 10        |
+| JSON record            | 3607  | 739  | 16        |
+| JSON redacted record   | 3852  | 868  | 22        |
+| Redacted string        | 6414  | 507  | 15        |
+| Obfuscated string      | 4006  | 1301 | 18        |
+
+Numbers vary depending on the machine.
+
 ## Thanks
 
 Special thanks to [@chakrit](https://github.com/chakrit) for his [chakrit/go-bunyan](https://github.com/chakrit/go-bunyan) that inspired me. In fact earlier versions were wrappers around his library.  
